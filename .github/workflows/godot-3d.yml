@@ -177,6 +177,11 @@ jobs:
           REVIEWED_SHA: ${{ steps.verify.outputs.sha }}
         run: |
           set -euo pipefail
+          exec > >(tee /tmp/reviewed-publish.log) 2>&1
+          trap 'code=$?; if [ "$code" -ne 0 ]; then python3 -c '''s=open("/tmp/reviewed-publish.log").read()[-12000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'''; fi; exit "$code"' EXIT
+          printf 'Expected source: %s\n' "$REVIEWED_SHA"
+          ls -lah artifacts
+          cat artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt
           grep -Fx "Source: $REVIEWED_SHA" artifacts/BUILD.txt
           grep -Fx 'Version: 0.5.0-combat-preview' artifacts/BUILD.txt
           grep -q '^PASS:' artifacts/ANDROID-SMOKE.txt
