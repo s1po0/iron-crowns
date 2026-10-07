@@ -104,7 +104,7 @@ assert r['distance']>30 and abs(r['x']+133)<2 and abs(r['z']-97)<2, r
 assert save['gold']==90 and r['army']==11, save
 print('Android campaign travel, castle arrival and saved position passed.')
 PYTRAVEL
-# Complete the job at its physical destination, then attempt a duplicate claim.
+# Complete the job at its physical destination (duplicate claims are covered by the engine suite).
 tap 335 667
 sleep 1
 tap 640 510

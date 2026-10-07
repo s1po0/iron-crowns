@@ -597,6 +597,15 @@ func run_realm_tests() -> void:
 	realm.return_to_map = false
 
 func run_wanderer_tests() -> void:
+	var guard_model = CrownRealm.new()
+	guard_model.initialize(self)
+	gold = 120
+	assert(guard_model.life.choose_origin(2) and hero.maximum_hp==220 and hero.hp==220,"Freeblade health benefit")
+	guard_model.free()
+	var scout_model = CrownRealm.new()
+	scout_model.initialize(self)
+	assert(scout_model.life.choose_origin(1) and scout_model.food==50 and scout_model.life.travel_multiplier()>1.14,"Pathfinder supplies and movement")
+	scout_model.free()
 	var model = CrownRealm.new()
 	model.initialize(self)
 	var life = model.life
@@ -689,8 +698,37 @@ func run_wanderer_tests() -> void:
 	var old_life = realm.life
 	realm.life = life
 	fighting = false
-	realm.launch_encounter(1)
+	var old_party = realm.party
+	realm.party = realm.terrain_point(realm.settlements[9].at)
+	assert(not realm.holdings.has(9),"Test castle must be unowned")
+	realm.launch_encounter(9)
 	assert(not fighting,"Neutral oath forbids settlement assault")
+	realm.party = old_party
 	realm.life = old_life
 	model.free()
+	# Integrate ownership with the existing visible NPC and its actual connected route.
+	realm.life = WandererLife.new(realm)
+	realm.life.companions = [0]
+	realm.relations = [0,0,0,0]
+	realm.selected = 0
+	realm.party = realm.terrain_point(realm.settlements[0].at)
+	gold = 1000
+	assert(realm.life.found_caravan(),"Visible caravan launch")
+	var npc = realm.civilians[0]
+	assert(npc.kind=="Your caravan" and not npc.route.is_empty(),"Owned caravan model and route")
+	npc.at = realm.follow_path(npc.at,npc.route,100000)
+	assert(npc.at.distance_to(realm.graph.get_point_position(int(npc.goal)))<.01,"Caravan road arrival")
+	for i in range(1,realm.civilians.size()):
+		realm.civilians[i].active = false
+	realm.pending = ""
+	realm.speed = 1
+	state = "play"
+	paused = false
+	money = gold
+	realm.update(.01)
+	assert(gold>money and not npc.route.is_empty(),"Simulation credits arrival and plans onward travel")
+	var paid = int(realm.life.caravan.paid)
+	realm.life.bind_caravan()
+	assert(npc.at.distance_to(realm.graph.get_point_position(0))<.01 and int(realm.life.caravan.paid)==paid,"Caravan reload starts home without changing earnings")
+	realm.life = old_life
 	print("IRON_WANDERER_PASS: origins, deliveries, companions, neutrality, businesses, accounting, migration, save validation")

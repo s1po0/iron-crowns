@@ -62,7 +62,7 @@ static func logbook(h) -> void:
 	h.label("3. Trade grain; hire help; save for a caravan or grain mill.",Vector2(172,551),15,h.white)
 	h.panel(Rect2(747,266,364,325),Color(.065,.12,.12,.8),9)
 	h.label("YOUR STORY SO FAR",Vector2(769,302),18,h.gold,h.heading)
-	var stats = [str(l.regions_seen())+" / 4 realms explored",str(l.visited.size())+" / 32 settlements visited",str(l.completed)+" deliveries completed",str(l.trade_profit)+" profitable grain-trading gold",str(l.companions.size())+" trusted companions",str(l.business_income-l.business_cost)+" net business / companion gold"]
+	var stats = [str(l.regions_seen())+" / 4 realms explored",str(l.visited.size())+" / 32 settlements visited",str(l.completed)+" deliveries completed",str(l.trade_profit)+" profitable grain-trading gold",str(l.companions.size())+" trusted companions",str(l.business_income-l.business_cost)+" operating net gold (excludes setup)"]
 	for i in range(stats.size()):
 		h.label(stats[i],Vector2(770,342+i*36),15,h.white)
 

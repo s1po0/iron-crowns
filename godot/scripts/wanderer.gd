@@ -47,7 +47,7 @@ func choose_origin(index: int) -> bool:
 func apply_traits() -> void:
 	if realm.game.hero!=null:
 		realm.game.hero.maximum_hp = 220.0 if origin=="Freeblade" else 180.0
-		realm.game.hero.hp = minf(realm.game.hero.hp,realm.game.hero.maximum_hp)
+		realm.game.hero.hp = realm.game.hero.maximum_hp
 
 func travel_multiplier() -> float:
 	return (1.15 if origin=="Pathfinder" else 1.0)*(1.10 if has_role("Scout") else 1.0)
