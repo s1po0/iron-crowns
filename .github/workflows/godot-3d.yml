@@ -171,7 +171,7 @@ jobs:
           path: artifacts
           run-id: ${{ steps.verify.outputs.run_id }}
           github-token: ${{ github.token }}
-      - name: Verify binary provenance and publish exact reviewed APK
+      - name: Verify binary provenance and stage exact reviewed APK
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEWED_SHA: ${{ steps.verify.outputs.sha }}
@@ -193,5 +193,8 @@ jobs:
           grep -Fx 'Version: 0.5.0-combat-preview' artifacts/BUILD.txt
           grep -q '^PASS:' artifacts/ANDROID-SMOKE.txt
           (cd artifacts && sha256sum -c SHA256SUMS.txt)
-          gh release create v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png \
-            --target "$REVIEWED_SHA" --prerelease --title 'Iron Crowns 0.5 — The Western Road combat rebuild' --notes-file docs/RELEASE_0.5.0.md
+          # A repository-authorized client creates/publishes the draft at the reviewed
+          # source SHA. The job token uploads binaries without creating an older-SHA tag.
+          gh release view v0.5.0-combat-preview --json isDraft,targetCommitish > draft.json
+          jq -e --arg sha "$REVIEWED_SHA" '.isDraft == true and .targetCommitish == $sha' draft.json
+          gh release upload v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png --clobber
