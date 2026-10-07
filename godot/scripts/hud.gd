@@ -123,7 +123,7 @@ func draw_game() -> void:
 	button("pause","II",Rect2(1200,92,52,45))
 	panel(Rect2(28,128,292,94),Color(.045,.12,.15,.74),8)
 	label("DEFEND HEARTHGLEN" if game.fighting else "THE WESTERN ROAD",Vector2(46,154),14,gold,heading)
-	label(str(game.living(1))+" raiders remaining" if game.fighting else "Explore on foot or open REALM",Vector2(46,181),14,white)
+	label(str(game.living(1))+" raiders remaining" if game.fighting else "Ride / cut on either side" if game.mounted else "Explore on foot or open REALM",Vector2(46,181),14,white)
 	label(str(game.living(0))+" soldiers under your banner",Vector2(46,204),12,muted)
 	if not game.fighting:
 		button("battle","BEGIN SKIRMISH",Rect2(470,29,190,48),true)
@@ -220,7 +220,7 @@ func draw_help() -> void:
 		"DEFEND   Hold BLOCK / Q facing the enemy. A fresh guard can parry; DODGE / Shift steps away.",
 		"LEAD        FOLLOW escorts you. HOLD anchors. CHARGE engages. WALL protects.",
 		"CAMPAIGN  Drag to pan, pinch to zoom. Select a settlement and tap TRAVEL.",
-		"FIGHT       Strikes land after a windup. Aim forward, stay in reach, and exploit enemy recovery.",
+		"RIDE         MOUNT / E near the horse. GAIT / Shift changes speed; CUT / R selects sword side.",
 		"SAVE        Company, campaign position, food, fiefs and gold persist; travel resumes paused."
 	]
 	for i in range(lines.size()):

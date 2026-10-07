@@ -150,9 +150,23 @@ func build_land() -> void:
 				surface.set_uv(Vector2(p.x,p.z)*.1)
 				surface.add_vertex(p)
 	surface.generate_normals()
-	var mat = FieldMaterials.surface("meadow",Color.WHITE,1)
-	mat.vertex_color_use_as_albedo = true
-	mat.metallic_specular = .15
+	# Broad relief color must remain readable at atlas scale: do not multiply
+	# it by a dark full-strength field texture or a high-frequency normal map.
+	var shader = Shader.new()
+	shader.code = """shader_type spatial;
+render_mode diffuse_burley;
+uniform sampler2D meadow : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+varying vec3 region_color;
+void vertex(){region_color=COLOR.rgb;}
+void fragment(){
+ float grain=texture(meadow,UV*0.35).g;
+ ALBEDO=region_color*mix(0.94,1.10,grain);
+ ROUGHNESS=0.96;
+ SPECULAR=0.12;
+}"""
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("meadow",load("res://assets/materials/meadow.jpg"))
 	var land_mesh = surface.commit()
 	assert(land_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL][0].y>0,"Terrain winding must face sky")
 	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)
@@ -236,12 +250,11 @@ func build_forests() -> void:
 	trunk_mesh.top_radius = .2
 	trunk_mesh.radial_segments = 5
 	trunk_mesh.rings = 1
-	var leaf_mesh = CylinderMesh.new()
-	leaf_mesh.height = 7.5
-	leaf_mesh.bottom_radius = 2.1
-	leaf_mesh.top_radius = 0
-	leaf_mesh.radial_segments = 7
-	leaf_mesh.rings = 1
+	var leaf_mesh = SphereMesh.new()
+	leaf_mesh.height = 6.4
+	leaf_mesh.radius = 2.6
+	leaf_mesh.radial_segments = 10
+	leaf_mesh.rings = 5
 	trunks.transform_format = MultiMesh.TRANSFORM_3D
 	leaves.transform_format = MultiMesh.TRANSFORM_3D
 	trunks.mesh = trunk_mesh

@@ -29,7 +29,7 @@ static func draw(h) -> void:
 		var at = g.camera.unproject_position(world)*h.base/h.size
 		if at.x<30 or at.x>1240 or at.y<118 or at.y>595 or (r.selected>=0 and at.x>956):
 			continue
-		var box = Rect2(at-Vector2(63,6),Vector2(126,35))
+		var box = Rect2(at-Vector2(74,6),Vector2(148,35))
 		var overlap = false
 		for previous in occupied:
 			if previous.intersects(box):
@@ -38,8 +38,7 @@ static func draw(h) -> void:
 			continue
 		occupied.append(box)
 		var color = h.gold if r.holdings.has(i) else r.COLORS[s.faction]
-		if i==r.selected:
-			h.panel(Rect2(at-Vector2(77,8),Vector2(154,42)),Color(.05,.07,.07,.9),5,color)
+		h.panel(Rect2(at-Vector2(77,8),Vector2(154,42)),Color(.05,.07,.07,.93 if i==r.selected else .78),5,color if i==r.selected else Color.TRANSPARENT)
 		var font_size = 15 if s.kind=="Town" else 12
 		h.centered(s.name.to_upper(),at+Vector2(1,9),font_size,Color(.04,.04,.03,.9),h.heading)
 		h.centered(s.name.to_upper(),at+Vector2(0,8),font_size,h.white,h.heading)
