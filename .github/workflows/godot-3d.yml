@@ -1,0 +1,88 @@
+name: Iron Crowns 3D Android
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['godot/**', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  three-dimensional-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Godot and Android export template
+        run: bash scripts/godot-ci-setup.sh
+      - name: Parse project and test gameplay
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          {
+            godot --headless --path godot --editor --import --quit
+            timeout 90 godot --headless --path godot -- --smoke
+          } 2>&1 | tee artifacts/engine-tests.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log; then
+            python3 -c 's=open("artifacts/engine-tests.log").read()[-16000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            exit 1
+          fi
+      - name: Render actual 3D screenshots
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 120 xvfb-run -a godot --path godot --rendering-method gl_compatibility -- --capture 2>&1 | tee artifacts/render.log
+          mkdir -p docs/screenshots
+          cp /tmp/iron-title.png /tmp/iron-field.png /tmp/iron-map.png docs/screenshots/
+          cp docs/screenshots/*.png artifacts/
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
+      - name: Save reviewable screenshots on the session branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/screenshots/
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual 3D characters, village, and region overview'
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
+      - name: Export Android APK
+        run: |
+          set -o pipefail
+          godot --headless --path godot --export-debug Android "$GITHUB_WORKSPACE/artifacts/Iron-Crowns-0.2.0-3D.apk" 2>&1 | tee artifacts/export.log || {
+            python3 -c 's=open("artifacts/export.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            exit 1
+          }
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Launch and exercise the 3D APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/godot-android-smoke.sh
+      - name: Build metadata
+        run: |
+          cd artifacts
+          sha256sum *.apk > SHA256SUMS.txt
+          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.2.0-3d-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: Iron-Crowns-3D
+          path: artifacts/
+          retention-days: 30
+      - name: Publish visually reviewed prerelease
+        if: contains(github.event.head_commit.message, '[publish 3d]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.2.0-3d-preview artifacts/Iron-Crowns-0.2.0-3D.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png \
+            --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.2 — Stylized 3D field preview' --notes-file docs/RELEASE_0.2.0.md

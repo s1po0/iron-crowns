@@ -2,7 +2,7 @@ name: Android APK
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths-ignore: ['docs/**', '**.md']
+    paths: ['app/**', 'tests/**', 'build.gradle', 'settings.gradle', 'gradle.properties', 'scripts/test.sh', 'scripts/emulator-smoke.sh', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: write
