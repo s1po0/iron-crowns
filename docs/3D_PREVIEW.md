@@ -44,4 +44,4 @@ Environment meshes are combined by material to reduce draw calls. Characters sti
 Visual review with players; physical-device performance, frame pacing, safe-area and multitouch tests; stronger navmesh navigation; imported skeletal animation if justified; sound; accessibility semantics and scalable UI; full company persistence; proper campaign map progression; production signing.
 
 ## Third-party notices
-Godot is MIT-licensed; official export-template engine notices are included by the engine. Cinzel and Manrope are used under the SIL Open Font License; their license files are included under `godot/assets/fonts/`. No Bannerlord assets, code, or characters are used.
+Godot is MIT-licensed; official export-template engine notices are included by the engine. Cinzel and Lato are used under the SIL Open Font License; their license files are included under `godot/assets/fonts/`. No Bannerlord assets, code, or characters are used.

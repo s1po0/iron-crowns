@@ -6,19 +6,25 @@ var buttons: Array = []
 var fingers = {}
 var joystick = Vector2.ZERO
 var heading: Font = preload("res://assets/fonts/cinzel.ttf")
-var body: Font = preload("res://assets/fonts/manrope.ttf")
+var body: Font = preload("res://assets/fonts/lato.ttf")
 var ink = Color("142f35")
 var gold = Color("e8c184")
 var white = Color("f7f0dd")
 var muted = Color("b8c9c5")
 var red = Color("da8368")
 var base = Vector2(1280,720)
+var menu_gradient: GradientTexture2D
 
 func _ready() -> void:
-	var readable_font = FontVariation.new()
-	readable_font.base_font = body
-	readable_font.variation_opentype = {"wght":550}
-	body = readable_font
+	var gradient = Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0,0.45,1.0])
+	gradient.colors = PackedColorArray([Color(.035,.095,.12,.98),Color(.035,.095,.12,.90),Color(.035,.095,.12,0)])
+	menu_gradient = GradientTexture2D.new()
+	menu_gradient.width = 256
+	menu_gradient.height = 1
+	menu_gradient.gradient = gradient
+	menu_gradient.fill_from = Vector2.ZERO
+	menu_gradient.fill_to = Vector2(1,0)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -73,8 +79,7 @@ func _draw() -> void:
 		draw_help()
 
 func draw_title() -> void:
-	for i in range(90):
-		draw_rect(Rect2(i*9,0,9,720),Color(.035,.095,.12,.97*(1-pow(float(i)/90,2))))
+	draw_texture_rect(menu_gradient,Rect2(0,0,825,720),false)
 	crown(Vector2(75,83),1.4,gold)
 	label("THE ASHEN MARCHES",Vector2(113,89),14,gold)
 	label("IRON",Vector2(53,238),82,white,heading)
