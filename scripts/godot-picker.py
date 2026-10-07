@@ -7,6 +7,7 @@ def nodes():
     adb('shell','uiautomator','dump','/sdcard/window.xml')
     raw=adb('shell','cat','/sdcard/window.xml')
     open('artifacts/android/picker.xml','wb').write(raw)
+    print(raw.decode(errors='replace'), flush=True)
     return list(ET.fromstring(raw).iter('node'))
 def click(labels):
     for node in nodes():

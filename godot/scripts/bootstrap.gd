@@ -168,3 +168,11 @@ func mount_data() -> void:
 
 func start_game() -> void:
 	get_tree().change_scene_to_file("res://main.tscn")
+
+func _input(event: InputEvent) -> void:
+	# The combat HUD deliberately disables mouse emulation for multi-touch.
+	# Handle the install button's real touch events without changing that setting.
+	if event is InputEventScreenTouch and event.pressed and not import_button.disabled:
+		if import_button.get_global_rect().has_point(event.position):
+			get_viewport().set_input_as_handled()
+			select_data()
