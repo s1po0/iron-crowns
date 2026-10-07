@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 PKG=com.ironcrowns.marches
+# A dead emulator must fail with diagnostics, not hold the job indefinitely.
+ADB_BIN=$(command -v adb)
+adb() { timeout 35 "$ADB_BIN" "$@"; }
 mkdir -p artifacts/android
 exec > >(tee /tmp/android-smoke.log) 2>&1
 finish() {
   status=$?
+  trap - EXIT
+  set +e
   adb logcat -d > artifacts/android/logcat.txt
   if [ "$status" -ne 0 ]; then
     adb exec-out screencap -p > artifacts/android/failure.png
@@ -17,6 +22,7 @@ for i in range(0,len(s),2800):
 PYLOG
     tail -60 /tmp/android-smoke.log | python3 -c 'import sys; s=sys.stdin.read(); print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
   fi
+  exit "$status"
 }
 trap finish EXIT
 adb install -r artifacts/Iron-Crowns-0.5.0-Combat.apk

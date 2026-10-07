@@ -167,7 +167,7 @@ func begin_battle() -> void:
 	hero.fall = 0
 	hero.visual.rotation = Vector3.ZERO
 	hero.visual.position = Vector3.ZERO
-	hero.ring.visible = true
+	hero.ring.visible = false
 	hero.position = Vector3(0,0,10)
 	stamina = 100
 	encounter_reward_note = ""
@@ -504,7 +504,7 @@ func return_to_camp() -> void:
 	hero.collision_layer = 2
 	hero.visual.rotation = Vector3.ZERO
 	hero.visual.position = Vector3.ZERO
-	hero.ring.visible = true
+	hero.ring.visible = false
 	hero.position = Vector3(0,0,10)
 	hero.speed = 0
 	stamina = 100

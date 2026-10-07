@@ -47,23 +47,26 @@ func setup(faction: int, is_player: bool) -> void:
 	add_child(collision)
 	build_character()
 
-# Smooth oval sections give armor a human silhouette instead of block limbs.
-# Each ring is (height, half-width, half-depth); explicit radial normals prevent facets.
+# Engine-generated, capped frustum sections keep normals/UVs consistent with the
+# Android renderer. Oval scaling gives fitted armor without box-shaped limbs.
 func armor(parent: Node3D, rings: Array, mat: Material, offset: Vector3 = Vector3.ZERO) -> MeshInstance3D:
-	var surface = SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var segments = 20
+	var middle: Vector3 = rings[int(rings.size()/2)]
+	var ratio = middle.z/maxf(.01,middle.y)
+	var result: MeshInstance3D
 	for row in range(rings.size()-1):
-		for side in range(segments):
-			for corner in [Vector2i(0,0),Vector2i(1,1),Vector2i(1,0),Vector2i(0,0),Vector2i(0,1),Vector2i(1,1)]:
-				var ring_data: Vector3 = rings[row+corner.y]
-				var angle = TAU*float(side+corner.x)/segments
-				var slope = (rings[row].y-rings[row+1].y)/maxf(.01,rings[row+1].x-rings[row].x)
-				surface.set_normal(Vector3(cos(angle),slope,sin(angle)*ring_data.y/maxf(.01,ring_data.z)).normalized())
-				surface.set_uv(Vector2(float(side+corner.x)/segments,ring_data.x))
-				surface.add_vertex(Vector3(cos(angle)*ring_data.y,ring_data.x,sin(angle)*ring_data.z)+offset)
-	surface.generate_tangents()
-	return MarchArt.mesh(parent,surface.commit(),Vector3.ZERO,mat)
+		var lower: Vector3 = rings[row]
+		var upper: Vector3 = rings[row+1]
+		var shape = CylinderMesh.new()
+		shape.bottom_radius = lower.y
+		shape.top_radius = upper.y
+		shape.height = upper.x-lower.x
+		shape.radial_segments = 24
+		shape.rings = 1
+		shape.cap_top = row==rings.size()-2
+		shape.cap_bottom = row==0
+		result = MarchArt.mesh(parent,shape,offset+Vector3(0,(lower.x+upper.x)*.5,0),mat)
+		result.scale.z = ratio
+	return result
 
 func rounded(parent: Node3D, at: Vector3, scale_value: Vector3, mat: Material) -> MeshInstance3D:
 	var mesh = SphereMesh.new()

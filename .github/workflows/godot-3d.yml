@@ -11,12 +11,27 @@ on:
         type: string
 permissions:
   contents: write
+  actions: write
+concurrency:
+  group: iron-crowns-${{ github.ref }}-${{ inputs.reviewed_run || 'build' }}
+  cancel-in-progress: true
 jobs:
   three-dimensional-build:
     if: ${{ !inputs.reviewed_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
+      - name: Stop superseded builds on this session branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=arena%2F94d215f9-iron-crowns&status=in_progress&per_page=30" \
+            --jq '.workflow_runs[] | select(.path == ".github/workflows/godot-3d.yml") | .id' > running.txt
+          while read -r id; do
+            if [ "$id" != "$GITHUB_RUN_ID" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/cancel" || true
+            fi
+          done < running.txt
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
@@ -69,12 +84,14 @@ jobs:
           echo 'DISPLAY=:99' >> "$GITHUB_ENV"
           echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
       - name: Launch and exercise the 3D APK
+        timeout-minutes: 10
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
           arch: x86_64
           target: default
           disable-animations: true
+          emulator-boot-timeout: 180
           emulator-options: -no-window -gpu host -noaudio -no-boot-anim -camera-back none -feature -Vulkan
           script: bash scripts/godot-android-smoke.sh
       - name: Save real Android screenshot for review
