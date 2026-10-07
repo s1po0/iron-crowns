@@ -178,7 +178,14 @@ jobs:
         run: |
           set -euo pipefail
           exec > >(tee /tmp/reviewed-publish.log) 2>&1
-          trap 'code=$?; if [ "$code" -ne 0 ]; then python3 -c '''s=open("/tmp/reviewed-publish.log").read()[-12000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'''; fi; exit "$code"' EXIT
+          publish_diagnostics() {
+            code=$?
+            if [ "$code" -ne 0 ]; then
+              python3 -c 's=open("/tmp/reviewed-publish.log").read()[-12000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            fi
+            exit "$code"
+          }
+          trap publish_diagnostics EXIT
           printf 'Expected source: %s\n' "$REVIEWED_SHA"
           ls -lah artifacts
           cat artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt
