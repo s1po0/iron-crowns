@@ -59,6 +59,9 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          Xvfb :99 -screen 0 1280x720x24 > /tmp/android-display.log 2>&1 &
+          echo 'DISPLAY=:99' >> "$GITHUB_ENV"
+          echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
       - name: Launch and exercise the 3D APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -66,12 +69,18 @@ jobs:
           arch: x86_64
           target: default
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu host -noaudio -no-boot-anim -camera-back none -feature -Vulkan
           script: bash scripts/godot-android-smoke.sh
       - name: Save real Android screenshot for review
+        if: always()
         run: |
-          cp artifacts/android/02-battle.png docs/screenshots/android-field.png
-          git add docs/screenshots/android-field.png
+          mkdir -p docs/screenshots
+          if [ -f artifacts/android/02-battle.png ]; then
+            cp artifacts/android/02-battle.png docs/screenshots/android-field.png
+          elif [ -f artifacts/android/failure.png ]; then
+            cp artifacts/android/failure.png docs/screenshots/android-diagnostic.png
+          fi
+          git add docs/screenshots/
           if ! git diff --cached --quiet; then
             git commit -m 'docs: capture actual Android 3D field rendering'
             git push origin HEAD:arena/94d215f9-iron-crowns

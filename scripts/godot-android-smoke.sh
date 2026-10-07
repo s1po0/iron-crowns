@@ -12,7 +12,8 @@ finish() {
 lines=open('artifacts/android/logcat.txt',errors='replace').readlines()
 selected=[x for x in lines if any(t in x for t in ['godot','Godot','FATAL','Fatal','DEBUG','AndroidRuntime','ironcrowns'])]
 s=''.join(selected[-150:])[-18000:]
-print('::error::'+s.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+for i in range(0,len(s),2800):
+    print('::error::Android diagnostics '+str(i//2800+1)+': '+s[i:i+2800].replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
 PYLOG
     tail -60 /tmp/android-smoke.log | python3 -c 'import sys; s=sys.stdin.read(); print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
   fi
