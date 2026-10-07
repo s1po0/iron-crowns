@@ -24,7 +24,7 @@ jobs:
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/engine-tests.log || true
           if ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log; then
-            timeout 45 godot --headless --path godot -- --smoke 2>&1 | tee -a artifacts/engine-tests.log || true
+            timeout 100 godot --headless --path godot -- --smoke 2>&1 | tee -a artifacts/engine-tests.log || true
           fi
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log; then
             python3 -c 's=open("artifacts/engine-tests.log").read()[-16000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
@@ -33,7 +33,7 @@ jobs:
       - name: Render actual 3D screenshots
         run: |
           set -o pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 120 xvfb-run -a godot --path godot --rendering-method gl_compatibility -- --capture 2>&1 | tee artifacts/render.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --rendering-method gl_compatibility -- --capture 2>&1 | tee artifacts/render.log
           mkdir -p docs/screenshots
           cp /tmp/iron-title.png /tmp/iron-field.png /tmp/iron-map.png docs/screenshots/
           cp docs/screenshots/*.png artifacts/
@@ -50,7 +50,7 @@ jobs:
       - name: Export Android APK
         run: |
           set -o pipefail
-          godot --headless --path godot --export-debug Android "$GITHUB_WORKSPACE/artifacts/Iron-Crowns-0.2.0-3D.apk" 2>&1 | tee artifacts/export.log || {
+          godot --headless --path godot --export-debug Android "$GITHUB_WORKSPACE/artifacts/Iron-Crowns-0.3.0-Campaign.apk" 2>&1 | tee artifacts/export.log || {
             python3 -c 's=open("artifacts/export.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
             exit 1
           }
@@ -78,6 +78,8 @@ jobs:
           if [ -f artifacts/android/02-battle.png ]; then
             cp artifacts/android/02-battle.png docs/screenshots/android-field.png
             cp artifacts/android/02-battle.png artifacts/android-field.png
+            cp artifacts/android/04-campaign.png docs/screenshots/android-campaign.png
+            cp artifacts/android/04-campaign.png artifacts/android-campaign.png
             rm -f docs/screenshots/android-diagnostic.png
           elif [ -f artifacts/android/failure.png ]; then
             cp artifacts/android/failure.png docs/screenshots/android-diagnostic.png
@@ -91,7 +93,7 @@ jobs:
         run: |
           cd artifacts
           sha256sum *.apk > SHA256SUMS.txt
-          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.2.0-3d-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
+          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.3.0-campaign-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
       - uses: actions/upload-artifact@v5
         if: always()
         with:
@@ -103,5 +105,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.0-3d-preview artifacts/Iron-Crowns-0.2.0-3D.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/android-field.png \
-            --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.2 — Stylized 3D field preview' --notes-file docs/RELEASE_0.2.0.md
+          gh release create v0.3.0-campaign-preview artifacts/Iron-Crowns-0.3.0-Campaign.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/android-field.png artifacts/android-campaign.png \
+            --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.3 — The Ashen Marches campaign map' --notes-file docs/RELEASE_0.3.0.md

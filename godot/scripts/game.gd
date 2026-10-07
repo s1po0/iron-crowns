@@ -29,6 +29,10 @@ var ready_frames = 0
 var capture_mode = false
 var smoke_mode = false
 var terrain: MarchWorld
+var realm: CrownRealm
+var saved_realm: Dictionary = {}
+var restored_army = 8
+var realm_ready_frames = 0
 
 func _ready() -> void:
 	capture_mode = "--capture" in OS.get_cmdline_user_args()
@@ -40,9 +44,14 @@ func _ready() -> void:
 	terrain.build()
 	hero = spawn_knight(Vector3(0,0,10),0,true)
 	hero.rotation.y = PI+.2
-	for i in range(8):
+	for i in range(restored_army):
 		spawn_knight(Vector3(-4.5+(i%4)*3.0,0,5-(i/4)*2.3),0,false)
 	hold_point = Vector3(0,0,4)
+	realm = CrownRealm.new()
+	add_child(realm)
+	realm.initialize(self)
+	realm.restore(saved_realm)
+	realm.visible = false
 	camera = Camera3D.new()
 	camera.fov = 62
 	camera.near = .12
@@ -104,15 +113,21 @@ func enter_world() -> void:
 	hero.rotation.y = 0
 	state = "play"
 	reset_controls()
-	announce("Welcome to Hearthglen. Explore, or begin a skirmish.")
+	realm.show_map()
+	realm.selected = 0
+	paused = false
+	announce("The Marches await. Select a settlement and follow the roads.")
 
 func begin_battle() -> void:
 	if fighting:
 		return
+	if realm!=null and map_open:
+		realm.hide_map()
 	map_open = false
 	state = "play"
 	paused = false
 	clear_enemies()
+	realm.checkpoint_army = living(0)
 	hero.hp = hero.maximum_hp
 	hero.dead = false
 	hero.fall = 0
@@ -122,6 +137,8 @@ func begin_battle() -> void:
 	hero.position = Vector3(0,0,10)
 	stamina = 100
 	var count = mini(8+victories*2,16)
+	if realm.return_to_map:
+		count = realm.settlements[realm.encounter_fief].garrison if realm.encounter_fief>=0 else realm.civilians[realm.encounter_npc].men
 	for i in range(count):
 		var knight = spawn_knight(Vector3(-5+(i%4)*3.1,0,-9-(i/4)*2.4),1,false)
 		knight.rotation.y = PI
@@ -223,7 +240,10 @@ func _physics_process(delta: float) -> void:
 		for knight in soldiers:
 			knight.animate(delta)
 		return
-	if paused or map_open or state!="play":
+	if map_open:
+		realm.update(delta)
+		return
+	if paused or state!="play":
 		return
 	stamina = minf(100,stamina+delta*(7 if blocking else 21))
 	dash_time = maxf(0,dash_time-delta)
@@ -327,8 +347,10 @@ func _process(delta: float) -> void:
 	if camera==null:
 		return
 	if map_open:
-		camera.position = camera.position.lerp(Vector3(34,45,37),minf(1,delta*4))
-		camera.look_at(Vector3(0,0,-8))
+		realm.update_camera(delta)
+		realm_ready_frames += 1
+		if realm_ready_frames==30:
+			print("IRON_REALM_READY")
 	elif state!="title":
 		var focus = hero.position+Vector3(0,1.3,0)
 		var offset = Vector3(sin(yaw)*7.0,2.1+pitch*2,cos(yaw)*7.0)
@@ -345,7 +367,8 @@ func _process(delta: float) -> void:
 		if capture_frame==180:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-field.png")
-			map_open = true
+			realm.show_map()
+			realm.selected = -1
 		if capture_frame==270:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-map.png")
@@ -362,6 +385,7 @@ func finish_battle(won: bool) -> void:
 		victories += 1
 	else:
 		gold = maxi(30,gold-20)
+	realm.battle_result(won)
 	save_progress()
 
 func return_to_camp() -> void:
@@ -381,7 +405,11 @@ func return_to_camp() -> void:
 		spawn_knight(hero.position+Vector3(-3+living(0)*1.5,0,-3),0,false)
 	for knight in soldiers:
 		knight.hp = knight.maximum_hp
-	announce("Company rested. Explore Hearthglen or prepare another skirmish.")
+	if realm.return_to_map:
+		realm.return_to_map = false
+		realm.show_map()
+	announce("Company rested. Your campaign continues.")
+	save_progress()
 
 func announce(message: String) -> void:
 	toast = message
@@ -400,8 +428,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_4: set_order("WALL")
 			KEY_SHIFT: dash()
 			KEY_M:
-				map_open = not map_open
-				reset_controls()
+				toggle_realm()
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and state=="play" and not paused and not map_open:
 		look(event.relative)
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and state=="play" and not paused and not map_open:
@@ -415,8 +442,12 @@ func back() -> void:
 	reset_controls()
 	if hud.help_open:
 		hud.help_open = false
+		paused = false
 	elif map_open:
-		map_open = false
+		if realm.selected>=0:
+			realm.selected = -1
+		else:
+			realm.hide_map()
 	elif state=="play":
 		paused = not paused
 
@@ -439,7 +470,7 @@ func save_progress() -> void:
 	if file==null:
 		announce("Progress could not be saved. Check free storage.")
 		return
-	file.store_string(JSON.stringify({"version":1,"gold":gold,"victories":victories}))
+	file.store_string(JSON.stringify({"version":2,"gold":gold,"victories":victories,"realm":realm.serialize() if realm!=null else saved_realm}))
 	file.flush()
 	file.close()
 	var error = DirAccess.rename_absolute("user://progress.tmp","user://progress.json")
@@ -452,9 +483,12 @@ func load_progress() -> void:
 	if not FileAccess.file_exists("user://progress.json"):
 		return
 	var data = JSON.parse_string(FileAccess.get_file_as_string("user://progress.json"))
-	if data is Dictionary and data.get("version",0)==1:
+	if data is Dictionary and data.get("version",0) in [1,2]:
 		gold = clampi(int(data.get("gold",120)),0,1000000)
 		victories = clampi(int(data.get("victories",0)),0,100000)
+		if data.get("realm",{}) is Dictionary:
+			saved_realm = data.get("realm",{})
+			restored_army = clampi(int(saved_realm.get("army",8)),4,12)
 
 func run_smoke() -> void:
 	assert(hero!=null and soldiers.size()==9,"Character scene initialization failed")
@@ -478,5 +512,58 @@ func run_smoke() -> void:
 	assert(gold==200,"Victory must not award twice")
 	return_to_camp()
 	assert(not hero.dead and state=="play","Return-to-camp failed")
-	print("IRON_SMOKE_PASS: characters, spawn, melee, formation, victory idempotency, camp recovery")
+	run_realm_tests()
+	print("IRON_SMOKE_PASS: characters, battle, campaign roads, trade, travel, persistence, fiefs")
 	get_tree().quit()
+
+func toggle_realm() -> void:
+	if fighting:
+		announce("Finish or retreat from this battle before returning to the campaign.")
+		return
+	if map_open:
+		realm.hide_map()
+	else:
+		realm.show_map()
+
+func run_realm_tests() -> void:
+	assert(realm.settlements.size()==32,"Campaign settlement count")
+	for id in range(32):
+		assert(realm.graph.get_point_path(0,id).size()>0,"Disconnected road node")
+	realm.selected = 0
+	assert(realm.near_settlement(0),"Initial town proximity")
+	var money = gold
+	assert(realm.transact("buy"),"Trade purchase")
+	assert(realm.transact("sell"),"Trade sale")
+	assert(gold<money and realm.grain==0,"Local arbitrage must lose money")
+	realm.selected = 20
+	money = gold
+	assert(not realm.transact("food") and gold==money,"Remote purchase rejected")
+	assert(realm.travel_to(20),"Campaign route planning")
+	var planned = realm.route.duplicate()
+	var start = realm.party
+	var halfway = realm.follow_path(start,planned,35)
+	assert(start.distance_to(halfway)>0 and planned.size()>0,"Incremental travel")
+	var arrived = realm.follow_path(halfway,planned,10000)
+	assert(arrived.distance_to(realm.graph.get_point_position(20))<.1 and planned.is_empty(),"Road arrival")
+	realm.route.clear()
+	realm.speed = 0
+	realm.holdings = [1]
+	realm.food = 45
+	money = gold
+	realm.next_day()
+	assert(gold>money,"Fief income after wages")
+	var serialized = JSON.parse_string(JSON.stringify(realm.serialize()))
+	var restored = CrownRealm.new()
+	restored.initialize(self)
+	restored.restore(serialized)
+	assert(restored.holdings.has(1) and restored.food==realm.food and restored.day==realm.day,"Save round trip")
+	restored.free()
+	# An encounter result can only reward once, including its campaign side effects.
+	realm.return_to_map = true
+	realm.encounter_fief = 5
+	realm.battle_result(true)
+	assert(realm.holdings.has(5) and realm.relations[realm.settlements[5].faction]<0,"Fief conquest")
+	var count = realm.holdings.size()
+	realm.battle_result(true)
+	assert(realm.holdings.size()==count,"No duplicated fiefs")
+	realm.return_to_map = false

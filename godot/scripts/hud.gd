@@ -4,6 +4,9 @@ var game
 var help_open = false
 var buttons: Array = []
 var fingers = {}
+var map_origins = {}
+var map_latest = {}
+var map_moved = {}
 var joystick = Vector2.ZERO
 var heading: Font = preload("res://assets/fonts/cinzel.ttf")
 var body: Font = preload("res://assets/fonts/lato.ttf")
@@ -30,6 +33,9 @@ func _ready() -> void:
 
 func reset_touches() -> void:
 	fingers.clear()
+	map_origins.clear()
+	map_latest.clear()
+	map_moved.clear()
 	joystick = Vector2.ZERO
 
 func panel(rect: Rect2, color: Color, radius: int = 12, border: Color = Color.TRANSPARENT) -> void:
@@ -86,10 +92,10 @@ func draw_title() -> void:
 	label("CROWNS",Vector2(53,330),82,white,heading)
 	draw_line(Vector2(59,363),Vector2(166,363),gold,2)
 	label("A captain. A company. A kingdom to forge.",Vector2(58,402),18,white)
-	label("Walk the Marches. Fight beside your soldiers.",Vector2(58,434),15,muted)
-	button("enter","ENTER THE MARCHES",Rect2(58,480,335,60),true)
+	label("32 settlements. Four realms. A continent to explore.",Vector2(58,434),15,muted)
+	button("enter","BEGIN CAMPAIGN",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
-	label("STYLIZED 3D  /  EARLY FIELD BUILD 0.2",Vector2(58,670),11,muted)
+	label("CAMPAIGN MAP  /  EARLY BUILD 0.3",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
 
@@ -157,18 +163,7 @@ func draw_game() -> void:
 		centered("Drag the right side to look around  ·  Tap REALM for the region overview",Vector2(640,577),12,white)
 
 func draw_map() -> void:
-	panel(Rect2(28,27,420,113),Color(.045,.12,.15,.9),10)
-	label("THE ASHEN MARCHES",Vector2(51,70),26,white,heading)
-	label("HEARTHGLEN  /  LOCAL REGION",Vector2(52,103),12,gold)
-	button("map","RETURN TO CAPTAIN",Rect2(986,28,266,52),true)
-	var points = [Vector3(0,7,-25),Vector3(-21,4,-4),Vector3(1,1,10)]
-	var names = ["HEARTHGLEN","ASHWOOD","YOUR COMPANY"]
-	for i in range(points.size()):
-		var at = game.camera.unproject_position(points[i])*base/size
-		panel(Rect2(at-Vector2(94,20),Vector2(188,42)),Color(.045,.12,.15,.87),7)
-		centered(names[i],at+Vector2(0,6),13,gold,heading)
-	panel(Rect2(344,652,592,42),Color(.045,.12,.15,.88),8)
-	centered("A 3D region overview. Kingdom simulation is not yet implemented.",Vector2(640,678),12,muted)
+	RealmOverlay.draw(self)
 
 func draw_result() -> void:
 	buttons.clear()
@@ -200,13 +195,13 @@ func draw_help() -> void:
 		"STRIKE     Hold the sword button, left click, or Space near an enemy.",
 		"DEFEND   Hold BLOCK / Q. DASH / Shift costs stamina and creates space.",
 		"LEAD        FOLLOW escorts you. HOLD anchors. CHARGE engages. WALL protects.",
-		"EXPLORE  Walk into Hearthglen; REALM shows the actual 3D region from above.",
+		"CAMPAIGN  Drag to pan, pinch to zoom. Select a settlement and tap TRAVEL.",
 		"FIGHT       Begin a skirmish, defeat the raiders, and earn gold for reinforcements.",
-		"SAVE        Gold and victories persist. Your field company resets when reopening."
+		"SAVE        Company, campaign position, food, fiefs and gold persist; travel resumes paused."
 	]
 	for i in range(lines.size()):
 		label(lines[i],Vector2(108,178+i*47),17,muted if i%2 else white)
-	label("This build focuses on 3D characters and a single playable region—not the full RPG.",Vector2(108,591),14,gold)
+	label("32 original settlements; one shared battle arena. Full sieges and dynasties are not implemented.",Vector2(108,591),14,gold)
 	button("help_close","BACK TO THE MARCHES",Rect2(108,627,330,52),true)
 
 func action(id: String) -> void:
@@ -215,9 +210,37 @@ func action(id: String) -> void:
 		"battle": game.begin_battle()
 		"recruit": game.reinforce()
 		"camp": game.return_to_camp()
-		"map":
-			game.map_open = not game.map_open
-			game.reset_controls()
+		"map": game.toggle_realm()
+		"field": game.realm.hide_map()
+		"select_close": game.realm.selected = -1
+		"select_previous", "select_next":
+			game.realm.selected = posmod(game.realm.selected+(-1 if id=="select_previous" else 1),32)
+			var at = game.realm.settlements[game.realm.selected].at
+			game.realm.map_focus = Vector3(at.x,0,at.y)
+			game.realm.zoom = minf(game.realm.zoom,350)
+		"travel": game.realm.travel_to(game.realm.selected)
+		"zoom_in": game.realm.change_zoom(.82)
+		"zoom_out": game.realm.change_zoom(1.22)
+		"locate":
+			game.realm.map_focus = Vector3(game.realm.party.x,0,game.realm.party.z)
+			game.realm.zoom = 280
+		"atlas":
+			game.realm.map_focus = Vector3.ZERO
+			game.realm.zoom = 630
+			game.realm.selected = -1
+		"time0": game.realm.speed = 0
+		"time1": game.realm.speed = 1
+		"time2": game.realm.speed = 2
+		"time4": game.realm.speed = 4
+		"food": game.realm.transact("food")
+		"buy_grain": game.realm.transact("buy")
+		"sell_grain": game.realm.transact("sell")
+		"realm_recruit": game.realm.transact("recruit")
+		"quest": game.realm.transact("quest")
+		"truce": game.realm.transact("truce")
+		"assault": game.realm.launch_encounter(game.realm.selected)
+		"fight_party": game.realm.launch_encounter()
+		"avoid_party": game.realm.avoid_encounter()
 		"pause":
 			game.paused = not game.paused
 			game.reset_controls()
@@ -233,7 +256,10 @@ func action(id: String) -> void:
 			if game.fighting:
 				game.finish_battle(false)
 			else:
+				if game.map_open:
+					game.realm.hide_map()
 				game.state = "title"
+				game.hero.rotation.y = PI+.2
 				game.camera.position = Vector3(-4.5,3.5,18)
 				game.camera.look_at(Vector3(-3,1.4,0))
 		_:
@@ -245,7 +271,13 @@ func pressed(at: Vector2, index: int) -> bool:
 		if item.rect.has_point(at):
 			action(item.id)
 			return true
-	if game.state!="play" or game.paused or game.map_open or help_open:
+	if game.state!="play" or game.paused or help_open:
+		return true
+	if game.map_open:
+		fingers[index] = "map"
+		map_origins[index] = at
+		map_latest[index] = at
+		map_moved[index] = false
 		return true
 	if at.distance_to(Vector2(125,584))<100:
 		fingers[index] = "move"
@@ -276,6 +308,12 @@ func release(index: int) -> void:
 		game.attacking = false
 	elif owned=="block":
 		game.blocking = false
+	elif owned=="map":
+		if not map_moved.get(index,false) and map_latest.has(index):
+			game.realm.select_at(map_latest[index]*size/base)
+		map_origins.erase(index)
+		map_latest.erase(index)
+		map_moved.erase(index)
 	fingers.erase(index)
 
 func _input(event: InputEvent) -> void:
@@ -293,6 +331,11 @@ func _input(event: InputEvent) -> void:
 			move_joystick(event.position*base/size)
 		elif owned=="look":
 			game.look(event.relative*base/size)
+		elif owned=="map":
+			map_drag(event.index,event.position*base/size,event.relative*base/size)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and game.map_open and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+		game.realm.change_zoom(.9 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.11)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -302,7 +345,7 @@ func _input(event: InputEvent) -> void:
 					action(item.id)
 					get_viewport().set_input_as_handled()
 					return
-			if at.y>425:
+			if at.y>425 or game.map_open:
 				pressed(at,-1)
 				get_viewport().set_input_as_handled()
 		else:
@@ -310,3 +353,27 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and fingers.get(-1,"")=="move":
 		move_joystick(event.position*base/size)
 		get_viewport().set_input_as_handled()
+
+	elif event is InputEventMouseMotion and fingers.get(-1,"")=="map":
+		map_drag(-1,event.position*base/size,event.relative*base/size)
+		get_viewport().set_input_as_handled()
+
+func map_drag(index: int, at: Vector2, relative: Vector2) -> void:
+	if not map_latest.has(index):
+		return
+	if map_latest.size()>=2:
+		var other = map_latest.keys()[0]
+		if other==index:
+			other = map_latest.keys()[1]
+		var previous = map_latest[index].distance_to(map_latest[other])
+		var current = at.distance_to(map_latest[other])
+		if previous>5 and current>5:
+			game.realm.change_zoom(previous/current)
+		map_moved[index] = true
+		map_moved[other] = true
+	else:
+		if at.distance_to(map_origins[index])>12:
+			map_moved[index] = true
+		if map_moved.get(index,false):
+			game.realm.pan(relative)
+	map_latest[index] = at
