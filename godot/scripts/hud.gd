@@ -100,7 +100,7 @@ func draw_title() -> void:
 	label("CROWNS",Vector2(53,330),82,white,heading)
 	draw_line(Vector2(59,363),Vector2(166,363),gold,2)
 	label("No king. No oath. Your journey.",Vector2(58,402),18,white)
-	label("32 settlements. Four realms. A continent to explore.",Vector2(58,434),15,muted)
+	label(str(game.realm.settlements.size())+" settlements. "+str(game.realm.FACTIONS.size())+" factions. An expanded continent.",Vector2(58,434),15,muted)
 	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
 	label("THE WESTERN ROAD  /  RIDERS / APK + DATA 0.6",Vector2(58,670),11,muted)
@@ -225,7 +225,7 @@ func draw_help() -> void:
 	]
 	for i in range(lines.size()):
 		label(lines[i],Vector2(108,178+i*47),17,muted if i%2 else white)
-	label("32 original settlements; one shared battle arena. Full sieges and dynasties are not implemented.",Vector2(108,591),14,gold)
+	label("Expanded campaign, one shared battle arena. Full sieges and dynasties are not implemented.",Vector2(108,591),14,gold)
 	button("help_close","BACK TO THE MARCHES",Rect2(108,627,330,52),true)
 
 func action(id: String) -> void:
@@ -270,7 +270,7 @@ func action(id: String) -> void:
 		"field": game.realm.hide_map()
 		"select_close": game.realm.selected = -1
 		"select_previous", "select_next":
-			game.realm.selected = posmod(game.realm.selected+(-1 if id=="select_previous" else 1),32)
+			game.realm.selected = posmod(game.realm.selected+(-1 if id=="select_previous" else 1),game.realm.settlements.size())
 			var at = game.realm.settlements[game.realm.selected].at
 			game.realm.map_focus = Vector3(at.x,0,at.y)
 			game.realm.zoom = minf(game.realm.zoom,350)
@@ -282,7 +282,7 @@ func action(id: String) -> void:
 			game.realm.zoom = 280
 		"atlas":
 			game.realm.map_focus = Vector3(70,0,-10)
-			game.realm.zoom = 800
+			game.realm.zoom = game.realm.WIDTH*1.08
 			game.realm.selected = -1
 		"time0": game.realm.speed = 0
 		"time1": game.realm.speed = 1

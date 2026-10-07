@@ -2,15 +2,12 @@ class_name CrownRealm
 extends Node3D
 
 # Original, road-connected campaign continent. Battle arenas remain separate.
-const WIDTH = 900.0
-const DEPTH = 680.0
-const FACTIONS = ["Ashen Crown", "Northguard", "Verdant League", "Sunward Dominion"]
-const COLORS = [Color("8c4149"),Color("466b8c"),Color("566e42"),Color("bd9354")]
-const ANCHORS = [Vector2(-165,130),Vector2(-320,-15),Vector2(-220,-210),Vector2(20,-250),Vector2(25,-35),Vector2(300,-105),Vector2(285,220),Vector2(-40,245)]
-const NAMES = ["Hearthglen","Crownharbor","Stonewatch","Wintermere","Highcourt","Eastmere","Duneshade","Greenhaven"]
-const CASTLES = ["Dusk Tower","Saltwatch","Ironpass","Frostgate","Crownspire","Falcon's Rest","Sunspire","Thornwall"]
-const VILLAGES = ["Ashford","Barleywick","Reedbank","Westmere","Pinecross","Greybrook","Snowfell","Whitefield","Oakridge","Millstead","Longford","Windmere","Redwell","Saffron Vale","Willowford","Meadowend"]
-const OWNERS = [0,2,1,1,0,3,3,2]
+var WIDTH = 2700.0
+var DEPTH = 2040.0
+var FACTIONS: Array = []
+var COLORS: Array = []
+var ANCHORS: Array = []
+var world_definition: Dictionary = {}
 var game
 var life: WandererLife
 var settlements: Array = []
@@ -58,13 +55,20 @@ func initialize(owner: Node) -> void:
 	noise.frequency = .014
 	noise.fractal_octaves = 4
 	rng.seed = 8631
-	for i in range(8):
-		var center = ANCHORS[i]
-		var owner_id = OWNERS[i]
-		add_settlement(NAMES[i],center,"Town",owner_id)
-		add_settlement(CASTLES[i],center+Vector2(32,-33),"Castle",owner_id)
-		add_settlement(VILLAGES[i*2],center+Vector2(-33,27),"Village",owner_id)
-		add_settlement(VILLAGES[i*2+1],center+Vector2(38,29),"Village",owner_id)
+	world_definition = JSON.parse_string(FileAccess.get_file_as_string("res://assets/content/world.json"))
+	assert(world_definition.schema==1 and world_definition.id=="ashen-marches","Unsupported world definition")
+	WIDTH = float(world_definition.width)
+	DEPTH = float(world_definition.depth)
+	for faction in world_definition.factions:
+		FACTIONS.append(str(faction.name))
+		COLORS.append(Color(str(faction.color)))
+	relations.resize(FACTIONS.size())
+	relations.fill(0)
+	for anchor in world_definition.anchors:
+		ANCHORS.append(Vector2(anchor[0],anchor[1]))
+	for settlement in world_definition.settlements:
+		assert(int(settlement.id)==settlements.size(),"Settlement IDs must be stable and contiguous")
+		add_settlement(str(settlement.name),Vector2(settlement.at[0],settlement.at[1]),str(settlement.kind),int(settlement.faction))
 	party.y = elevation(party.x,party.z)
 
 func add_settlement(title: String, at: Vector2, kind: String, faction: int) -> void:
@@ -73,7 +77,8 @@ func add_settlement(title: String, at: Vector2, kind: String, faction: int) -> v
 func elevation(x: float, z: float) -> float:
 	var h = 7.0 + noise.get_noise_2d(x,z)*6.0
 	# Continuous sculpted ranges, not the old cone-shaped horizon props.
-	for ridge in [Vector3(-115,-95,55),Vector3(-95,-180,65),Vector3(90,-175,64),Vector3(155,-255,77),Vector3(158,70,46),Vector3(-275,205,40)]:
+	for definition in world_definition.ridges:
+		var ridge = Vector3(definition[0],definition[1],definition[2])
 		var dx = (x-ridge.x)/47.0
 		var dz = (z-ridge.y)/83.0
 		h += ridge.z*exp(-(dx*dx+dz*dz))*clampf(.75+noise.get_noise_2d(x*2.3,z*2.3)*.65,.4,1.25)
@@ -83,12 +88,16 @@ func elevation(x: float, z: float) -> float:
 		var distance = Vector2(x,z).distance_to(settlement.at)
 		if distance<24:
 			h = lerpf(8,h,smoothstep(8,24,distance))
-	var shore = -400+sin(z*.014)*27+cos(z*.032)*14+50*exp(-pow((z+120)/65,2))
-	var east = 408+sin(z*.012)*25-45*exp(-pow((z-210)/60,2))
-	var north = -305+sin(x*.010)*23
-	var south = 299+cos(x*.012)*28
+	var shore = -WIDTH*.46+sin(z*.006)*70+cos(z*.013)*35
+	var east = WIDTH*.46+sin(z*.005)*60
+	var north = -DEPTH*.46+sin(x*.006)*50
+	var south = DEPTH*.46+cos(x*.007)*60
 	var inland = minf(minf(x-shore,east-x),minf(z-north,south-z))
-	return lerpf(-7,h,smoothstep(-12,20,inland))
+	# Round the outer corners and cut a western gulf without cutting old roads.
+	var ellipse = 1-pow(x/(WIDTH*.50),4)-pow(z/(DEPTH*.50),4)
+	inland = minf(inland,ellipse*180)
+	inland -= 180*exp(-pow((x+WIDTH*.46)/200,2)-pow((z+30)/230,2))
+	return lerpf(-7,h,smoothstep(-18,35,inland))
 
 func river_x(z: float) -> float:
 	return 205+sin(z*.010)*32+cos(z*.027)*8
@@ -115,12 +124,12 @@ func build() -> void:
 	for i in range(16):
 		var start = (i*7)%settlements.size()
 		var kind = "Caravan" if i<8 else "Patrol" if i<12 else "Raiders"
-		var node = token(Color("b6a880") if kind=="Caravan" else COLORS[i%4] if kind=="Patrol" else Color("ad4d36"),false,kind=="Caravan")
+		var node = token(Color("b6a880") if kind=="Caravan" else COLORS[i%COLORS.size()] if kind=="Patrol" else Color("ad4d36"),false,kind=="Caravan")
 		add_child(node)
 		var point = graph.get_point_position(start)
 		node.position = point
 		MarchArt.batch_static(node)
-		civilians.append({"node":node,"at":point,"route":[],"kind":kind,"faction":i%4,"men":8+i%5,"active":not defeated.has(i),"goal":start})
+		civilians.append({"node":node,"at":point,"route":[],"kind":kind,"faction":i%COLORS.size(),"men":8+i%5,"active":not defeated.has(i),"goal":start})
 		plan_npc(i)
 	life.bind_caravan()
 	draw_route()
@@ -128,12 +137,12 @@ func build() -> void:
 func build_land() -> void:
 	var surface = SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var step = 6.0
+	var step = WIDTH/150.0
 	var z_step = DEPTH/114.0
 	for zi in range(114):
 		for xi in range(150):
-			var x = -450+xi*step
-			var z = -340+zi*z_step
+			var x = -WIDTH*.5+xi*step
+			var z = -DEPTH*.5+zi*z_step
 			for corner in [Vector2(0,0),Vector2(step,z_step),Vector2(0,z_step),Vector2(0,0),Vector2(step,0),Vector2(step,z_step)]:
 				var p = terrain_point(Vector2(x,z)+corner)
 				var n = noise.get_noise_2d(p.x*3,p.z*3)
@@ -171,13 +180,13 @@ void fragment(){
 	assert(land_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL][0].y>0,"Terrain winding must face sky")
 	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)
 	var ocean = PlaneMesh.new()
-	ocean.size = Vector2(1700,1300)
+	ocean.size = Vector2(WIDTH*1.8,DEPTH*1.8)
 	var water = realm_material(Color("3e616a"))
 	water.roughness = .45
 	MarchArt.mesh(self,ocean,Vector3(0,-1.3,0),water)
 	var river: Array = []
 	for i in range(139):
-		var z = -345+i*5
+		var z = -DEPTH*.5+i*DEPTH/138
 		river.append(terrain_point(Vector2(river_x(z),z),.25))
 	var banks: Array = []
 	var waterline: Array = []
@@ -209,12 +218,8 @@ func ribbon(points: Array, width: float, mat: Material, parent: Node3D) -> MeshI
 func build_roads() -> void:
 	for i in range(settlements.size()):
 		graph.add_point(i,terrain_point(settlements[i].at,.7))
-	for i in range(8):
-		for sub in [1,2,3]:
-			road_edges.append([i*4,i*4+sub])
-	for pair in [[0,1],[1,2],[2,3],[3,4],[4,0],[4,5],[5,6],[6,7],[7,0],[0,2]]:
-		road_edges.append([pair[0]*4,pair[1]*4])
-	var next_id = 100
+	road_edges = world_definition.roads.duplicate(true)
+	var next_id = settlements.size()
 	var road_mat = realm_material(Color("b5a17a"))
 	var bridge_mat = realm_material(Color("746044"))
 	for edge in road_edges:
@@ -260,8 +265,8 @@ func build_forests() -> void:
 	trunks.mesh = trunk_mesh
 	leaves.mesh = leaf_mesh
 	var positions: Array = []
-	for i in range(4200):
-		var at = Vector2(rng.randf_range(-389,417),rng.randf_range(-310,316))
+	for i in range(11000):
+		var at = Vector2(rng.randf_range(-WIDTH*.46,WIDTH*.46),rng.randf_range(-DEPTH*.46,DEPTH*.46))
 		var h = elevation(at.x,at.y)
 		if h<1 or h>42 or (at.x>150 and at.y>60) or absf(at.x-river_x(at.y))<9:
 			continue
@@ -410,11 +415,11 @@ func update_camera(_delta: float) -> void:
 	game.camera.look_at(focus)
 
 func pan(amount: Vector2) -> void:
-	map_focus.x = clampf(map_focus.x-amount.x*zoom/720,-390,390)
-	map_focus.z = clampf(map_focus.z-amount.y*zoom/520,-285,285)
+	map_focus.x = clampf(map_focus.x-amount.x*zoom/720,-WIDTH*.45,WIDTH*.45)
+	map_focus.z = clampf(map_focus.z-amount.y*zoom/520,-DEPTH*.45,DEPTH*.45)
 
 func change_zoom(factor: float) -> void:
-	zoom = clampf(zoom*factor,150,950)
+	zoom = clampf(zoom*factor,150,WIDTH*1.15)
 
 func select_at(screen: Vector2) -> void:
 	var best = -1
@@ -683,28 +688,28 @@ func restore(data: Dictionary) -> void:
 	var z = float(data.get("z",130))
 	if not is_finite(x) or not is_finite(z):
 		return
-	party = terrain_point(Vector2(clampf(x,-380,420),clampf(z,-310,315)))
+	party = terrain_point(Vector2(clampf(x,-WIDTH*.45,WIDTH*.45),clampf(z,-DEPTH*.45,DEPTH*.45)))
 	day = clampi(int(data.get("day",1)),1,100000)
 	hours = clampf(float(data.get("hours",0)),0,23.999)
 	food = clampi(int(data.get("food",35)),0,200)
 	grain = clampi(int(data.get("grain",0)),0,20)
-	quest = clampi(int(data.get("quest",-1)),-1,31)
+	quest = clampi(int(data.get("quest",-1)),-1,settlements.size()-1)
 	quest_done = clampi(int(data.get("quest_done",0)),0,100000)
 	travel_distance = maxf(0,float(data.get("distance",0)))
 	for id in data.get("holdings",[]):
 		if id is float or id is int:
-			if int(id)>=0 and int(id)<32 and settlements[int(id)].kind=="Castle" and not holdings.has(int(id)):
+			if int(id)>=0 and int(id)<settlements.size() and settlements[int(id)].kind=="Castle" and not holdings.has(int(id)):
 				holdings.append(int(id))
 	for id in data.get("defeated",[]):
 		if int(id)>=0 and int(id)<16 and not defeated.has(int(id)):
 			defeated.append(int(id))
 	var saved_relations = data.get("relations",[])
-	if saved_relations is Array and saved_relations.size()==4:
-		for i in range(4):
+	if saved_relations is Array and not saved_relations.is_empty():
+		for i in range(mini(saved_relations.size(),relations.size())):
 			relations[i] = clampi(int(saved_relations[i]),-100,100)
 	var stocks = data.get("stocks",[])
-	if stocks is Array and stocks.size()==32:
-		for i in range(32):
+	if stocks is Array and not stocks.is_empty():
+		for i in range(mini(stocks.size(),settlements.size())):
 			settlements[i].stock = clampi(int(stocks[i]),0,110)
 
 	if data.get("life",{}) is Dictionary:

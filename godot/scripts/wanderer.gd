@@ -59,7 +59,7 @@ func has_role(role: String) -> bool:
 	return false
 
 func visit(id: int) -> void:
-	if id>=0 and id<32 and not visited.has(id):
+	if id>=0 and id<realm.settlements.size() and not visited.has(id):
 		visited.append(id)
 
 func regions_seen() -> int:
@@ -92,7 +92,7 @@ func accept_delivery() -> bool:
 	var home = realm.selected
 	if realm.day<int(cooldowns.get(str(home),0)):
 		return fail("This courier board refreshes on day "+str(cooldowns[str(home)])+".")
-	var target = (home+1)%32
+	var target = (home+1)%realm.settlements.size()
 	delivery = {"from":home,"to":target,"reward":45+(home%4)*10,"due":realm.day+4}
 	cooldowns[str(home)] = realm.day+2
 	realm.game.save_progress()
@@ -243,22 +243,22 @@ func restore(data: Dictionary) -> void:
 	if not ORIGINS.has(origin) and origin!="Veteran":
 		origin = ""
 	neutral = origin!="Veteran"
-	visited = ids(data.get("visited",[]),32)
+	visited = ids(data.get("visited",[]),realm.settlements.size())
 	companions = ids(data.get("companions",[]),4)
-	workshops = ids(data.get("workshops",[]),32,true).slice(0,3)
+	workshops = ids(data.get("workshops",[]),realm.settlements.size(),true).slice(0,3)
 	var job = data.get("delivery",{})
 	if job is Dictionary and job.has_all(["from","to","reward","due"]):
-		if int(job.from)>=0 and int(job.from)<32 and int(job.to)>=0 and int(job.to)<32 and int(job.due)>=realm.day:
+		if int(job.from)>=0 and int(job.from)<realm.settlements.size() and int(job.to)>=0 and int(job.to)<realm.settlements.size() and int(job.due)>=realm.day:
 			delivery = {"from":int(job.from),"to":int(job.to),"reward":clampi(int(job.reward),0,75),"due":clampi(int(job.due),realm.day,realm.day+4)}
 	var saved_cooldowns = data.get("cooldowns",{})
 	if saved_cooldowns is Dictionary:
 		for key in saved_cooldowns:
-			if str(key).is_valid_int() and int(key)>=0 and int(key)<32:
+			if str(key).is_valid_int() and int(key)>=0 and int(key)<realm.settlements.size():
 				cooldowns[str(key)] = clampi(int(saved_cooldowns[key]),0,realm.day+2)
 	var c = data.get("caravan",{})
 	if c is Dictionary and c.has_all(["companion","home","last_stop","paid"]):
-		if companions.has(int(c.companion)) and int(c.home)>=0 and int(c.home)<32 and int(c.home)%4==0:
-			caravan = {"companion":int(c.companion),"home":int(c.home),"last_stop":clampi(int(c.last_stop),0,31),"paid":clampi(int(c.paid),0,1000000)}
+		if companions.has(int(c.companion)) and int(c.home)>=0 and int(c.home)<realm.settlements.size() and int(c.home)%4==0:
+			caravan = {"companion":int(c.companion),"home":int(c.home),"last_stop":clampi(int(c.last_stop),0,realm.settlements.size()-1),"paid":clampi(int(c.paid),0,1000000)}
 	completed = clampi(int(data.get("completed",0)),0,1000000)
 	trade_profit = clampi(int(data.get("trade_profit",0)),0,1000000)
 	cargo_cost = clampf(float(data.get("cargo_cost",0)),0,10000)

@@ -62,7 +62,7 @@ static func logbook(h) -> void:
 	h.label("3. Trade grain; hire help; save for a caravan or grain mill.",Vector2(172,551),15,h.white)
 	h.panel(Rect2(747,266,364,325),Color(.065,.12,.12,.8),9)
 	h.label("YOUR STORY SO FAR",Vector2(769,302),18,h.gold,h.heading)
-	var stats = [str(l.regions_seen())+" / 4 realms explored",str(l.visited.size())+" / 32 settlements visited",str(l.completed)+" deliveries completed",str(l.trade_profit)+" profitable grain-trading gold",str(l.companions.size())+" trusted companions",str(l.business_income-l.business_cost)+" operating net gold (excludes setup)"]
+	var stats = [str(l.regions_seen())+" / "+str(r.FACTIONS.size())+" factions explored",str(l.visited.size())+" / "+str(r.settlements.size())+" settlements visited",str(l.completed)+" deliveries completed",str(l.trade_profit)+" profitable grain-trading gold",str(l.companions.size())+" trusted companions",str(l.business_income-l.business_cost)+" operating net gold (excludes setup)"]
 	for i in range(stats.size()):
 		h.label(stats[i],Vector2(770,342+i*36),15,h.white)
 
@@ -85,7 +85,7 @@ static func jobs(h) -> void:
 		h.label("You can read an active contract and plot its route from anywhere.",Vector2(174,393),16,h.white)
 	else:
 		var home = r.selected
-		var target = (home+1)%32
+		var target = (home+1)%r.settlements.size()
 		h.label("BOARD: "+r.settlements[home].name.to_upper(),Vector2(174,335),13,h.gold)
 		h.label("Carry letters to "+r.settlements[target].name,Vector2(174,379),25,h.white,h.heading)
 		h.label("Reward: "+str(45+(home%4)*10)+" gold  /  Four days to deliver  /  No deposit",Vector2(174,421),17,h.muted)

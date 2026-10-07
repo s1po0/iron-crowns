@@ -145,7 +145,7 @@ func enter_world() -> void:
 	reset_controls()
 	realm.show_map()
 	realm.selected = -1
-	for id in range(32):
+	for id in range(realm.settlements.size()):
 		if realm.near_settlement(id):
 			realm.selected = id
 			realm.life.visit(id)
@@ -703,8 +703,8 @@ func toggle_realm() -> void:
 		realm.show_map()
 
 func run_realm_tests() -> void:
-	assert(realm.settlements.size()==32,"Campaign settlement count")
-	for id in range(32):
+	assert(realm.settlements.size()==64,"Campaign settlement count")
+	for id in range(realm.settlements.size()):
 		assert(realm.graph.get_point_path(0,id).size()>0,"Disconnected road node")
 	for id in realm.graph.get_point_ids():
 		assert(realm.graph.get_point_position(id).y>0,"Road node must stay on land")

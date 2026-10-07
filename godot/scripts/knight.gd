@@ -119,22 +119,13 @@ func build_character() -> void:
 	armor(body,[Vector3(.75,.24,.16),Vector3(.99,.185,.14)],dark)
 	armor(body,[Vector3(1.015,.19,.149),Vector3(1.065,.189,.146)],leather)
 	MarchArt.box(body,Vector3(.04,1.04,-.155),Vector3(.065,.043,.016),steel)
-	# Human-sized closed bascinet: no oversized head, crest or decorative gold.
-	armor(body,[Vector3(1.49,.105,.09),Vector3(1.61,.135,.13),Vector3(1.67,.13,.13)],dark)
-	rounded(body,Vector3(0,1.762,0),Vector3(.15,.18,.15),steel)
-	if outfit.helmet=="closed":
-		MarchArt.box(body,Vector3(0,1.715,-.14),Vector3(.229,.16,.035),steel)
-		MarchArt.box(body,Vector3(0,1.766,-.151),Vector3(.227,.022,.012),black)
-		MarchArt.box(body,Vector3(0,1.744,-.169),Vector3(.023,.14,.025),steel)
-		for side in [-1,1]:
-			for hole in range(3):
-				rounded(body,Vector3(side*(.045+hole*.022),1.69,-.147),Vector3(.006,.011,.006),black)
-	else:
-		var skin = MarchArt.material(Color("ab856b"))
-		rounded(body,Vector3(0,1.72,-.105),Vector3(.108,.115,.063),skin)
-		MarchArt.box(body,Vector3(0,1.74,-.166),Vector3(.13,.012,.009),black)
-		if outfit.helmet=="open":
-			MarchArt.cylinder(body,Vector3(0,1.84,0),.21,.035,steel,.20,16)
+	# The head is an imported anatomical mesh, not an oval with a painted eye slit.
+	var faces: Array = MarchCatalog.data().humans
+	HumanFaces.attach(body,faces[0 if player else get_index()%faces.size()])
+	if outfit.helmet=="closed" and not player:
+		# An open nasal guard preserves the face rather than hiding every soldier.
+		MarchArt.cylinder(body,Vector3(0,1.84,.02),.13,.04,steel,.11,20)
+		MarchArt.box(body,Vector3(0,1.79,-.135),Vector3(.013,.085,.013),steel)
 	# A small scabbard lies beside the left hip rather than a fantasy ornament.
 	var scabbard = MarchArt.box(body,Vector3(-.235,.76,.07),Vector3(.052,.64,.034),leather)
 	scabbard.rotation.z = -.18

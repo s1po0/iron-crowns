@@ -7,7 +7,7 @@ static func draw(h) -> void:
 	# Restrained bronze/parchment typography over actual relief, not a flat schematic.
 	h.panel(Rect2(20,18,345,84),Color(.055,.075,.073,.92),7,Color(.64,.55,.36,.5))
 	h.label("THE ASHEN MARCHES",Vector2(39,53),25,h.white,h.heading)
-	h.label("CAMPAIGN  /  32 SETTLEMENTS  /  4 REALMS",Vector2(40,80),11,h.gold)
+	h.label("CAMPAIGN / "+str(r.settlements.size())+" SETTLEMENTS / "+str(r.FACTIONS.size())+" FACTIONS",Vector2(40,80),11,h.gold)
 	h.panel(Rect2(385,18,583,55),Color(.055,.075,.073,.91),7)
 	h.label("DAY "+str(r.day),Vector2(405,52),17,h.white)
 	h.label(str(g.gold)+" GOLD",Vector2(505,52),16,h.gold)
@@ -63,10 +63,10 @@ static func draw(h) -> void:
 	h.draw_rect(Rect2(36,488,140,92),Color("68734f"))
 	h.draw_rect(Rect2(36,488,13,92),Color("486974"))
 	for center in r.ANCHORS:
-		var p = Vector2(36+(center.x+450)/900*140,488+(center.y+340)/680*92)
+		var p = Vector2(36+(center.x+r.WIDTH*.5)/r.WIDTH*140,488+(center.y+r.DEPTH*.5)/r.DEPTH*92)
 		h.draw_circle(p,2.3,h.gold)
-	var focus = Vector2(36+(r.map_focus.x+450)/900*140,488+(r.map_focus.z+340)/680*92)
-	var marker_size = Vector2(clampf(r.zoom/900*140,24,140),clampf(r.zoom/680*75,20,92))
+	var focus = Vector2(36+(r.map_focus.x+r.WIDTH*.5)/r.WIDTH*140,488+(r.map_focus.z+r.DEPTH*.5)/r.DEPTH*92)
+	var marker_size = Vector2(clampf(r.zoom/r.WIDTH*140,24,140),clampf(r.zoom/r.DEPTH*75,20,92))
 	h.draw_rect(Rect2(focus-marker_size/2,marker_size).intersection(Rect2(36,488,140,92)),Color(.9,.87,.73,.65),false,1)
 	h.button("zoom_in","+",Rect2(22,310,54,49))
 	h.button("zoom_out","−",Rect2(22,368,54,49))
@@ -82,10 +82,10 @@ static func draw(h) -> void:
 	if r.selected>=0:
 		draw_settlement(h)
 	elif r.pending=="":
-		h.panel(Rect2(966,99,289,265),Color(.055,.075,.073,.91),8)
+		h.panel(Rect2(966,99,289,350),Color(.055,.075,.073,.91),8)
 		h.label("A DIVIDED REALM",Vector2(984,130),18,h.white,h.heading)
-		h.label("8 towns · 8 castles · 16 villages",Vector2(984,160),13,h.muted)
-		for i in range(4):
+		h.label(str(r.ANCHORS.size())+" towns / "+str(r.ANCHORS.size())+" castles / "+str(r.ANCHORS.size()*2)+" villages",Vector2(984,160),13,h.muted)
+		for i in range(r.FACTIONS.size()):
 			h.draw_circle(Vector2(992,194+i*36),5,r.COLORS[i])
 			h.label(r.FACTIONS[i],Vector2(1008,199+i*36),14,h.white)
 		h.panel(Rect2(236,557,680,40),Color(.05,.07,.07,.88),6)

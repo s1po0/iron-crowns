@@ -1,0 +1,1093 @@
+{
+  "schema": 1,
+  "id": "ashen-marches",
+  "width": 2700,
+  "depth": 2040,
+  "seed": 1907,
+  "anchors": [
+    [
+      -165,
+      130
+    ],
+    [
+      -320,
+      -15
+    ],
+    [
+      -220,
+      -210
+    ],
+    [
+      20,
+      -250
+    ],
+    [
+      25,
+      -35
+    ],
+    [
+      300,
+      -105
+    ],
+    [
+      285,
+      220
+    ],
+    [
+      -40,
+      245
+    ],
+    [
+      -850,
+      -450
+    ],
+    [
+      -620,
+      -700
+    ],
+    [
+      180,
+      -710
+    ],
+    [
+      730,
+      -520
+    ],
+    [
+      880,
+      -70
+    ],
+    [
+      820,
+      470
+    ],
+    [
+      290,
+      680
+    ],
+    [
+      -660,
+      490
+    ]
+  ],
+  "factions": [
+    {
+      "id": 0,
+      "name": "Ashen Crown",
+      "color": "8c4149",
+      "clan": "House Ardent",
+      "leader": "Maren Ardent",
+      "description": "Westland towns and armored retainers"
+    },
+    {
+      "id": 1,
+      "name": "Northguard",
+      "color": "466b8c",
+      "clan": "House Rime",
+      "leader": "Eirik Rime",
+      "description": "Northern passes and shield-bearing infantry"
+    },
+    {
+      "id": 2,
+      "name": "Verdant League",
+      "color": "566e42",
+      "clan": "House Alder",
+      "leader": "Talia Alder",
+      "description": "Western woodland towns and merchant roads"
+    },
+    {
+      "id": 3,
+      "name": "Sunward Dominion",
+      "color": "bd9354",
+      "clan": "House Saren",
+      "leader": "Nadir Saren",
+      "description": "Southern markets and desert caravan routes"
+    },
+    {
+      "id": 4,
+      "name": "Khurai Horse Clans",
+      "color": "876249",
+      "clan": "Clan Temur",
+      "leader": "Saran Temur",
+      "description": "Eastern grasslands and horse-herding families"
+    },
+    {
+      "id": 5,
+      "name": "Storm Coast Pact",
+      "color": "607a77",
+      "clan": "House Vey",
+      "leader": "Idra Vey",
+      "description": "Coastal trading settlements and island traditions"
+    }
+  ],
+  "settlements": [
+    {
+      "id": 0,
+      "name": "Hearthglen",
+      "at": [
+        -165,
+        130
+      ],
+      "kind": "Town",
+      "faction": 0
+    },
+    {
+      "id": 1,
+      "name": "Dusk Tower",
+      "at": [
+        -133,
+        97
+      ],
+      "kind": "Castle",
+      "faction": 0
+    },
+    {
+      "id": 2,
+      "name": "Ashford",
+      "at": [
+        -198,
+        157
+      ],
+      "kind": "Village",
+      "faction": 0
+    },
+    {
+      "id": 3,
+      "name": "Barleywick",
+      "at": [
+        -127,
+        159
+      ],
+      "kind": "Village",
+      "faction": 0
+    },
+    {
+      "id": 4,
+      "name": "Crownharbor",
+      "at": [
+        -320,
+        -15
+      ],
+      "kind": "Town",
+      "faction": 2
+    },
+    {
+      "id": 5,
+      "name": "Saltwatch",
+      "at": [
+        -288,
+        -48
+      ],
+      "kind": "Castle",
+      "faction": 2
+    },
+    {
+      "id": 6,
+      "name": "Reedbank",
+      "at": [
+        -353,
+        12
+      ],
+      "kind": "Village",
+      "faction": 2
+    },
+    {
+      "id": 7,
+      "name": "Westmere",
+      "at": [
+        -282,
+        14
+      ],
+      "kind": "Village",
+      "faction": 2
+    },
+    {
+      "id": 8,
+      "name": "Stonewatch",
+      "at": [
+        -220,
+        -210
+      ],
+      "kind": "Town",
+      "faction": 1
+    },
+    {
+      "id": 9,
+      "name": "Ironpass",
+      "at": [
+        -188,
+        -243
+      ],
+      "kind": "Castle",
+      "faction": 1
+    },
+    {
+      "id": 10,
+      "name": "Pinecross",
+      "at": [
+        -253,
+        -183
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 11,
+      "name": "Greybrook",
+      "at": [
+        -182,
+        -181
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 12,
+      "name": "Wintermere",
+      "at": [
+        20,
+        -250
+      ],
+      "kind": "Town",
+      "faction": 1
+    },
+    {
+      "id": 13,
+      "name": "Frostgate",
+      "at": [
+        52,
+        -283
+      ],
+      "kind": "Castle",
+      "faction": 1
+    },
+    {
+      "id": 14,
+      "name": "Snowfell",
+      "at": [
+        -13,
+        -223
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 15,
+      "name": "Whitefield",
+      "at": [
+        58,
+        -221
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 16,
+      "name": "Highcourt",
+      "at": [
+        25,
+        -35
+      ],
+      "kind": "Town",
+      "faction": 0
+    },
+    {
+      "id": 17,
+      "name": "Crownspire",
+      "at": [
+        57,
+        -68
+      ],
+      "kind": "Castle",
+      "faction": 0
+    },
+    {
+      "id": 18,
+      "name": "Oakridge",
+      "at": [
+        -8,
+        -8
+      ],
+      "kind": "Village",
+      "faction": 0
+    },
+    {
+      "id": 19,
+      "name": "Millstead",
+      "at": [
+        63,
+        -6
+      ],
+      "kind": "Village",
+      "faction": 0
+    },
+    {
+      "id": 20,
+      "name": "Eastmere",
+      "at": [
+        300,
+        -105
+      ],
+      "kind": "Town",
+      "faction": 3
+    },
+    {
+      "id": 21,
+      "name": "Falcon\u2019s Rest",
+      "at": [
+        332,
+        -138
+      ],
+      "kind": "Castle",
+      "faction": 3
+    },
+    {
+      "id": 22,
+      "name": "Longford",
+      "at": [
+        267,
+        -78
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 23,
+      "name": "Windmere",
+      "at": [
+        338,
+        -76
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 24,
+      "name": "Duneshade",
+      "at": [
+        285,
+        220
+      ],
+      "kind": "Town",
+      "faction": 3
+    },
+    {
+      "id": 25,
+      "name": "Sunspire",
+      "at": [
+        317,
+        187
+      ],
+      "kind": "Castle",
+      "faction": 3
+    },
+    {
+      "id": 26,
+      "name": "Redwell",
+      "at": [
+        252,
+        247
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 27,
+      "name": "Saffron Vale",
+      "at": [
+        323,
+        249
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 28,
+      "name": "Greenhaven",
+      "at": [
+        -40,
+        245
+      ],
+      "kind": "Town",
+      "faction": 2
+    },
+    {
+      "id": 29,
+      "name": "Thornwall",
+      "at": [
+        -8,
+        212
+      ],
+      "kind": "Castle",
+      "faction": 2
+    },
+    {
+      "id": 30,
+      "name": "Willowford",
+      "at": [
+        -73,
+        272
+      ],
+      "kind": "Village",
+      "faction": 2
+    },
+    {
+      "id": 31,
+      "name": "Meadowend",
+      "at": [
+        -2,
+        274
+      ],
+      "kind": "Village",
+      "faction": 2
+    },
+    {
+      "id": 32,
+      "name": "Greyhaven",
+      "at": [
+        -850,
+        -450
+      ],
+      "kind": "Town",
+      "faction": 5
+    },
+    {
+      "id": 33,
+      "name": "Tidekeep",
+      "at": [
+        -818,
+        -483
+      ],
+      "kind": "Castle",
+      "faction": 5
+    },
+    {
+      "id": 34,
+      "name": "Pebblewick",
+      "at": [
+        -883,
+        -423
+      ],
+      "kind": "Village",
+      "faction": 5
+    },
+    {
+      "id": 35,
+      "name": "Tideford",
+      "at": [
+        -812,
+        -421
+      ],
+      "kind": "Village",
+      "faction": 5
+    },
+    {
+      "id": 36,
+      "name": "Ravenfjord",
+      "at": [
+        -620,
+        -700
+      ],
+      "kind": "Town",
+      "faction": 1
+    },
+    {
+      "id": 37,
+      "name": "Ravenhold",
+      "at": [
+        -588,
+        -733
+      ],
+      "kind": "Castle",
+      "faction": 1
+    },
+    {
+      "id": 38,
+      "name": "Ravenfield",
+      "at": [
+        -653,
+        -673
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 39,
+      "name": "Pineshore",
+      "at": [
+        -582,
+        -671
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 40,
+      "name": "Frostmere",
+      "at": [
+        180,
+        -710
+      ],
+      "kind": "Town",
+      "faction": 1
+    },
+    {
+      "id": 41,
+      "name": "Icegate",
+      "at": [
+        212,
+        -743
+      ],
+      "kind": "Castle",
+      "faction": 1
+    },
+    {
+      "id": 42,
+      "name": "Frostford",
+      "at": [
+        147,
+        -683
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 43,
+      "name": "Coldwell",
+      "at": [
+        218,
+        -681
+      ],
+      "kind": "Village",
+      "faction": 1
+    },
+    {
+      "id": 44,
+      "name": "Temur Crossing",
+      "at": [
+        730,
+        -520
+      ],
+      "kind": "Town",
+      "faction": 4
+    },
+    {
+      "id": 45,
+      "name": "Skywatch",
+      "at": [
+        762,
+        -553
+      ],
+      "kind": "Castle",
+      "faction": 4
+    },
+    {
+      "id": 46,
+      "name": "Horsewell",
+      "at": [
+        697,
+        -493
+      ],
+      "kind": "Village",
+      "faction": 4
+    },
+    {
+      "id": 47,
+      "name": "Tengri Vale",
+      "at": [
+        768,
+        -491
+      ],
+      "kind": "Village",
+      "faction": 4
+    },
+    {
+      "id": 48,
+      "name": "Orun Steppe",
+      "at": [
+        880,
+        -70
+      ],
+      "kind": "Town",
+      "faction": 4
+    },
+    {
+      "id": 49,
+      "name": "Windkeep",
+      "at": [
+        912,
+        -103
+      ],
+      "kind": "Castle",
+      "faction": 4
+    },
+    {
+      "id": 50,
+      "name": "Orunford",
+      "at": [
+        847,
+        -43
+      ],
+      "kind": "Village",
+      "faction": 4
+    },
+    {
+      "id": 51,
+      "name": "Reed Steppe",
+      "at": [
+        918,
+        -41
+      ],
+      "kind": "Village",
+      "faction": 4
+    },
+    {
+      "id": 52,
+      "name": "Saran Oasis",
+      "at": [
+        820,
+        470
+      ],
+      "kind": "Town",
+      "faction": 3
+    },
+    {
+      "id": 53,
+      "name": "Amberkeep",
+      "at": [
+        852,
+        437
+      ],
+      "kind": "Castle",
+      "faction": 3
+    },
+    {
+      "id": 54,
+      "name": "Amberwell",
+      "at": [
+        787,
+        497
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 55,
+      "name": "Palmstead",
+      "at": [
+        858,
+        499
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 56,
+      "name": "Copperhaven",
+      "at": [
+        290,
+        680
+      ],
+      "kind": "Town",
+      "faction": 3
+    },
+    {
+      "id": 57,
+      "name": "Copper Gate",
+      "at": [
+        322,
+        647
+      ],
+      "kind": "Castle",
+      "faction": 3
+    },
+    {
+      "id": 58,
+      "name": "Copperford",
+      "at": [
+        257,
+        707
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 59,
+      "name": "Southwell",
+      "at": [
+        328,
+        709
+      ],
+      "kind": "Village",
+      "faction": 3
+    },
+    {
+      "id": 60,
+      "name": "Stormwatch",
+      "at": [
+        -660,
+        490
+      ],
+      "kind": "Town",
+      "faction": 5
+    },
+    {
+      "id": 61,
+      "name": "Gale Tower",
+      "at": [
+        -628,
+        457
+      ],
+      "kind": "Castle",
+      "faction": 5
+    },
+    {
+      "id": 62,
+      "name": "Galehaven",
+      "at": [
+        -693,
+        517
+      ],
+      "kind": "Village",
+      "faction": 5
+    },
+    {
+      "id": 63,
+      "name": "Mossbank",
+      "at": [
+        -622,
+        519
+      ],
+      "kind": "Village",
+      "faction": 5
+    }
+  ],
+  "roads": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      8,
+      10
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      12,
+      13
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      12,
+      15
+    ],
+    [
+      16,
+      17
+    ],
+    [
+      16,
+      18
+    ],
+    [
+      16,
+      19
+    ],
+    [
+      20,
+      21
+    ],
+    [
+      20,
+      22
+    ],
+    [
+      20,
+      23
+    ],
+    [
+      24,
+      25
+    ],
+    [
+      24,
+      26
+    ],
+    [
+      24,
+      27
+    ],
+    [
+      28,
+      29
+    ],
+    [
+      28,
+      30
+    ],
+    [
+      28,
+      31
+    ],
+    [
+      32,
+      33
+    ],
+    [
+      32,
+      34
+    ],
+    [
+      32,
+      35
+    ],
+    [
+      36,
+      37
+    ],
+    [
+      36,
+      38
+    ],
+    [
+      36,
+      39
+    ],
+    [
+      40,
+      41
+    ],
+    [
+      40,
+      42
+    ],
+    [
+      40,
+      43
+    ],
+    [
+      44,
+      45
+    ],
+    [
+      44,
+      46
+    ],
+    [
+      44,
+      47
+    ],
+    [
+      48,
+      49
+    ],
+    [
+      48,
+      50
+    ],
+    [
+      48,
+      51
+    ],
+    [
+      52,
+      53
+    ],
+    [
+      52,
+      54
+    ],
+    [
+      52,
+      55
+    ],
+    [
+      56,
+      57
+    ],
+    [
+      56,
+      58
+    ],
+    [
+      56,
+      59
+    ],
+    [
+      60,
+      61
+    ],
+    [
+      60,
+      62
+    ],
+    [
+      60,
+      63
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      8,
+      12
+    ],
+    [
+      12,
+      16
+    ],
+    [
+      16,
+      0
+    ],
+    [
+      16,
+      20
+    ],
+    [
+      20,
+      24
+    ],
+    [
+      24,
+      28
+    ],
+    [
+      28,
+      0
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      32,
+      8
+    ],
+    [
+      36,
+      32
+    ],
+    [
+      40,
+      12
+    ],
+    [
+      44,
+      40
+    ],
+    [
+      48,
+      20
+    ],
+    [
+      52,
+      48
+    ],
+    [
+      56,
+      24
+    ],
+    [
+      60,
+      28
+    ]
+  ],
+  "ridges": [
+    [
+      -115,
+      -95,
+      55
+    ],
+    [
+      -95,
+      -180,
+      65
+    ],
+    [
+      90,
+      -175,
+      64
+    ],
+    [
+      155,
+      -255,
+      77
+    ],
+    [
+      158,
+      70,
+      46
+    ],
+    [
+      -275,
+      205,
+      40
+    ],
+    [
+      -500,
+      -570,
+      100
+    ],
+    [
+      -250,
+      -670,
+      90
+    ],
+    [
+      410,
+      -620,
+      105
+    ],
+    [
+      600,
+      -320,
+      75
+    ],
+    [
+      650,
+      250,
+      60
+    ],
+    [
+      -440,
+      400,
+      65
+    ]
+  ]
+}

@@ -2,15 +2,107 @@
   "id": "marches-riders-0.6",
   "format": 1,
   "equipment": [
-    {"name":"March captain", "coat":"435660", "armor":"aeb2ad", "steel":true, "helmet":"closed"},
-    {"name":"Road retainer", "coat":"706452", "armor":"92988d", "steel":true, "helmet":"open"},
-    {"name":"Border raider", "coat":"745347", "armor":"8a7760", "steel":false, "helmet":"hood"}
+    {
+      "name": "March captain",
+      "coat": "435660",
+      "armor": "aeb2ad",
+      "steel": true,
+      "helmet": "closed"
+    },
+    {
+      "name": "Road retainer",
+      "coat": "706452",
+      "armor": "92988d",
+      "steel": true,
+      "helmet": "open"
+    },
+    {
+      "name": "Border raider",
+      "coat": "745347",
+      "armor": "8a7760",
+      "steel": false,
+      "helmet": "hood"
+    }
   ],
   "regions": [
-    {"name":"The Crownlands", "color":"858867"},
-    {"name":"The Northern Ridges", "color":"8a9591"},
-    {"name":"The Verdant Coast", "color":"6d805f"},
-    {"name":"The Sunward Marches", "color":"aa9976"}
+    {
+      "name": "The Crownlands",
+      "color": "858867"
+    },
+    {
+      "name": "The Northern Ridges",
+      "color": "8a9591"
+    },
+    {
+      "name": "The Verdant Coast",
+      "color": "6d805f"
+    },
+    {
+      "name": "The Sunward Marches",
+      "color": "aa9976"
+    }
   ],
-  "horse":{"health":220, "walk":3.5, "trot":6.5, "canter":10.0, "coat":"685047"}
+  "horse": {
+    "health": 220,
+    "walk": 3.5,
+    "trot": 6.5,
+    "canter": 10.0,
+    "coat": "685047"
+  },
+  "humans": [
+    {
+      "name": "Western retainer",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "b28c74",
+      "hair": "3b2920",
+      "eyes": "617578",
+      "width": 1
+    },
+    {
+      "name": "Northern scout",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "c8a08a",
+      "hair": "8c7350",
+      "eyes": "718184",
+      "width": 1.05
+    },
+    {
+      "name": "Steppe horseman",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "a78165",
+      "hair": "28231e",
+      "eyes": "4e4633",
+      "width": 1.08
+    },
+    {
+      "name": "Sunward guard",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "8d634b",
+      "hair": "211e19",
+      "eyes": "494536",
+      "width": 0.98
+    },
+    {
+      "name": "Coastal trader",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "b4896e",
+      "hair": "574131",
+      "eyes": "656c45",
+      "width": 1.02
+    },
+    {
+      "name": "Highland warrior",
+      "mesh": "res://assets/content/humans/human-head.obj",
+      "scalp": "res://assets/content/humans/human-hair.obj",
+      "skin": "bc927a",
+      "hair": "76523a",
+      "eyes": "748082",
+      "width": 1.1
+    }
+  ]
 }
