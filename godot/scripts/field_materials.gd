@@ -48,9 +48,11 @@ void fragment(){
  float road = 1.0-smoothstep(1.65,4.3,abs(world.x-sin(world.z*.055)*2.5));
  float yard = (1.0-smoothstep(5.0,8.0,abs(world.x)))*(1.0-smoothstep(5.0,11.0,abs(world.z+23.0)));
  float blend = max(road,yard*.85);
- ALBEDO = mix(texture(meadow,uv).rgb,texture(soil,uv*1.4).rgb,blend);
+ float distance_fade = smoothstep(16.0,85.0,distance(world,CAMERA_POSITION_WORLD));
+ vec3 grass_color = mix(texture(meadow,uv).rgb,vec3(.26,.285,.18),distance_fade*.72);
+ ALBEDO = mix(grass_color,texture(soil,uv*1.4).rgb,blend);
  NORMAL_MAP = texture(detail_normal,uv).rgb;
- NORMAL_MAP_DEPTH = .45;
+ NORMAL_MAP_DEPTH = .4*(1.0-distance_fade*.8);
  ROUGHNESS = .97;
  SPECULAR = .18;
 }"""

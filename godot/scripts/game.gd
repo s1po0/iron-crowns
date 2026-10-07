@@ -327,7 +327,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if paused or state!="play":
 		return
-	stamina = minf(100,stamina+delta*(7 if blocking else 21))
+	stamina = minf(100,stamina+delta*(0 if hero.swing>0 or dash_time>0 else 7 if blocking else 18))
 	dash_time = maxf(0,dash_time-delta)
 	var input_vector = stick
 	input_vector.x += float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A))
@@ -603,6 +603,9 @@ func load_progress() -> void:
 			restored_army = clampi(int(saved_realm.get("army",8)),4,12)
 
 func run_smoke() -> void:
+	# Allow collision-server registration before testing camera and weapon rays.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	assert(hero!=null and soldiers.size()==9,"Character scene initialization failed")
 	assert(hero.right_arm!=null and hero.left_leg!=null,"Articulated character parts missing")
 	realm.life.choose_origin(1)
@@ -868,6 +871,15 @@ func run_combat_tests() -> void:
 	var feet = camera.unproject_position(hero.position)
 	assert(not camera.is_position_behind(hero.position) and feet.y-head.y>160,"Hero must be prominently framed")
 	assert(head.x>280 and head.x<950 and head.y>100 and feet.y<625,"Hero must stay clear of primary HUD")
+	var saved_position = hero.position
+	var saved_angle = yaw
+	hero.position = Vector3(-6,0,-20.8)
+	yaw = PI
+	update_follow_camera(1,true)
+	assert(camera.position.distance_to(hero.position+Vector3.UP*1.27)<3.1,"Camera must stop before the stone tower")
+	hero.position = saved_position
+	yaw = saved_angle
+	update_follow_camera(1,true)
 	var victim = MarchKnight.new()
 	add_child(victim)
 	victim.setup(1,false)

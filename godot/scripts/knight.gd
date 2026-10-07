@@ -55,7 +55,7 @@ func armor(parent: Node3D, rings: Array, mat: Material, offset: Vector3 = Vector
 	var segments = 20
 	for row in range(rings.size()-1):
 		for side in range(segments):
-			for corner in [Vector2i(0,0),Vector2i(1,0),Vector2i(1,1),Vector2i(0,0),Vector2i(1,1),Vector2i(0,1)]:
+			for corner in [Vector2i(0,0),Vector2i(1,1),Vector2i(1,0),Vector2i(0,0),Vector2i(0,1),Vector2i(1,1)]:
 				var ring_data: Vector3 = rings[row+corner.y]
 				var angle = TAU*float(side+corner.x)/segments
 				var slope = (rings[row].y-rings[row+1].y)/maxf(.01,rings[row+1].x-rings[row].x)
@@ -74,13 +74,16 @@ func rounded(parent: Node3D, at: Vector3, scale_value: Vector3, mat: Material) -
 	result.scale = scale_value
 	return result
 
-func shield(parent: Node3D, mat: Material, factor: float, z: float) -> void:
+func shield(parent: Node3D, mat: Material, factor: float, z: float, back: bool = false) -> void:
 	var outline = [Vector2(-.23,.27),Vector2(.23,.27),Vector2(.22,.02),Vector2(.13,-.23),Vector2(0,-.36),Vector2(-.13,-.23),Vector2(-.22,.02)]
 	var st = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in range(outline.size()):
-		for p in [Vector2.ZERO,outline[(i+1)%outline.size()]*factor,outline[i]*factor]:
-			st.set_normal(Vector3(0,0,-1))
+		var points = [Vector2.ZERO,outline[i]*factor,outline[(i+1)%outline.size()]*factor]
+		if back:
+			points.reverse()
+		for p in points:
+			st.set_normal(Vector3(0,0,1 if back else -1))
 			st.set_uv(p+Vector2(.5,.5))
 			st.add_vertex(Vector3(p.x-.07,p.y-.20,z-(.03 if p==Vector2.ZERO else 0)))
 	MarchArt.mesh(parent,st.commit(),Vector3.ZERO,mat)
@@ -121,7 +124,7 @@ func build_character() -> void:
 		torso.add_child(arm)
 		var upper = Node3D.new()
 		arm.add_child(upper)
-		rounded(upper,Vector3(side*.014,-.025,0),Vector3(.118,.11,.143),steel)
+		rounded(upper,Vector3(side*.014,-.025,0),Vector3(.128,.074,.143),steel)
 		armor(upper,[Vector3(-.31,.074,.078),Vector3(-.10,.095,.10)],dark)
 		MarchArt.batch_static(upper)
 		var elbow = Node3D.new()
@@ -129,9 +132,9 @@ func build_character() -> void:
 		arm.add_child(elbow)
 		var fore = Node3D.new()
 		elbow.add_child(fore)
-		rounded(fore,Vector3(0,0,0),Vector3(.083,.077,.09),steel)
+		rounded(fore,Vector3(0,0,0),Vector3(.074,.051,.09),steel)
 		armor(fore,[Vector3(-.245,.055,.06),Vector3(-.03,.075,.078)],steel)
-		rounded(fore,Vector3(0,-.28,-.012),Vector3(.064,.079,.065),leather)
+		rounded(fore,Vector3(0,-.28,-.012),Vector3(.061,.072,.045),leather)
 		if side==1:
 			right_arm = arm
 			right_elbow = elbow
@@ -142,6 +145,7 @@ func build_character() -> void:
 		else:
 			left_arm = arm
 			left_elbow = elbow
+			shield(fore,leather,1.05,-.101,true)
 			shield(fore,steel,1.05,-.11)
 			shield(fore,cloth,1.0,-.123)
 			for x in [-.15,.01]:
@@ -155,7 +159,7 @@ func build_character() -> void:
 		var knee = Node3D.new()
 		knee.position.y = -.415
 		leg.add_child(knee)
-		rounded(knee,Vector3(0,0,-.04),Vector3(.095,.09,.097),steel)
+		rounded(knee,Vector3(0,0,-.04),Vector3(.09,.072,.095),steel)
 		armor(knee,[Vector3(-.35,.058,.065),Vector3(-.07,.081,.084)],steel)
 		rounded(knee,Vector3(0,-.425,-.072),Vector3(.081,.068,.175),leather)
 		if side==1:
@@ -164,12 +168,22 @@ func build_character() -> void:
 		else:
 			left_leg = leg
 			left_knee = knee
-	var cape_mesh = PlaneMesh.new()
-	cape_mesh.size = Vector2(.43,.79)
-	cape_mesh.subdivide_width = 4
-	cape_mesh.subdivide_depth = 6
-	cape = MarchArt.mesh(torso,cape_mesh,Vector3(0,1.075,.205),cloth)
-	cape.rotation.x = PI/2+.08
+	# A tapered, folded mantle hangs from the shoulders rather than a rigid rectangle.
+	var cloth_surface = SurfaceTool.new()
+	cloth_surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	cloth_surface.set_smooth_group(0)
+	for row in range(8):
+		for col in range(8):
+			for corner in [Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,0),Vector2(1,1),Vector2(0,1)]:
+				var u = (col+corner.x)/8.0
+				var v = (row+corner.y)/8.0
+				var x = (u*2-1)*(.18+v*.065)
+				cloth_surface.set_uv(Vector2(u,v))
+				cloth_surface.add_vertex(Vector3(x,-v*.73,.04+v*.08+cos(u*TAU*3)*.014*(.25+v)))
+	cloth_surface.generate_normals()
+	var mantle = cloth.duplicate()
+	mantle.cull_mode = BaseMaterial3D.CULL_DISABLED
+	cape = MarchArt.mesh(torso,cloth_surface.commit(),Vector3(0,1.46,.13),mantle)
 	cape.visible = player
 	# Retained as a hidden compatibility handle; no toy-like colored foot rings.
 	ring = MarchArt.mesh(self,TorusMesh.new(),Vector3.ZERO,black)
@@ -210,7 +224,7 @@ func animate(delta: float) -> void:
 	left_arm.rotation.x = .85 if block else sin(gait)*.20*amount
 	left_arm.rotation.z = -.13 if block else .09
 	left_elbow.rotation.x = .25 if block else -.18
-	cape.rotation.x = PI/2+.10+amount*.1+sin(gait*.5)*.025
+	cape.rotation.x = -.04-amount*.07+sin(gait*.5)*.018
 	visual.rotation.z = sin(hurt*45)*.045 if hurt>0 else 0.0
 	visual.rotation.x = -.10 if stagger>0 else 0.0
 
