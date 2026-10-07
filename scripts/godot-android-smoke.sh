@@ -25,10 +25,53 @@ PYLOG
   exit "$status"
 }
 trap finish EXIT
-adb install -r artifacts/Iron-Crowns-0.5.0-Combat.apk
+adb install -r artifacts/Iron-Crowns-0.6.0-Riders.apk
 adb shell pm clear "$PKG"
 adb shell wm size 720x1280
 adb shell wm density 160
+adb logcat -c
+adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
+# Both correct and same-size corrupted packs arrive through public Downloads.
+adb push artifacts/Iron-Crowns-0.6.0-Data.pck /sdcard/Download/Iron-Crowns-0.6.0-Data.pck
+python3 - <<'PYCORRUPT'
+from pathlib import Path
+p=bytearray(Path('artifacts/Iron-Crowns-0.6.0-Data.pck').read_bytes())
+p[len(p)//2]^=1
+Path('artifacts/Wrong-Data.pck').write_bytes(p)
+PYCORRUPT
+adb push artifacts/Wrong-Data.pck /sdcard/Download/Wrong-Data.pck
+rm artifacts/Wrong-Data.pck
+for attempt in $(seq 1 45); do
+  if adb logcat -d -s godot | grep -q IRON_DATA_REQUIRED; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_DATA_REQUIRED
+adb exec-out screencap -p > artifacts/android/00-data.png
+read -r SCREEN_W SCREEN_H < <(python3 -c 'import struct; b=open("artifacts/android/00-data.png","rb").read(); print(*struct.unpack(">II",b[16:24]))')
+export SCREEN_W SCREEN_H
+import_tap() {
+  read -r x y < <(python3 -c 'import os;w=int(os.environ["SCREEN_W"]);h=int(os.environ["SCREEN_H"]);s=min(w/1280,h/720);print(round(w/2),round((h-720*s)/2+515*s))')
+  adb shell input tap "$x" "$y"
+  sleep 2
+}
+import_tap
+python3 scripts/godot-picker.py Wrong-Data.pck
+for attempt in $(seq 1 45); do
+  if adb logcat -d -s godot | grep -q IRON_DATA_REJECTED; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_DATA_REJECTED
+! adb logcat -d -s godot | grep -q IRON_SCENE_READY
+import_tap
+python3 scripts/godot-picker.py Iron-Crowns-0.6.0-Data.pck
+for attempt in $(seq 1 60); do
+  if adb logcat -d -s godot | grep -q IRON_DATA_READY; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_DATA_READY
+# Imported pack remains available without public Downloads or networking.
+adb shell rm /sdcard/Download/Iron-Crowns-0.6.0-Data.pck /sdcard/Download/Wrong-Data.pck
+adb shell am force-stop "$PKG"
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do

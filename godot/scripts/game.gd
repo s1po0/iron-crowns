@@ -1,5 +1,8 @@
 extends Node3D
 
+var horse: MarchHorse
+var mounted = false
+var cut_side = 1
 var hero: MarchKnight
 var soldiers: Array[MarchKnight] = []
 var camera: Camera3D
@@ -61,6 +64,9 @@ func _ready() -> void:
 	apply_quality()
 	hero = spawn_knight(Vector3(0,0,10),0,true)
 	hero.rotation.y = PI+.2
+	horse = MarchHorse.new()
+	add_child(horse)
+	horse.position = Vector3(3,1,11)
 	for i in range(restored_army):
 		spawn_knight(Vector3(-4.5+(i%4)*3.0,0,5-(i/4)*2.3),0,false)
 	hold_point = Vector3(0,0,4)
@@ -151,6 +157,7 @@ func enter_world() -> void:
 func begin_battle() -> void:
 	if fighting:
 		return
+	reset_mount()
 	if realm!=null and map_open:
 		realm.hide_map()
 	map_open = false
@@ -230,6 +237,9 @@ func set_order(new_order: String) -> void:
 	announce("Company: "+new_order.to_lower()+"!")
 
 func dash() -> void:
+	if mounted:
+		horse.pace = (horse.pace+1)%3
+		return
 	if stamina>=28 and dash_time<=0 and not hero.dead and not map_open and not paused:
 		stamina -= 28
 		dash_time = .23
@@ -242,7 +252,9 @@ func attack() -> void:
 	if hero.dead or hero.cooldown>0 or stamina<12 or hero.block or hero.stagger>0 or paused or map_open:
 		return
 	stamina -= 12
-	hero.rotation.y = yaw
+	if not mounted:
+		hero.rotation.y = yaw
+	hero.cut_side = cut_side
 	start_strike(hero)
 	audio.play_effect("swing",.7)
 
@@ -261,6 +273,9 @@ func tick_strike(unit: MarchKnight, delta: float) -> void:
 	if unit.strike_clock>0:
 		return
 	unit.strike_clock = -1
+	if unit==hero and mounted:
+		mounted_strike()
+		return
 	var victim = nearest_enemy(unit)
 	if victim==null or unit.position.distance_to(victim.position)>2.05:
 		return
@@ -273,7 +288,16 @@ func tick_strike(unit: MarchKnight, delta: float) -> void:
 		return
 	var guarded = victim.guarding_from(unit.position)
 	var parried = guarded and victim.player and victim.guard_time>0
-	victim.damage(38 if unit.player else 12 if victim.player else 17,unit.position)
+	if victim==hero and mounted and unit.get_index()%2==0:
+		horse.hp = maxf(0,horse.hp-18)
+		if horse.hp<=0:
+			mounted = false
+			hero.riding = false
+			hero.collision_layer = 2
+			hero.stagger = .8
+			announce("Your horse is wounded. Continue on foot until the company rests.")
+	else:
+		victim.damage(38 if unit.player else 12 if victim.player else 17,unit.position)
 	if guarded:
 		unit.stagger = .42 if parried else .16
 		if victim.player:
@@ -342,7 +366,7 @@ func _physics_process(delta: float) -> void:
 		hero.guard_time = .18
 	if hero.block:
 		stamina = maxf(0,stamina-delta*10)
-	if not hero.dead:
+	if not hero.dead and not mounted:
 		var speed = (2.0 if hero.block else 4.3)*(0.25 if hero.stagger>0 else .55 if hero.swing>0 else 1.0)
 		if dash_time>0:
 			movement = evade_direction
@@ -362,6 +386,14 @@ func _physics_process(delta: float) -> void:
 		if footstep_clock>1.9 and hero.is_on_floor():
 			footstep_clock = 0
 			audio.play_effect("step",.55)
+		if attacking or Input.is_physical_key_pressed(KEY_SPACE):
+			attack()
+	horse.drive(input_vector,delta,mounted and not hero.dead)
+	if mounted:
+		hero.position = horse.position+Vector3(0,.82,0)
+		hero.rotation.y = horse.rotation.y
+		hero.speed = absf(horse.speed)
+		hero.velocity = horse.velocity
 		if attacking or Input.is_physical_key_pressed(KEY_SPACE):
 			attack()
 	var slot = 0
@@ -486,6 +518,14 @@ func _process(delta: float) -> void:
 		if capture_frame==300:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-wanderer.png")
+			hud.journal_open = false
+			realm.hide_map()
+			hero.position = horse.position+Vector3(1,0,0)
+			toggle_mount()
+			yaw = horse.rotation.y+.45
+		if capture_frame==345:
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("/tmp/iron-mounted.png")
 			get_tree().quit()
 
 func finish_battle(won: bool) -> void:
@@ -503,6 +543,7 @@ func finish_battle(won: bool) -> void:
 	save_progress()
 
 func return_to_camp() -> void:
+	reset_mount()
 	clear_enemies()
 	state = "play"
 	hero.dead = false
@@ -640,6 +681,7 @@ func run_smoke() -> void:
 	assert(gold==200,"Victory must not award twice")
 	return_to_camp()
 	assert(not hero.dead and state=="play","Return-to-camp failed")
+	run_mounted_tests()
 	run_combat_tests()
 	run_realm_tests()
 	run_wanderer_tests()
@@ -844,7 +886,7 @@ func update_follow_camera(delta: float, snap: bool = false) -> void:
 	var right = Vector3(cos(yaw),0,-sin(yaw))
 	var back_direction = Vector3(sin(yaw),0,cos(yaw))
 	var focus = hero.position+Vector3(0,1.27,0)
-	var desired = focus+back_direction*4.1+right*.65+Vector3(0,.68+pitch*1.8,0)
+	var desired = focus+back_direction*(6.3 if mounted else 4.1)+right*.65+Vector3(0,.68+pitch*1.8,0)
 	var query = PhysicsRayQueryParameters3D.create(focus,desired,1)
 	var hit = get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
@@ -933,3 +975,111 @@ func run_combat_tests() -> void:
 	apply_quality()
 	assert(audio.effects.size()==4 and audio.wind.stream!=null,"Combat and ambience audio available")
 	print("IRON_COMBAT_PASS: visible hero, proportional armor, delayed strikes, directional shields, parry, dodge, graphics settings, audio")
+
+func toggle_mount() -> void:
+	if hero.dead or paused or map_open or state!="play":
+		return
+	if not mounted:
+		if horse.hp<=0 or hero.position.distance_to(horse.position)>3.4:
+			announce("Approach your horse on the western road to mount.")
+			return
+		mounted = true
+		hero.riding = true
+		hero.collision_layer = 0
+		dash_time = 0
+		hero.position = horse.position+Vector3(0,.82,0)
+		announce("Ride: forward/back, steer left/right. DODGE changes gait; CUT selects sword side.")
+	else:
+		if absf(horse.speed)>1.5:
+			announce("Slow to a walk before dismounting.")
+			return
+		for side in [-1,1]:
+			var at = horse.position+horse.basis.x*side*1.45
+			var floor_ray = PhysicsRayQueryParameters3D.create(at+Vector3.UP*3,at-Vector3.UP*4,1)
+			var floor_hit = get_world_3d().direct_space_state.intersect_ray(floor_ray)
+			if floor_hit.is_empty() or floor_hit.normal.y<.7:
+				continue
+			at = floor_hit.position+Vector3.UP*.06
+			var shape = CapsuleShape3D.new()
+			shape.radius = .32
+			shape.height = 1.84
+			var query = PhysicsShapeQueryParameters3D.new()
+			query.shape = shape
+			query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*.94)
+			query.collision_mask = 1|2|4
+			if not get_world_3d().direct_space_state.intersect_shape(query).is_empty():
+				continue
+			mounted = false
+			hero.riding = false
+			hero.collision_layer = 2
+			hero.position = at
+			hero.velocity = Vector3.ZERO
+			return
+		announce("No clear ground beside the saddle. Move away from obstacles.")
+
+func mounted_strike() -> void:
+	var victim: MarchKnight = null
+	var distance = 2.8
+	for other in soldiers:
+		if other.team==hero.team or other.dead:
+			continue
+		var offset = other.position-horse.position
+		if absf(offset.y)>1.7:
+			continue
+		offset.y = 0
+		var local = horse.basis.inverse()*offset
+		if local.x*hero.cut_side<.3 or local.z>1.25 or local.z< -2.5 or offset.length()>distance:
+			continue
+		var ray = PhysicsRayQueryParameters3D.create(hero.position+Vector3.UP*1.2,other.position+Vector3.UP*1.2,1)
+		if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+			continue
+		victim = other
+		distance = offset.length()
+	if victim==null:
+		return
+	var guarded = victim.guarding_from(hero.position)
+	victim.damage(32+minf(18,absf(horse.speed)*1.8),hero.position)
+	audio.play_effect("clang" if guarded else "impact",.8)
+	combat_notice = "MOUNTED BLOCK" if guarded else "MOUNTED CUT"
+	combat_notice_time = .6
+	camera_shake = .05
+
+func reset_mount() -> void:
+	mounted = false
+	hero.riding = false
+	horse.hp = float(MarchCatalog.data().horse.health)
+	horse.stamina = 100
+	horse.speed = 0
+	horse.velocity = Vector3.ZERO
+	horse.position = Vector3(3,1,11)
+	horse.body.rotation = Vector3.ZERO
+
+func run_mounted_tests() -> void:
+	state = "play"
+	paused = false
+	map_open = false
+	var original = hero.position
+	hero.position = horse.position+Vector3(1,0,0)
+	toggle_mount()
+	assert(mounted and hero.riding and hero.collision_layer==0,"Nearby mounting failed")
+	horse.speed = 5
+	toggle_mount()
+	assert(mounted,"Must not dismount at a canter")
+	var old_pace = horse.pace
+	dash()
+	assert(horse.pace==(old_pace+1)%3,"Mounted dodge must change gait")
+	var enemy = spawn_knight(horse.position+horse.basis.x*1.8,1,false)
+	hero.cut_side = -1
+	var before = enemy.hp
+	mounted_strike()
+	assert(enemy.hp==before,"Wrong-side mounted cut must miss")
+	hero.cut_side = 1
+	mounted_strike()
+	assert(enemy.hp<before and before-enemy.hp<=50,"Right-side mounted cut or bounded speed bonus failed")
+	enemy.dead = true
+	soldiers.erase(enemy)
+	enemy.queue_free()
+	reset_mount()
+	hero.collision_layer = 2
+	hero.position = original
+	print("IRON_MOUNTED_PASS: mounting, safe dismount speed, gait and side-specific sword hits")

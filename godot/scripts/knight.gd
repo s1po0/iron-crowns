@@ -1,6 +1,8 @@
 class_name MarchKnight
 extends CharacterBody3D
 
+var riding = false
+var cut_side = 1
 var team = 0
 var player = false
 var hp = 100.0
@@ -96,10 +98,11 @@ func shield(parent: Node3D, mat: Material, factor: float, z: float, back: bool =
 func build_character() -> void:
 	visual = Node3D.new()
 	add_child(visual)
-	var steel = FieldMaterials.surface("steel",Color("deded4"),3,.25)
+	var outfit = MarchCatalog.equipment(0 if player else get_index()%3)
+	var steel = FieldMaterials.surface("steel" if outfit.steel else "cloth",Color(str(outfit.armor)),3,.25)
 	var dark = FieldMaterials.surface("steel",Color("92958b"),7,.12)
 	var leather = FieldMaterials.surface("timber",Color("999080"),3)
-	var cloth = FieldMaterials.surface("cloth",Color("414b4b") if team==0 else Color("655044"),4)
+	var cloth = FieldMaterials.surface("cloth",Color(str(outfit.coat)),4)
 	for mat in [steel,dark,leather,cloth]:
 		mat.uv1_triplanar = false
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -119,12 +122,19 @@ func build_character() -> void:
 	# Human-sized closed bascinet: no oversized head, crest or decorative gold.
 	armor(body,[Vector3(1.49,.105,.09),Vector3(1.61,.135,.13),Vector3(1.67,.13,.13)],dark)
 	rounded(body,Vector3(0,1.762,0),Vector3(.15,.18,.15),steel)
-	MarchArt.box(body,Vector3(0,1.715,-.14),Vector3(.229,.16,.035),steel)
-	MarchArt.box(body,Vector3(0,1.766,-.151),Vector3(.227,.022,.012),black)
-	MarchArt.box(body,Vector3(0,1.744,-.169),Vector3(.023,.14,.025),steel)
-	for side in [-1,1]:
-		for hole in range(3):
-			rounded(body,Vector3(side*(.045+hole*.022),1.69,-.147),Vector3(.006,.011,.006),black)
+	if outfit.helmet=="closed":
+		MarchArt.box(body,Vector3(0,1.715,-.14),Vector3(.229,.16,.035),steel)
+		MarchArt.box(body,Vector3(0,1.766,-.151),Vector3(.227,.022,.012),black)
+		MarchArt.box(body,Vector3(0,1.744,-.169),Vector3(.023,.14,.025),steel)
+		for side in [-1,1]:
+			for hole in range(3):
+				rounded(body,Vector3(side*(.045+hole*.022),1.69,-.147),Vector3(.006,.011,.006),black)
+	else:
+		var skin = MarchArt.material(Color("ab856b"))
+		rounded(body,Vector3(0,1.72,-.105),Vector3(.108,.115,.063),skin)
+		MarchArt.box(body,Vector3(0,1.74,-.166),Vector3(.13,.012,.009),black)
+		if outfit.helmet=="open":
+			MarchArt.cylinder(body,Vector3(0,1.84,0),.21,.035,steel,.20,16)
 	# A small scabbard lies beside the left hip rather than a fantasy ornament.
 	var scabbard = MarchArt.box(body,Vector3(-.235,.76,.07),Vector3(.052,.64,.034),leather)
 	scabbard.rotation.z = -.18
@@ -236,6 +246,16 @@ func animate(delta: float) -> void:
 	left_arm.rotation.x = .85 if block else sin(gait)*.20*amount
 	left_arm.rotation.z = -.13 if block else .09
 	left_elbow.rotation.x = .25 if block else -.18
+	left_leg.rotation.z = -.02
+	right_leg.rotation.z = .02
+	if riding:
+		left_leg.rotation = Vector3(-.85,0,-.40)
+		right_leg.rotation = Vector3(-.85,0,.40)
+		left_knee.rotation.x = 1.25
+		right_knee.rotation.x = 1.25
+		if swing>0:
+			right_arm.rotation.z = cut_side*lerpf(-1.4,.6,smoothstep(.25,.58,1-swing/.64))
+			torso.rotation.y = cut_side*.35
 	cape.rotation.x = -.04-amount*.07+sin(gait*.5)*.018
 	visual.rotation.z = sin(hurt*45)*.045 if hurt>0 else 0.0
 	visual.rotation.x = -.10 if stagger>0 else 0.0

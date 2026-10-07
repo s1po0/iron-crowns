@@ -83,10 +83,10 @@ func elevation(x: float, z: float) -> float:
 		var distance = Vector2(x,z).distance_to(settlement.at)
 		if distance<24:
 			h = lerpf(8,h,smoothstep(8,24,distance))
-	var shore = -412+sin(z*.014)*13+cos(z*.032)*5
-	var east = 422+sin(z*.012)*13
-	var north = -318+sin(x*.010)*9
-	var south = 320+cos(x*.012)*11
+	var shore = -400+sin(z*.014)*27+cos(z*.032)*14+50*exp(-pow((z+120)/65,2))
+	var east = 408+sin(z*.012)*25-45*exp(-pow((z-210)/60,2))
+	var north = -305+sin(x*.010)*23
+	var south = 299+cos(x*.012)*28
 	var inland = minf(minf(x-shore,east-x),minf(z-north,south-z))
 	return lerpf(-7,h,smoothstep(-12,20,inland))
 
@@ -137,7 +137,7 @@ func build_land() -> void:
 			for corner in [Vector2(0,0),Vector2(step,z_step),Vector2(0,z_step),Vector2(0,0),Vector2(step,0),Vector2(step,z_step)]:
 				var p = terrain_point(Vector2(x,z)+corner)
 				var n = noise.get_noise_2d(p.x*3,p.z*3)
-				var color = Color("7c8556").lerp(Color("a09a68"),clampf(.5+n,0,1))
+				var color = Color(str(MarchCatalog.data().regions[0].color)).lerp(Color("a29d7c"),clampf(.5+n,0,1))
 				if p.z>100 and p.x>100:
 					color = Color("b3a075").lerp(Color("927d5f"),clampf(.4+n,0,1))
 				if p.y>22:
@@ -150,7 +150,7 @@ func build_land() -> void:
 				surface.set_uv(Vector2(p.x,p.z)*.1)
 				surface.add_vertex(p)
 	surface.generate_normals()
-	var mat = realm_material(Color.WHITE)
+	var mat = FieldMaterials.surface("meadow",Color.WHITE,1)
 	mat.vertex_color_use_as_albedo = true
 	mat.metallic_specular = .15
 	var land_mesh = surface.commit()
@@ -158,7 +158,7 @@ func build_land() -> void:
 	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)
 	var ocean = PlaneMesh.new()
 	ocean.size = Vector2(1700,1300)
-	var water = realm_material(Color("527c85"))
+	var water = realm_material(Color("3e616a"))
 	water.roughness = .45
 	MarchArt.mesh(self,ocean,Vector3(0,-1.3,0),water)
 	var river: Array = []
@@ -171,7 +171,7 @@ func build_land() -> void:
 		banks.append(point-Vector3(0,.12,0))
 		waterline.append(point+Vector3(0,.12,0))
 	ribbon(banks,5.2,realm_material(Color("76958c")),deco)
-	ribbon(waterline,3.3,realm_material(Color("527f87")),deco)
+	ribbon(waterline,3.3,realm_material(Color("4e7277")),deco)
 
 func ribbon(points: Array, width: float, mat: Material, parent: Node3D) -> MeshInstance3D:
 	var surface = SurfaceTool.new()
@@ -366,6 +366,7 @@ func show_map() -> void:
 	build()
 	visible = true
 	game.terrain.visible = false
+	game.horse.visible = false
 	for soldier in game.soldiers:
 		soldier.visible = false
 	game.map_open = true
@@ -378,6 +379,7 @@ func hide_map() -> void:
 	game.field_environment.fog_enabled = true
 	visible = false
 	game.terrain.visible = true
+	game.horse.visible = true
 	for soldier in game.soldiers:
 		soldier.visible = true
 	game.map_open = false

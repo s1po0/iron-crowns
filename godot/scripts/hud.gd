@@ -103,7 +103,7 @@ func draw_title() -> void:
 	label("32 settlements. Four realms. A continent to explore.",Vector2(58,434),15,muted)
 	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
-	label("THE WESTERN ROAD  /  COMBAT REBUILD 0.5",Vector2(58,670),11,muted)
+	label("THE WESTERN ROAD  /  RIDERS / APK + DATA 0.6",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
 
@@ -132,6 +132,10 @@ func draw_game() -> void:
 		panel(Rect2(492,24,295,54),Color(.045,.12,.15,.85),8)
 		centered("THE RAIDERS APPROACH",Vector2(639,47),11,muted)
 		centered("HOLD THE WESTERN ROAD",Vector2(639,67),14,white,heading)
+	button("mount","DISMOUNT" if game.mounted else "MOUNT",Rect2(28,237,140,44))
+	if game.mounted:
+		button("cut_side","CUT: RIGHT" if game.cut_side==1 else "CUT: LEFT",Rect2(28,290,140,44))
+		label(["WALK","TROT","CANTER"][game.horse.pace]+" / stamina "+str(int(game.horse.stamina))+" / HP "+str(int(game.horse.hp)),Vector2(28,360),13,gold)
 	# Character health bars are projected from actual 3D positions.
 	for unit in game.soldiers:
 		if unit.player or unit.dead or unit.hp>=unit.maximum_hp or game.camera.is_position_behind(unit.global_position):
@@ -156,7 +160,7 @@ func draw_game() -> void:
 	draw_arc(Vector2(1014,605),44,0,TAU,48,Color(.91,.87,.72,.6),1,true)
 	centered("BLOCK",Vector2(1014,611),11,white)
 	draw_circle(Vector2(1115,465),35,Color(.06,.15,.18,.75))
-	centered("DODGE",Vector2(1115,470),10,white)
+	centered("GAIT" if game.mounted else "DODGE",Vector2(1115,470),10,white)
 	panel(Rect2(384,625,505,70),Color(.045,.12,.15,.85),10)
 	panel(Rect2(384,595,147,25),Color(.045,.12,.15,.78),5)
 	label("COMPANY ORDER",Vector2(397,612),10,white)
@@ -235,6 +239,8 @@ func action(id: String) -> void:
 		game.realm.life.hire(int(id.trim_prefix("companion_")))
 		return
 	match id:
+		"mount": game.toggle_mount()
+		"cut_side": game.cut_side *= -1
 		"origin_back": game.state = "title"
 		"origin_begin":
 			game.realm.life.choose_origin(origin_choice)

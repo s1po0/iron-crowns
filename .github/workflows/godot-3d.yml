@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       reviewed_run:
-        description: 'Optional successful run ID to publish its exact, visually reviewed 0.5 APK without rebuilding'
+        description: 'Optional successful run ID to publish its exact, visually reviewed 0.6 APK without rebuilding'
         required: false
         type: string
 permissions:
@@ -56,7 +56,7 @@ jobs:
           set -o pipefail
           LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --rendering-method gl_compatibility -- --capture 2>&1 | tee artifacts/render.log
           mkdir -p docs/screenshots
-          cp /tmp/iron-title.png /tmp/iron-field.png /tmp/iron-map.png /tmp/iron-origin.png /tmp/iron-wanderer.png docs/screenshots/
+          cp /tmp/iron-title.png /tmp/iron-field.png /tmp/iron-map.png /tmp/iron-origin.png /tmp/iron-wanderer.png /tmp/iron-mounted.png docs/screenshots/
           cp docs/screenshots/*.png artifacts/
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
       - name: Save reviewable screenshots on the session branch
@@ -71,7 +71,7 @@ jobs:
       - name: Export Android APK
         run: |
           set -o pipefail
-          godot --headless --path godot --export-debug Android "$GITHUB_WORKSPACE/artifacts/Iron-Crowns-0.5.0-Combat.apk" 2>&1 | tee artifacts/export.log || {
+          bash scripts/godot-build-split.sh 2>&1 | tee artifacts/export.log || {
             python3 -c 's=open("artifacts/export.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
             exit 1
           }
@@ -121,21 +121,14 @@ jobs:
       - name: Build metadata
         run: |
           cd artifacts
-          sha256sum *.apk > SHA256SUMS.txt
-          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.5.0-combat-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
+          sha256sum *.apk *.pck DATA-MANIFEST.json > SHA256SUMS.txt
+          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.6.0-riders-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
       - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: Iron-Crowns-3D
           path: artifacts/
           retention-days: 30
-      - name: Publish visually reviewed prerelease
-        if: contains(github.event.head_commit.message, '[publish 3d]')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png \
-            --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.5 — The Western Road combat rebuild' --notes-file docs/RELEASE_0.5.0.md
 
   publish-reviewed:
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.reviewed_run != '') || contains(github.event.head_commit.message, '[reviewed-apk ') }}
@@ -190,11 +183,11 @@ jobs:
           ls -lah artifacts
           cat artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt
           grep -Fx "Source: $REVIEWED_SHA" artifacts/BUILD.txt
-          grep -Fx 'Version: 0.5.0-combat-preview' artifacts/BUILD.txt
+          grep -Fx 'Version: 0.6.0-riders-preview' artifacts/BUILD.txt
           grep -q '^PASS:' artifacts/ANDROID-SMOKE.txt
           (cd artifacts && sha256sum -c SHA256SUMS.txt)
           # A repository-authorized client creates/publishes the draft at the reviewed
           # source SHA. The job token uploads binaries without creating an older-SHA tag.
-          gh release view v0.5.0-combat-preview --json isDraft,targetCommitish > draft.json
+          gh release view v0.6.0-riders-preview --json isDraft,targetCommitish > draft.json
           jq -e --arg sha "$REVIEWED_SHA" '.isDraft == true and .targetCommitish == $sha' draft.json
-          gh release upload v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png --clobber
+          gh release upload v0.6.0-riders-preview artifacts/Iron-Crowns-0.6.0-Riders.apk artifacts/Iron-Crowns-0.6.0-Data.pck artifacts/DATA-MANIFEST.json artifacts/iron-mounted.png artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png --clobber
