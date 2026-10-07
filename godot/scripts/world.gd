@@ -22,7 +22,8 @@ func build() -> void:
 	for i in range(22):
 		var angle = float(i)/22*TAU
 		var point = Vector3(sin(angle)*rng.randf_range(66,86),0,cos(angle)*rng.randf_range(66,86))
-		MarchArt.sphere(self,point,Vector3(rng.randf_range(12,22),rng.randf_range(7,17),rng.randf_range(13,23)),MarchArt.material(Color("72908a") if i%2==0 else Color("8a9e87")))
+		var mountain_height = rng.randf_range(12,24)
+		MarchArt.cylinder(self,point+Vector3(0,mountain_height*.34,0),rng.randf_range(16,24),mountain_height,MarchArt.material(Color("587d78") if i%2==0 else Color("6b856e")),0,7)
 	# A path of overlapping low polygon discs gives an irregular, winding road.
 	for i in range(31):
 		var z = 23-i*2.0

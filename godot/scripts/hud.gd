@@ -15,6 +15,10 @@ var red = Color("da8368")
 var base = Vector2(1280,720)
 
 func _ready() -> void:
+	var readable_font = FontVariation.new()
+	readable_font.base_font = body
+	readable_font.variation_opentype = {"wght":550}
+	body = readable_font
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -135,7 +139,8 @@ func draw_game() -> void:
 	draw_circle(Vector2(1115,465),35,Color(.06,.15,.18,.75))
 	centered("DASH",Vector2(1115,470),10,white)
 	panel(Rect2(384,625,505,70),Color(.045,.12,.15,.85),10)
-	label("COMPANY ORDER",Vector2(403,616),10,white)
+	panel(Rect2(384,595,147,25),Color(.045,.12,.15,.78),5)
+	label("COMPANY ORDER",Vector2(397,612),10,white)
 	var orders = ["FOLLOW","HOLD","CHARGE","WALL"]
 	for i in range(4):
 		button(orders[i],orders[i],Rect2(395+i*122,637,115,45),game.order==orders[i])
@@ -143,6 +148,7 @@ func draw_game() -> void:
 		panel(Rect2(365,110,550,42),Color(.045,.12,.15,.86),7)
 		centered(game.toast,Vector2(640,136),13,white)
 	if not game.fighting:
+		panel(Rect2(352,550,576,40),Color(.045,.12,.15,.70),7)
 		centered("Drag the right side to look around  ·  Tap REALM for the region overview",Vector2(640,577),12,white)
 
 func draw_map() -> void:

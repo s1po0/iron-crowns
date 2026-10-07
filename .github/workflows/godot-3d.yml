@@ -68,6 +68,14 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: bash scripts/godot-android-smoke.sh
+      - name: Save real Android screenshot for review
+        run: |
+          cp artifacts/android/02-battle.png docs/screenshots/android-field.png
+          git add docs/screenshots/android-field.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual Android 3D field rendering'
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
       - name: Build metadata
         run: |
           cd artifacts

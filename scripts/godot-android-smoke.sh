@@ -22,6 +22,15 @@ adb shell pidof "$PKG"
 adb exec-out screencap -p > artifacts/android/01-title.png
 adb shell input tap 220 510
 sleep 3
+adb shell input tap 780 52
+sleep 1
+adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
+python3 - <<'PYTEST'
+import json
+save=json.load(open('artifacts/android/progress.json'))
+assert save['gold']==90 and save['victories']==0, save
+print('On-device 3D HUD recruitment and progress-write assertion passed.')
+PYTEST
 adb shell input tap 570 52
 sleep 3
 adb shell input swipe 125 584 180 584 1500

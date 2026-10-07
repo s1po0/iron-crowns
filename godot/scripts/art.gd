@@ -66,7 +66,7 @@ static func roof(parent: Node3D, at: Vector3, width: float, depth: float, height
 
 static func cloth(color: Color) -> ShaderMaterial:
 	var shader = Shader.new()
-	shader.code = "shader_type spatial; render_mode cull_disabled; uniform vec4 tint : source_color; void vertex(){VERTEX.z += sin(TIME * 2.4 + VERTEX.y * 4.0 + VERTEX.x * 2.0) * 0.065 * UV.y;} void fragment(){ALBEDO=tint.rgb; ROUGHNESS=0.95;}"
+	shader.code = "shader_type spatial; render_mode cull_disabled; uniform vec4 tint : source_color; void vertex(){VERTEX.y += sin(TIME * 2.4 + VERTEX.z * 4.0 + VERTEX.x * 2.0) * 0.065 * UV.y;} void fragment(){ALBEDO=tint.rgb; ROUGHNESS=0.95;}"
 	var mat = ShaderMaterial.new()
 	mat.shader = shader
 	mat.set_shader_parameter("tint", color)

@@ -38,6 +38,7 @@ func _ready() -> void:
 	add_child(terrain)
 	terrain.build()
 	hero = spawn_knight(Vector3(0,0,10),0,true)
+	hero.rotation.y = PI+.2
 	for i in range(8):
 		spawn_knight(Vector3(-4.5+(i%4)*3.0,0,5-(i/4)*2.3),0,false)
 	hold_point = Vector3(0,0,4)
@@ -75,15 +76,15 @@ func build_lighting() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("c4d6d5")
-	env.ambient_light_energy = .65
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.12
+	env.ambient_light_energy = .30
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_exposure = .95
 	world_environment.environment = env
 	add_child(world_environment)
 	var sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-46,-34,0)
-	sun.light_color = Color("ffe4af")
-	sun.light_energy = 1.45
+	sun.light_color = Color("ffefdb")
+	sun.light_energy = .55
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 65
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -99,6 +100,7 @@ func spawn_knight(at: Vector3, team: int, is_player: bool) -> MarchKnight:
 	return soldier
 
 func enter_world() -> void:
+	hero.rotation.y = 0
 	state = "play"
 	reset_controls()
 	announce("Welcome to Hearthglen. Explore, or begin a skirmish.")
@@ -325,7 +327,7 @@ func _process(delta: float) -> void:
 		camera.look_at(Vector3(0,0,-8))
 	elif state!="title":
 		var focus = hero.position+Vector3(0,1.3,0)
-		var offset = Vector3(sin(yaw)*7.0,3.3+pitch*4,cos(yaw)*7.0)
+		var offset = Vector3(sin(yaw)*7.0,2.1+pitch*2,cos(yaw)*7.0)
 		camera.position = camera.position.lerp(focus+offset,minf(1,delta*10))
 		camera.look_at(focus)
 	if capture_mode:
