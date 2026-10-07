@@ -76,7 +76,6 @@ func build_lighting() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("c4d6d5")
 	env.ambient_light_energy = .65
-	env.reflected_light_source = Environment.REFLECTED_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 1.12
 	world_environment.environment = env
