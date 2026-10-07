@@ -22,10 +22,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          {
-            godot --headless --path godot --editor --import --quit
-            timeout 90 godot --headless --path godot -- --smoke
-          } 2>&1 | tee artifacts/engine-tests.log
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/engine-tests.log || true
+          if ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log; then
+            timeout 45 godot --headless --path godot -- --smoke 2>&1 | tee -a artifacts/engine-tests.log || true
+          fi
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log; then
             python3 -c 's=open("artifacts/engine-tests.log").read()[-16000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
             exit 1
