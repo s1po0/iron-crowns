@@ -6,8 +6,8 @@ curl -fsSL --retry 3 -o /tmp/godot-tools/editor.zip "https://github.com/godoteng
 unzip -q -o /tmp/godot-tools/editor.zip -d /tmp/godot-tools
 sudo install "/tmp/godot-tools/Godot_v$VERSION-stable_linux.x86_64" /usr/local/bin/godot
 curl -fsSL --retry 3 -o /tmp/godot-tools/templates.tpz "https://github.com/godotengine/godot-builds/releases/download/$VERSION-stable/Godot_v$VERSION-stable_export_templates.tpz"
-unzip -q -o /tmp/godot-tools/templates.tpz 'templates/android_debug.apk' 'templates/version.txt' -d /tmp/godot-tools
-cp /tmp/godot-tools/templates/android_debug.apk "$HOME/.local/share/godot/export_templates/$VERSION.stable/"
+unzip -q -o /tmp/godot-tools/templates.tpz 'templates/android_debug.apk' 'templates/android_source.zip' 'templates/version.txt' -d /tmp/godot-tools
+cp /tmp/godot-tools/templates/android_source.zip /tmp/godot-tools/templates/android_debug.apk "$HOME/.local/share/godot/export_templates/$VERSION.stable/"
 mkdir -p "$HOME/.config/godot" "$HOME/.android"
 if [ ! -f "$HOME/.android/debug.keystore" ]; then
   keytool -genkeypair -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000

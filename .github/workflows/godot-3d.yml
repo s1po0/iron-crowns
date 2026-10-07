@@ -2,7 +2,7 @@ name: Iron Crowns 3D Android
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths: ['godot/**', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
+    paths: ['godot/**', 'native/**', 'scripts/godot-picker.py', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
   workflow_dispatch:
     inputs:
       reviewed_run:

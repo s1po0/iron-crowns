@@ -53,7 +53,7 @@ static func draw(h) -> void:
 			var at = g.camera.unproject_position(r.position+npc.at+Vector3(0,10,0))*h.base/h.size
 			if at.y>110 and at.y<595 and at.x>50 and at.x<940:
 				h.centered(npc.kind+"  "+str(npc.men),at,11,h.red if npc.kind=="Raiders" else h.white)
-	var captain = g.camera.unproject_position(r.position+r.party+Vector3(0,10,0))*h.base/h.size
+	var captain = g.camera.unproject_position(r.position+r.party+Vector3(0,10,0))*h.base/h.size-Vector2(0,36)
 	if captain.y>110 and captain.y<590 and captain.x>40 and captain.x<950:
 		h.panel(Rect2(captain-Vector2(71,20),Vector2(142,27)),Color(.05,.07,.07,.88),5,h.gold)
 		h.centered("YOUR COMPANY  "+str(g.living(0)),captain,11,h.gold)

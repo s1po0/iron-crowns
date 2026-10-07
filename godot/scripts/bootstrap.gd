@@ -5,6 +5,7 @@ var requirements: Dictionary = {}
 var status = "Checking installed game data…"
 var busy = false
 var import_button: Button
+var android_picker: Object
 var picker: FileDialog
 var heading: Font = preload("res://assets/fonts/cinzel.ttf")
 var body: Font = preload("res://assets/fonts/lato.ttf")
@@ -25,6 +26,11 @@ func _ready() -> void:
 	picker.filters = PackedStringArray(["*.pck ; Iron Crowns game data"])
 	picker.file_selected.connect(import_data)
 	add_child(picker)
+	if OS.get_name()=="Android" and Engine.has_singleton("DataPicker"):
+		android_picker = Engine.get_singleton("DataPicker")
+		android_picker.connect("data_selected",complete_native_import)
+		android_picker.connect("data_error",require_data)
+		android_picker.connect("data_progress",native_progress)
 	call_deferred("prepare")
 
 func _draw() -> void:
@@ -65,7 +71,15 @@ func require_data(message: String) -> void:
 func select_data() -> void:
 	if busy or requirements.is_empty():
 		return
-	picker.popup_centered_ratio(.85)
+	if OS.get_name()=="Android":
+		if android_picker==null:
+			require_data("This APK is missing its Android Data importer. Use the official split build.")
+			return
+		busy = true
+		import_button.disabled = true
+		android_picker.selectData(int(requirements.bytes))
+	else:
+		picker.popup_centered_ratio(.85)
 
 func check_installed() -> void:
 	busy = true
@@ -176,3 +190,18 @@ func _input(event: InputEvent) -> void:
 		if import_button.get_global_rect().has_point(event.position):
 			get_viewport().set_input_as_handled()
 			select_data()
+
+func native_progress(percent: int) -> void:
+	status = "Copying selected Data: "+str(percent)+"%"
+	queue_redraw()
+
+func complete_native_import(path: String) -> void:
+	if not await verify(path):
+		DirAccess.remove_absolute(path)
+		require_data("Data verification failed. Download the matching pack again.")
+		print("IRON_DATA_REJECTED")
+		return
+	if DirAccess.rename_absolute(path,ProjectSettings.globalize_path(DESTINATION))!=OK:
+		require_data("Cannot finish the install. Check free storage and retry.")
+		return
+	mount_data()

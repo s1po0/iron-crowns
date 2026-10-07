@@ -12,3 +12,6 @@ artifacts/
 .tools/
 godot/.godot/
 godot/export/
+
+godot/android/.build_version
+godot/android/.gdignore

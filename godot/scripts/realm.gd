@@ -263,7 +263,7 @@ func build_forests() -> void:
 	for i in range(4200):
 		var at = Vector2(rng.randf_range(-389,417),rng.randf_range(-310,316))
 		var h = elevation(at.x,at.y)
-		if h>42 or (at.x>150 and at.y>60) or absf(at.x-river_x(at.y))<9:
+		if h<1 or h>42 or (at.x>150 and at.y>60) or absf(at.x-river_x(at.y))<9:
 			continue
 		if noise.get_noise_2d(at.x*.55+500,at.y*.55)<-.12:
 			continue

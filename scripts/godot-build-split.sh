@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p artifacts
+bash scripts/godot-android-template.sh
 godot --headless --path godot --export-pack Data "$PWD/artifacts/Iron-Crowns-0.6.0-Data.pck"
 python3 - <<'PY'
 from pathlib import Path
