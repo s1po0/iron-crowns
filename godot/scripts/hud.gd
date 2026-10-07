@@ -2,6 +2,10 @@ extends Control
 
 var game
 var help_open = false
+var journal_open = false
+var journal_tab = 0
+var origin_choice = 0
+var caravan_choice = 0
 var buttons: Array = []
 var fingers = {}
 var map_origins = {}
@@ -71,7 +75,9 @@ func _draw() -> void:
 		return
 	buttons.clear()
 	draw_set_transform(Vector2.ZERO,0,size/base)
-	if game.state=="title":
+	if game.state=="origin":
+		WandererOverlay.creation(self)
+	elif game.state=="title":
 		draw_title()
 	elif game.map_open:
 		draw_map()
@@ -81,6 +87,8 @@ func _draw() -> void:
 		draw_result()
 	elif game.paused and not help_open:
 		draw_pause()
+	if journal_open and not game.paused and game.map_open:
+		WandererOverlay.journal(self)
 	if help_open:
 		draw_help()
 
@@ -91,11 +99,11 @@ func draw_title() -> void:
 	label("IRON",Vector2(53,238),82,white,heading)
 	label("CROWNS",Vector2(53,330),82,white,heading)
 	draw_line(Vector2(59,363),Vector2(166,363),gold,2)
-	label("A captain. A company. A kingdom to forge.",Vector2(58,402),18,white)
+	label("No king. No oath. Your journey.",Vector2(58,402),18,white)
 	label("32 settlements. Four realms. A continent to explore.",Vector2(58,434),15,muted)
-	button("enter","BEGIN CAMPAIGN",Rect2(58,480,335,60),true)
+	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
-	label("CAMPAIGN MAP  /  EARLY BUILD 0.3",Vector2(58,670),11,muted)
+	label("THE OPEN ROAD  /  WANDERER BUILD 0.4",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
 
@@ -206,7 +214,37 @@ func draw_help() -> void:
 	button("help_close","BACK TO THE MARCHES",Rect2(108,627,330,52),true)
 
 func action(id: String) -> void:
+	if id.begins_with("origin_") and id.trim_prefix("origin_").is_valid_int():
+		origin_choice = clampi(int(id.trim_prefix("origin_")),0,2)
+		return
+	if id.begins_with("journal_tab_"):
+		journal_tab = clampi(int(id.trim_prefix("journal_tab_")),0,3)
+		return
+	if id.begins_with("companion_"):
+		game.realm.life.hire(int(id.trim_prefix("companion_")))
+		return
 	match id:
+		"origin_back": game.state = "title"
+		"origin_begin":
+			game.realm.life.choose_origin(origin_choice)
+			game.enter_world()
+		"journal":
+			journal_open = true
+			game.realm.speed = 0
+			game.reset_controls()
+		"journal_close": journal_open = false
+		"delivery_accept": game.realm.life.accept_delivery()
+		"delivery_claim": game.realm.life.claim_delivery()
+		"delivery_abandon": game.realm.life.abandon_delivery()
+		"delivery_route":
+			if not game.realm.life.delivery.is_empty():
+				if game.realm.travel_to(int(game.realm.life.delivery.to)):
+					journal_open = false
+		"caravan_leader": caravan_choice += 1
+		"caravan_buy":
+			var l = game.realm.life
+			l.found_caravan(-1 if l.companions.is_empty() else l.companions[caravan_choice%l.companions.size()])
+		"workshop_buy": game.realm.life.buy_workshop()
 		"enter": game.enter_world()
 		"battle": game.begin_battle()
 		"recruit": game.reinforce()
@@ -272,7 +310,7 @@ func pressed(at: Vector2, index: int) -> bool:
 		if item.rect.has_point(at):
 			action(item.id)
 			return true
-	if game.state!="play" or game.paused or help_open:
+	if game.state!="play" or game.paused or help_open or journal_open:
 		return true
 	if game.map_open:
 		fingers[index] = "map"
@@ -335,7 +373,7 @@ func _input(event: InputEvent) -> void:
 		elif owned=="map":
 			map_drag(event.index,event.position*base/size,event.relative*base/size)
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and game.map_open and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+	elif event is InputEventMouseButton and game.map_open and not journal_open and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
 		game.realm.change_zoom(.9 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.11)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:

@@ -12,6 +12,7 @@ const CASTLES = ["Dusk Tower","Saltwatch","Ironpass","Frostgate","Crownspire","F
 const VILLAGES = ["Ashford","Barleywick","Reedbank","Westmere","Pinecross","Greybrook","Snowfell","Whitefield","Oakridge","Millstead","Longford","Windmere","Redwell","Saffron Vale","Willowford","Meadowend"]
 const OWNERS = [0,2,1,1,0,3,3,2]
 var game
+var life: WandererLife
 var settlements: Array = []
 var graph = AStar3D.new()
 var road_edges: Array = []
@@ -51,6 +52,7 @@ var camera_offset = Vector3(1700,0,0)
 
 func initialize(owner: Node) -> void:
 	game = owner
+	life = WandererLife.new(self)
 	position = camera_offset
 	noise.seed = 1907
 	noise.frequency = .014
@@ -120,6 +122,7 @@ func build() -> void:
 		MarchArt.batch_static(node)
 		civilians.append({"node":node,"at":point,"route":[],"kind":kind,"faction":i%4,"men":8+i%5,"active":not defeated.has(i),"goal":start})
 		plan_npc(i)
+	life.bind_caravan()
 	draw_route()
 
 func build_land() -> void:
@@ -454,13 +457,14 @@ func update(delta: float) -> void:
 		next_day()
 	if route.size()>0:
 		var old = party
-		party = follow_path(party,route,elapsed*(15.0 if food>0 else 9.0))
+		party = follow_path(party,route,elapsed*(15.0 if food>0 else 9.0)*life.travel_multiplier())
 		travel_distance += old.distance_to(party)
 		if old.distance_to(party)>.01:
 			player_model.rotation.y = atan2(old.x-party.x,old.z-party.z)
 		player_model.position = party
 		if route.is_empty():
 			selected = destination
+			life.visit(selected)
 			destination = -1
 			speed = 0
 			game.announce("Arrived at "+settlements[selected].name+". Time paused.")
@@ -473,9 +477,10 @@ func update(delta: float) -> void:
 		if not npc.active:
 			continue
 		if npc.route.is_empty():
+			life.caravan_arrival(i,int(npc.goal))
 			plan_npc(i)
 		var old: Vector3 = npc.at
-		npc.at = follow_path(npc.at,npc.route,elapsed*(7 if npc.kind=="Caravan" else 9))
+		npc.at = follow_path(npc.at,npc.route,elapsed*(7 if npc.kind in ["Caravan","Your caravan"] else 9))
 		npc.node.position = npc.at
 		if old.distance_to(npc.at)>.01:
 			npc.node.rotation.y = atan2(old.x-npc.at.x,old.z-npc.at.z)
@@ -505,7 +510,8 @@ func follow_path(at: Vector3, path: Array, budget: float) -> Vector3:
 
 func next_day() -> void:
 	day += 1
-	food = maxi(0,food-maxi(2,int(game.living(0)/3)))
+	life.daily()
+	food = maxi(0,food-maxi(1,maxi(2,int(game.living(0)/3))-(1 if life.has_role("Steward") else 0)))
 	var wages = maxi(2,int(game.living(0)/2))
 	game.gold = maxi(0,game.gold+holdings.size()*18-wages)
 	if food==0 and game.living(0)>4:
@@ -521,7 +527,7 @@ func near_settlement(id: int) -> bool:
 	return id>=0 and id<settlements.size() and Vector2(party.x,party.z).distance_to(settlements[id].at)<13
 
 func buy_price(id: int) -> int:
-	return 8+settlements[id].faction*2+maxi(0,50-int(settlements[id].stock))/8+(day+id)%3
+	return 8+settlements[id].faction*2+maxi(0,50-int(settlements[id].stock))/8+(day+id)%3-(1 if life.origin=="Merchant" else 0)
 
 func sell_price(id: int) -> int:
 	return maxi(3,buy_price(id)-3)
@@ -554,12 +560,17 @@ func transact(action: String) -> bool:
 				success = true
 		"buy":
 			if game.gold>=buy_price(selected) and grain<20 and s.stock>0:
+				life.cargo_cost += buy_price(selected)
 				game.gold -= buy_price(selected)
 				grain += 1
 				s.stock -= 1
 				success = true
 		"sell":
 			if grain>0:
+				var cost = life.cargo_cost/maxi(1,grain)
+				if cost>0:
+					life.trade_profit += maxi(0,int(sell_price(selected)-cost))
+				life.cargo_cost = maxf(0,life.cargo_cost-cost)
 				game.gold += sell_price(selected)
 				grain -= 1
 				s.stock += 1
@@ -585,6 +596,9 @@ func transact(action: String) -> bool:
 	return success
 
 func launch_encounter(fief: int = -1) -> void:
+	if fief>=0 and life.neutral:
+		game.announce("Your neutral oath forbids attacking settlements. Take civilian contracts instead.")
+		return
 	if fief>=0:
 		if not near_settlement(fief) or settlements[fief].kind!="Castle" or holdings.has(fief):
 			return
@@ -644,7 +658,7 @@ func serialize() -> Dictionary:
 	var stocks: Array = []
 	for s in settlements:
 		stocks.append(s.stock)
-	return {"version":1,"x":party.x,"z":party.z,"day":day,"hours":hours,"food":food,"grain":grain,"holdings":holdings,"relations":relations,"stocks":stocks,"defeated":defeated,"quest":quest,"quest_done":quest_done,"distance":travel_distance,"army":checkpoint_army if game.fighting else game.living(0)}
+	return {"version":2,"life":life.serialize(),"x":party.x,"z":party.z,"day":day,"hours":hours,"food":food,"grain":grain,"holdings":holdings,"relations":relations,"stocks":stocks,"defeated":defeated,"quest":quest,"quest_done":quest_done,"distance":travel_distance,"army":checkpoint_army if game.fighting else game.living(0)}
 
 func restore(data: Dictionary) -> void:
 	var x = float(data.get("x",-165))
@@ -674,6 +688,12 @@ func restore(data: Dictionary) -> void:
 	if stocks is Array and stocks.size()==32:
 		for i in range(32):
 			settlements[i].stock = clampi(int(stocks[i]),0,110)
+
+	if data.get("life",{}) is Dictionary:
+		life.restore(data.get("life",{}))
+	if not data.is_empty() and not data.has("life"):
+		life.origin = "Veteran"
+		life.neutral = false
 
 func realm_material(color: Color) -> StandardMaterial3D:
 	var key = color.to_html()

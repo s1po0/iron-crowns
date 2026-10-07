@@ -19,7 +19,7 @@ PYLOG
   fi
 }
 trap finish EXIT
-adb install -r artifacts/Iron-Crowns-0.3.0-Campaign.apk
+adb install -r artifacts/Iron-Crowns-0.4.0-Wanderer.apk
 adb shell pm clear "$PKG"
 adb shell wm size 720x1280
 adb shell wm density 160
@@ -43,6 +43,9 @@ coords() {
 tap() { read -r x y < <(coords "$1" "$2"); adb shell input tap "$x" "$y"; }
 swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4"); adb shell input swipe "$x" "$y" "$tx" "$ty" "$5"; }
 tap 220 510
+sleep 1
+adb exec-out screencap -p > artifacts/android/00-origin.png
+tap 640 636
 for attempt in $(seq 1 90); do
   if adb logcat -d -s godot | grep -q IRON_REALM_READY; then break; fi
   sleep 1
@@ -56,9 +59,33 @@ cat artifacts/android/progress.json
 python3 - <<'PYTEST'
 import json
 save=json.load(open('artifacts/android/progress.json'))
-assert save['gold']==90 and save['victories']==0 and save['realm']['army']==11, save
+assert save['gold']==150 and save['victories']==0 and save['realm']['army']==11, save
 print('On-device 3D HUD recruitment and progress-write assertion passed.')
 PYTEST
+# Hire the local scout and accept a neutral delivery through the real journal UI.
+tap 335 667
+sleep 1
+tap 760 220
+sleep 1
+tap 975 295
+sleep 1
+tap 500 220
+sleep 1
+tap 350 520
+sleep 1
+adb exec-out screencap -p > artifacts/android/05-journal.png
+adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/wanderer-active.json
+python3 - <<'PYLIFE'
+import json
+s=json.load(open('artifacts/android/wanderer-active.json'))
+l=s['realm']['life']
+assert s['version']==3 and s['gold']==90, s
+assert l['origin']=='Merchant' and l['neutral'] and l['companions']==[0], l
+assert l['delivery']['to']==1 and l['completed']==0, l
+print('Android origin, tavern hiring, courier acceptance and active-job save passed.')
+PYLIFE
+tap 1111 107
+sleep 1
 # Visit the adjacent castle using actual map selection and route execution.
 tap 1172 574
 sleep 1
@@ -77,6 +104,24 @@ assert r['distance']>30 and abs(r['x']+133)<2 and abs(r['z']-97)<2, r
 assert save['gold']==90 and r['army']==11, save
 print('Android campaign travel, castle arrival and saved position passed.')
 PYTRAVEL
+# Complete the job at its physical destination, then attempt a duplicate claim.
+tap 335 667
+sleep 1
+tap 640 510
+sleep 1
+adb exec-out screencap -p > artifacts/android/05-journal.png
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
+python3 - <<'PYCLAIM'
+import json
+s=json.load(open('artifacts/android/progress.json'))
+l=s['realm']['life']
+assert s['gold']==135 and l['completed']==1 and l['delivery']=={}, s
+assert 1 in l['visited'] and l['companions']==[0], l
+assert s['realm']['holdings']==[] and all(x==0 for x in s['realm']['relations']), s
+print('Android courier payout, visit milestone and full faction neutrality passed.')
+PYCLAIM
 adb exec-out screencap -p > artifacts/android/04-campaign.png
 # Pan/zoom the actual map and return to the shared field scene for combat checks.
 tap 48 330
@@ -119,4 +164,4 @@ if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAG
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi
-printf 'PASS: Android API 29 x86_64 emulator install, launch, campaign selection, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt
+printf 'PASS: Android API 29 x86_64 emulator install, launch, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt

@@ -72,8 +72,8 @@ static func draw(h) -> void:
 	h.button("zoom_in","+",Rect2(22,310,54,49))
 	h.button("zoom_out","−",Rect2(22,368,54,49))
 	h.panel(Rect2(212,613,856,85),Color(.055,.075,.073,.94),9,Color(.64,.55,.36,.45))
-	h.label("COMPANY",Vector2(231,639),11,h.gold)
-	h.label("Fiefs "+str(r.holdings.size())+"  ·  Grain "+str(r.grain)+" / 20",Vector2(231,675),14,h.white)
+	h.label("NEUTRAL COMPANY" if r.life.neutral else "COMPANY",Vector2(231,639),11,h.gold)
+	h.button("journal","JOURNAL / JOBS",Rect2(231,650,211,34))
 	h.button("locate","LOCATE",Rect2(460,635,108,45))
 	h.button("time0","PAUSE",Rect2(580,635,112,45),r.speed==0)
 	h.button("time1","1×",Rect2(704,635,70,45),r.speed==1)
@@ -123,7 +123,7 @@ static func draw_settlement(h) -> void:
 		h.button("travel","TRAVEL TO "+s.kind.to_upper(),Rect2(984,340,254,54),true)
 		h.label("Party follows connected roads.",Vector2(984,424),13,h.muted)
 		h.label("Time pauses when you arrive.",Vector2(984,449),13,h.muted)
-		h.label("Castles can become income fiefs.",Vector2(984,492),12,h.gold)
+		h.label("Courier work needs no allegiance." if r.life.neutral else "Castles can become income fiefs.",Vector2(984,492),12,h.gold)
 	else:
 		h.label("YOUR COMPANY IS HERE",Vector2(984,273),12,h.gold)
 		if r.relations[s.faction]<0 and not r.holdings.has(r.selected):
@@ -133,7 +133,7 @@ static func draw_settlement(h) -> void:
 		h.button("realm_recruit","RECRUIT 3 · 30 GOLD",Rect2(984,349,254,43))
 		h.button("buy_grain","BUY GRAIN · "+str(r.buy_price(r.selected)),Rect2(984,401,124,43))
 		h.button("sell_grain","SELL · "+str(r.sell_price(r.selected)),Rect2(1116,401,122,43))
-		if s.kind=="Castle" and not r.holdings.has(r.selected):
+		if s.kind=="Castle" and not r.holdings.has(r.selected) and not r.life.neutral:
 			h.button("assault","CHALLENGE GARRISON",Rect2(984,453,254,44))
 			h.label("Field battle; no siege interiors yet.",Vector2(984,520),11,h.muted)
 		elif r.holdings.has(r.selected):
@@ -141,7 +141,7 @@ static func draw_settlement(h) -> void:
 		else:
 			h.button("quest","ROADWARDEN CONTRACT",Rect2(984,453,254,44))
 			h.label("Defeat raiders · 120 gold reward",Vector2(984,520),12,h.gold)
-		h.label("Cargo stock: "+str(s.stock),Vector2(984,542),12,h.muted)
+		h.label("Grain "+str(r.grain)+" / 20  ·  Local stock: "+str(s.stock),Vector2(984,542),12,h.muted)
 
 	h.button("select_previous","‹ PREVIOUS",Rect2(984,558,122,34))
 	h.button("select_next","NEXT ›",Rect2(1116,558,122,34))

@@ -111,11 +111,19 @@ func spawn_knight(at: Vector3, team: int, is_player: bool) -> MarchKnight:
 	return soldier
 
 func enter_world() -> void:
+	if realm.life.origin=="":
+		state = "origin"
+		return
 	hero.rotation.y = 0
 	state = "play"
 	reset_controls()
 	realm.show_map()
-	realm.selected = 0
+	realm.selected = -1
+	for id in range(32):
+		if realm.near_settlement(id):
+			realm.selected = id
+			realm.life.visit(id)
+			break
 	paused = false
 	announce("The Marches await. Select a settlement and follow the roads.")
 
@@ -363,6 +371,11 @@ func _process(delta: float) -> void:
 		if capture_frame==90:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-title.png")
+			state = "origin"
+		if capture_frame==120:
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("/tmp/iron-origin.png")
+			realm.life.choose_origin(0)
 			enter_world()
 			begin_battle()
 			fighting = false
@@ -374,6 +387,11 @@ func _process(delta: float) -> void:
 		if capture_frame==270:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-map.png")
+			hud.journal_open = true
+			hud.journal_tab = 0
+		if capture_frame==300:
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("/tmp/iron-wanderer.png")
 			get_tree().quit()
 
 func finish_battle(won: bool) -> void:
@@ -442,7 +460,11 @@ func look(amount: Vector2) -> void:
 
 func back() -> void:
 	reset_controls()
-	if hud.help_open:
+	if hud.journal_open:
+		hud.journal_open = false
+	elif state=="origin":
+		state = "title"
+	elif hud.help_open:
 		hud.help_open = false
 		paused = false
 	elif map_open:
@@ -472,7 +494,7 @@ func save_progress() -> void:
 	if file==null:
 		announce("Progress could not be saved. Check free storage.")
 		return
-	file.store_string(JSON.stringify({"version":2,"gold":gold,"victories":victories,"realm":realm.serialize() if realm!=null else saved_realm}))
+	file.store_string(JSON.stringify({"version":3,"gold":gold,"victories":victories,"realm":realm.serialize() if realm!=null else saved_realm}))
 	file.flush()
 	file.close()
 	var error = DirAccess.rename_absolute("user://progress.tmp","user://progress.json")
@@ -485,7 +507,7 @@ func load_progress() -> void:
 	if not FileAccess.file_exists("user://progress.json"):
 		return
 	var data = JSON.parse_string(FileAccess.get_file_as_string("user://progress.json"))
-	if data is Dictionary and data.get("version",0) in [1,2]:
+	if data is Dictionary and data.get("version",0) in [1,2,3]:
 		gold = clampi(int(data.get("gold",120)),0,1000000)
 		victories = clampi(int(data.get("victories",0)),0,100000)
 		if data.get("realm",{}) is Dictionary:
@@ -495,6 +517,7 @@ func load_progress() -> void:
 func run_smoke() -> void:
 	assert(hero!=null and soldiers.size()==9,"Character scene initialization failed")
 	assert(hero.right_arm!=null and hero.left_leg!=null,"Articulated character parts missing")
+	realm.life.choose_origin(1)
 	enter_world()
 	begin_battle()
 	assert(living(1)==8,"Encounter spawn count incorrect")
@@ -515,6 +538,7 @@ func run_smoke() -> void:
 	return_to_camp()
 	assert(not hero.dead and state=="play","Return-to-camp failed")
 	run_realm_tests()
+	run_wanderer_tests()
 	print("IRON_SMOKE_PASS: characters, battle, campaign roads, trade, travel, persistence, fiefs")
 	get_tree().quit()
 
@@ -571,3 +595,102 @@ func run_realm_tests() -> void:
 	realm.battle_result(true)
 	assert(realm.holdings.size()==count,"No duplicated fiefs")
 	realm.return_to_map = false
+
+func run_wanderer_tests() -> void:
+	var model = CrownRealm.new()
+	model.initialize(self)
+	var life = model.life
+	gold = 120
+	assert(life.choose_origin(0) and gold==180,"Merchant origin seed capital")
+	assert(not life.choose_origin(2) and gold==180,"Origin cannot award twice")
+	assert(life.neutral and life.regions_seen()==1,"Independent starting identity")
+	model.selected = 0
+	assert(life.accept_delivery(),"Local courier contract")
+	var job = life.delivery.duplicate()
+	assert(not life.accept_delivery(),"One active delivery")
+	var money = gold
+	assert(not life.claim_delivery() and gold==money,"Remote delivery claim denied")
+	var pending_save = JSON.parse_string(JSON.stringify(model.serialize()))
+	var pending_restore = CrownRealm.new()
+	pending_restore.initialize(self)
+	pending_restore.restore(pending_save)
+	assert(pending_restore.life.delivery==job,"Active delivery reload")
+	pending_restore.free()
+	model.party = model.terrain_point(model.settlements[1].at)
+	model.selected = 1
+	assert(life.claim_delivery() and gold==money+45,"Courier arrival reward")
+	money = gold
+	assert(not life.claim_delivery() and gold==money,"No double delivery reward")
+	assert(life.completed==1,"Delivery milestone")
+	model.party = model.terrain_point(model.settlements[0].at)
+	model.selected = 0
+	assert(not life.accept_delivery(),"Courier origin cooldown")
+	model.day += 2
+	assert(life.accept_delivery(),"Board refresh")
+	model.day = int(life.delivery.due)+1
+	assert(not life.claim_delivery() and life.delivery.is_empty(),"Expired job cannot pay")
+	assert(not life.hire(1),"Companion cannot be recruited remotely")
+	assert(not life.found_caravan(),"Caravan requires a companion")
+	assert(life.hire(0) and life.has_role("Scout"),"Local companion and passive ability")
+	money = gold
+	assert(not life.hire(0) and gold==money,"No duplicate companion charges")
+	assert(not life.found_caravan(),"Insufficient business funds")
+	gold = 1600
+	assert(life.buy_workshop() and gold==1100 and model.holdings.is_empty(),"Workshop without land")
+	assert(not life.buy_workshop() and gold==1100,"No duplicate workshop")
+	assert(life.found_caravan() and gold==700,"Caravan purchase")
+	assert(not life.has_role("Scout"),"Assigned leader no longer scouts player party")
+	assert(not life.found_caravan() and gold==700,"One owned caravan")
+	life.caravan_arrival(0,4)
+	assert(gold>700 and int(life.caravan.paid)>0,"Caravan arrival earnings")
+	money = gold
+	life.caravan_arrival(0,4)
+	assert(gold==money,"No duplicate caravan stop credit")
+	life.caravan_arrival(1,8)
+	assert(gold==money,"NPC caravan cannot credit player")
+	model.day = 8 # Avoid the scheduled weekly toll for this accounting assertion.
+	money = gold
+	var income = life.workshop_income(0)
+	life.daily()
+	assert(gold==money+income-6,"Workshop income and caravan operating costs")
+	model.day = 14
+	money = gold
+	life.daily()
+	assert(gold==money+income-36,"Weekly bandit toll accounting")
+	model.defeated = [12,13,14,15]
+	money = gold
+	life.daily()
+	assert(gold==money+income-6,"Clearing raiders ends tolls")
+	model.relations[0] = -20
+	assert(life.workshop_income(0)==0,"Hostile business suspension")
+	model.relations[0] = 0
+	model.settlements[0].stock = 0
+	assert(life.workshop_income(0)==0,"Workshop needs actual local supply")
+	model.settlements[0].stock = 45
+	life.visit(8)
+	life.visit(24)
+	life.visit(4)
+	assert(life.regions_seen()==4,"Four-culture exploration milestone")
+	var restored = CrownRealm.new()
+	restored.initialize(self)
+	restored.restore(JSON.parse_string(JSON.stringify(model.serialize())))
+	assert(restored.life.serialize()==life.serialize(),"Full wanderer save round trip")
+	restored.free()
+	var legacy = CrownRealm.new()
+	legacy.initialize(self)
+	legacy.restore({"x":-165,"z":130,"holdings":[1]})
+	assert(legacy.life.origin=="Veteran" and not legacy.life.neutral and legacy.holdings.has(1),"Legacy saves retain conquest access")
+	legacy.free()
+	var malformed = CrownRealm.new()
+	malformed.initialize(self)
+	malformed.restore({"life":{"origin":"bad","visited":[-1,999,"x",0,0],"companions":[-1,99],"workshops":[1,4,4,100],"caravan":{"companion":99,"home":0,"last_stop":0,"paid":0}}})
+	assert(malformed.life.origin=="" and malformed.life.visited==[0] and malformed.life.workshops==[4] and malformed.life.caravan.is_empty(),"Invalid saved IDs rejected")
+	malformed.free()
+	var old_life = realm.life
+	realm.life = life
+	fighting = false
+	realm.launch_encounter(1)
+	assert(not fighting,"Neutral oath forbids settlement assault")
+	realm.life = old_life
+	model.free()
+	print("IRON_WANDERER_PASS: origins, deliveries, companions, neutrality, businesses, accounting, migration, save validation")
