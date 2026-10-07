@@ -25,6 +25,7 @@ var toast_time = 0.0
 var result_time = 0.0
 var impact_nodes: Array = []
 var capture_frame = 0
+var ready_frames = 0
 var capture_mode = false
 var smoke_mode = false
 var terrain: MarchWorld
@@ -320,6 +321,9 @@ func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 	knight.speed = Vector2(knight.velocity.x,knight.velocity.z).length()
 
 func _process(delta: float) -> void:
+	ready_frames += 1
+	if ready_frames==30:
+		print("IRON_SCENE_READY")
 	if camera==null:
 		return
 	if map_open:

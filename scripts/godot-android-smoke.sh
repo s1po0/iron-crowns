@@ -24,7 +24,12 @@ adb shell wm size 720x1280
 adb shell wm density 160
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
-sleep 12
+for attempt in $(seq 1 45); do
+  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  sleep 1
+ done
+adb logcat -d -s godot | grep IRON_SCENE_READY
+sleep 3
 adb shell pidof "$PKG"
 adb exec-out screencap -p > artifacts/android/01-title.png
 adb shell input tap 220 510
@@ -32,6 +37,7 @@ sleep 3
 adb shell input tap 780 52
 sleep 1
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
+cat artifacts/android/progress.json
 python3 - <<'PYTEST'
 import json
 save=json.load(open('artifacts/android/progress.json'))
@@ -56,7 +62,7 @@ adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 sleep 5
 adb shell pidof "$PKG"
 adb logcat -d > artifacts/android/logcat.txt
-if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error' artifacts/android/logcat.txt; then
+if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAGMENT_UNIFORM' artifacts/android/logcat.txt; then
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi
