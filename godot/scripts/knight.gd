@@ -119,6 +119,7 @@ func build_character() -> void:
 	armor(body,[Vector3(.75,.24,.16),Vector3(.99,.185,.14)],dark)
 	armor(body,[Vector3(1.015,.19,.149),Vector3(1.065,.189,.146)],leather)
 	MarchArt.box(body,Vector3(.04,1.04,-.155),Vector3(.065,.043,.016),steel)
+	armor(body,[Vector3(1.46,.105,.09),Vector3(1.57,.085,.08),Vector3(1.60,.08,.07)],dark)
 	# The head is an imported anatomical mesh, not an oval with a painted eye slit.
 	var faces: Array = MarchCatalog.data().humans
 	HumanFaces.attach(body,faces[0 if player else get_index()%faces.size()])

@@ -511,6 +511,8 @@ func _process(delta: float) -> void:
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-field.png")
 			realm.show_map()
 			realm.selected = -1
+		if capture_frame==240:
+			realm.zoom = realm.WIDTH*1.08
 		if capture_frame==270:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-map.png")
@@ -527,6 +529,14 @@ func _process(delta: float) -> void:
 		if capture_frame==345:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-mounted.png")
+			hud.visible = false
+			state = "title"
+			hero.rotation.y = 0
+			camera.position = hero.position+Vector3(.24,1.82,-.85)
+			camera.look_at(hero.position+Vector3(0,1.73,0))
+		if capture_frame==380:
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("/tmp/iron-human.png")
 			get_tree().quit()
 
 func finish_battle(won: bool) -> void:
@@ -603,6 +613,9 @@ func look(amount: Vector2) -> void:
 	pitch = clampf(pitch+amount.y*.004,-.2,.8)
 
 func back() -> void:
+	if hud.factions_open:
+		hud.factions_open = false
+		return
 	reset_controls()
 	if hud.journal_open:
 		hud.journal_open = false

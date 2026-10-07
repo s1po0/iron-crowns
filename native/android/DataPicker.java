@@ -58,7 +58,7 @@ public final class DataPicker extends GodotPlugin {
         final Uri uri=data.getData();
         final Activity activity=getActivity();
         // The transient URI grant remains valid while this activity copies the file.
-        // Hash verification and atomic promotion are performed by the core game.
+        // Bound bytes here; version/schema, per-file hashes and atomic activation are checked by the game.
         new Thread(() -> {
             File partial=new File(activity.getFilesDir(),"content/selected-data.part");
             try {
@@ -82,7 +82,7 @@ public final class DataPicker extends GodotPlugin {
                         }
                     }
                     output.getFD().sync();
-                    if (total!=expectedBytes) throw new Exception("Wrong Data size");
+                    if (total<12) throw new Exception("Data file is empty or truncated");
                 }
                 active=false;
                 emitSignal("data_selected",partial.getAbsolutePath());

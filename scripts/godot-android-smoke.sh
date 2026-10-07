@@ -25,22 +25,22 @@ PYLOG
   exit "$status"
 }
 trap finish EXIT
-adb install -r artifacts/Iron-Crowns-0.6.0-Riders.apk
+adb install -r artifacts/Iron-Crowns-0.7.0-Peoples.apk
 adb shell pm clear "$PKG"
 adb shell wm size 720x1280
 adb shell wm density 160
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 # Both correct and same-size corrupted packs arrive through public Downloads.
-adb push artifacts/Iron-Crowns-0.6.0-Data.pck /sdcard/Download/Iron-Crowns-0.6.0-Data.pck
+adb push artifacts/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata
 python3 - <<'PYCORRUPT'
 from pathlib import Path
-p=bytearray(Path('artifacts/Iron-Crowns-0.6.0-Data.pck').read_bytes())
+p=bytearray(Path('artifacts/Iron-Crowns-0.7.0-Data.icdata').read_bytes())
 p[len(p)//2]^=1
-Path('artifacts/Wrong-Data.pck').write_bytes(p)
+Path('artifacts/Wrong-Data.icdata').write_bytes(p)
 PYCORRUPT
-adb push artifacts/Wrong-Data.pck /sdcard/Download/Wrong-Data.pck
-rm artifacts/Wrong-Data.pck
+adb push artifacts/Wrong-Data.icdata /sdcard/Download/Wrong-Data.icdata
+rm artifacts/Wrong-Data.icdata
 for attempt in $(seq 1 45); do
   if adb logcat -d -s godot | grep -q IRON_DATA_REQUIRED; then break; fi
   sleep 1
@@ -55,7 +55,7 @@ import_tap() {
   sleep 2
 }
 import_tap
-python3 scripts/godot-picker.py Wrong-Data.pck
+python3 scripts/godot-picker.py Wrong-Data.icdata
 for attempt in $(seq 1 45); do
   if adb logcat -d -s godot | grep -q IRON_DATA_REJECTED; then break; fi
   sleep 1
@@ -63,14 +63,20 @@ done
 adb logcat -d -s godot | grep IRON_DATA_REJECTED
 ! adb logcat -d -s godot | grep -q IRON_SCENE_READY
 import_tap
-python3 scripts/godot-picker.py Iron-Crowns-0.6.0-Data.pck
+python3 scripts/godot-picker.py Iron-Crowns-0.7.0-Data.icdata
 for attempt in $(seq 1 60); do
   if adb logcat -d -s godot | grep -q IRON_DATA_READY; then break; fi
   sleep 1
 done
 adb logcat -d -s godot | grep IRON_DATA_READY
+# Let initial scene/resource/GL initialization finish before killing the process.
+for attempt in $(seq 1 60); do
+  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_SCENE_READY
 # Imported pack remains available without public Downloads or networking.
-adb shell rm /sdcard/Download/Iron-Crowns-0.6.0-Data.pck /sdcard/Download/Wrong-Data.pck
+adb shell rm /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Wrong-Data.icdata
 adb shell am force-stop "$PKG"
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
@@ -91,6 +97,33 @@ coords() {
 }
 tap() { read -r x y < <(coords "$1" "$2"); adb shell input tap "$x" "$y"; }
 swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4"); adb shell input swipe "$x" "$y" "$tx" "$ty" "$5"; }
+# Update actual catalog bytes and revision without replacing/reinstalling the APK.
+adb push artifacts/Test-Revision-2.icdata /sdcard/Download/Test-Revision-2.icdata
+adb logcat -c
+tap 1135 644
+sleep 2
+import_tap
+python3 scripts/godot-picker.py Test-Revision-2.icdata
+for attempt in $(seq 1 60); do
+  if adb logcat -d -s godot | grep -q 'IRON_DATA_INSTALLED: API 1 revision 2'; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep 'IRON_DATA_INSTALLED: API 1 revision 2'
+adb exec-out run-as "$PKG" cat files/content/active.json > artifacts/android/active-data.json
+BUNDLE_DIR=$(python3 -c 'import json;d=json.load(open("artifacts/android/active-data.json"));assert d["manifest"]["revision"]==2;print(d["directory"])')
+adb exec-out run-as "$PKG" cat "files/content/$BUNDLE_DIR/assets/content/catalog.json" > artifacts/android/updated-catalog.json
+python3 -c 'import json;assert json.load(open("artifacts/android/updated-catalog.json"))["content_revision"]==2'
+adb shell rm /sdcard/Download/Test-Revision-2.icdata
+adb shell am force-stop "$PKG"
+adb logcat -c
+adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
+for attempt in $(seq 1 60); do
+  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep 'IRON_DATA_READY: API 1 revision 2'
+adb logcat -d -s godot | grep IRON_SCENE_READY
+sleep 2
 tap 220 510
 sleep 1
 adb exec-out screencap -p > artifacts/android/00-origin.png
@@ -249,4 +282,4 @@ if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAG
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi
-printf 'PASS: Android API 29 x86_64 emulator split APK/Data installation, native picker import, same-size corrupt pack rejection, verified offline restart, mounted touch controls/gait/side/riding/dismount, visible third-person hero, mobile/high settings and sound controls, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt
+printf 'PASS: Android API 29 x86_64 emulator split APK/Data installation, native picker import, same-size corrupt pack rejection, changed-catalog revision 2 Data update on the identical installed APK, verified offline restart, mounted touch controls/gait/side/riding/dismount, visible third-person hero, mobile/high settings and sound controls, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt

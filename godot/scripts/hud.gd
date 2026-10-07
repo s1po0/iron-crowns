@@ -3,6 +3,8 @@ extends Control
 var game
 var help_open = false
 var journal_open = false
+var factions_open = false
+var faction_choice = 0
 var journal_tab = 0
 var origin_choice = 0
 var caravan_choice = 0
@@ -89,6 +91,8 @@ func _draw() -> void:
 		draw_pause()
 	if journal_open and not game.paused and game.map_open:
 		WandererOverlay.journal(self)
+	if factions_open:
+		FactionsOverlay.draw(self)
 	if help_open:
 		draw_help()
 
@@ -103,7 +107,8 @@ func draw_title() -> void:
 	label(str(game.realm.settlements.size())+" settlements. "+str(game.realm.FACTIONS.size())+" factions. An expanded continent.",Vector2(58,434),15,muted)
 	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
-	label("THE WESTERN ROAD  /  RIDERS / APK + DATA 0.6",Vector2(58,670),11,muted)
+	button("manage_data","MANAGE DATA",Rect2(1040,620,190,48))
+	label("PEOPLES OF THE MARCHES / DATA API 1 / 0.7",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
 
@@ -229,6 +234,9 @@ func draw_help() -> void:
 	button("help_close","BACK TO THE MARCHES",Rect2(108,627,330,52),true)
 
 func action(id: String) -> void:
+	if id.begins_with("faction_"):
+		faction_choice = clampi(int(id.trim_prefix("faction_")),0,game.realm.FACTIONS.size()-1)
+		return
 	if id.begins_with("origin_") and id.trim_prefix("origin_").is_valid_int():
 		origin_choice = clampi(int(id.trim_prefix("origin_")),0,2)
 		return
@@ -239,6 +247,14 @@ func action(id: String) -> void:
 		game.realm.life.hire(int(id.trim_prefix("companion_")))
 		return
 	match id:
+		"factions":
+			factions_open = true
+			game.realm.speed = 0
+		"factions_close": factions_open = false
+		"manage_data":
+			game.save_progress()
+			get_tree().set_meta("update_data",true)
+			get_tree().change_scene_to_file("res://bootstrap.tscn")
 		"mount": game.toggle_mount()
 		"cut_side": game.cut_side *= -1
 		"origin_back": game.state = "title"
@@ -335,7 +351,7 @@ func pressed(at: Vector2, index: int) -> bool:
 		if item.rect.has_point(at):
 			action(item.id)
 			return true
-	if game.state!="play" or game.paused or help_open or journal_open:
+	if game.state!="play" or game.paused or help_open or journal_open or factions_open:
 		return true
 	if game.map_open:
 		fingers[index] = "map"

@@ -88,6 +88,7 @@ static func draw(h) -> void:
 		for i in range(r.FACTIONS.size()):
 			h.draw_circle(Vector2(992,194+i*36),5,r.COLORS[i])
 			h.label(r.FACTIONS[i],Vector2(1008,199+i*36),14,h.white)
+		h.button("factions","TRIBES AND CLANS",Rect2(966,459,289,45))
 		h.panel(Rect2(236,557,680,40),Color(.05,.07,.07,.88),6)
 		h.centered("Drag to pan · Pinch / scroll to zoom · Tap a settlement, then Travel",Vector2(576,583),13,h.white)
 	if g.toast_time>0:

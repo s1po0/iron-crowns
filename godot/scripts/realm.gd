@@ -55,7 +55,7 @@ func initialize(owner: Node) -> void:
 	noise.frequency = .014
 	noise.fractal_octaves = 4
 	rng.seed = 8631
-	world_definition = JSON.parse_string(FileAccess.get_file_as_string("res://assets/content/world.json"))
+	world_definition = ContentAssets.json("res://assets/content/world.json")
 	assert(world_definition.schema==1 and world_definition.id=="ashen-marches","Unsupported world definition")
 	WIDTH = float(world_definition.width)
 	DEPTH = float(world_definition.depth)
@@ -175,7 +175,7 @@ void fragment(){
 }"""
 	var mat = ShaderMaterial.new()
 	mat.shader = shader
-	mat.set_shader_parameter("meadow",load("res://assets/materials/meadow.jpg"))
+	mat.set_shader_parameter("meadow",ContentAssets.texture("res://assets/materials/meadow.jpg"))
 	var land_mesh = surface.commit()
 	assert(land_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL][0].y>0,"Terrain winding must face sky")
 	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)

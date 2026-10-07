@@ -8,9 +8,9 @@ static func surface(name: String, tint: Color = Color.WHITE, scale_value: float 
 	if cache.has(key):
 		return cache[key]
 	var m = StandardMaterial3D.new()
-	m.albedo_texture = load("res://assets/materials/"+name+".jpg")
+	m.albedo_texture = ContentAssets.texture("res://assets/materials/"+name+".jpg")
 	m.normal_enabled = true
-	m.normal_texture = load("res://assets/materials/"+name+"-normal.png")
+	m.normal_texture = ContentAssets.texture("res://assets/materials/"+name+"-normal.png")
 	m.normal_scale = .55
 	m.albedo_color = tint
 	m.roughness = .92 if metal==0 else .52
@@ -26,7 +26,7 @@ static func cutout(name: String) -> StandardMaterial3D:
 	if cache.has(name):
 		return cache[name]
 	var m = StandardMaterial3D.new()
-	m.albedo_texture = load("res://assets/materials/"+name+".png")
+	m.albedo_texture = ContentAssets.texture("res://assets/materials/"+name+".png")
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	m.alpha_scissor_threshold = .45
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -58,7 +58,7 @@ void fragment(){
 }"""
 	var m = ShaderMaterial.new()
 	m.shader = shader
-	m.set_shader_parameter("meadow",load("res://assets/materials/meadow.jpg"))
-	m.set_shader_parameter("soil",load("res://assets/materials/earth.jpg"))
-	m.set_shader_parameter("detail_normal",load("res://assets/materials/meadow-normal.png"))
+	m.set_shader_parameter("meadow",ContentAssets.texture("res://assets/materials/meadow.jpg"))
+	m.set_shader_parameter("soil",ContentAssets.texture("res://assets/materials/earth.jpg"))
+	m.set_shader_parameter("detail_normal",ContentAssets.texture("res://assets/materials/meadow-normal.png"))
 	return m
