@@ -6,6 +6,7 @@ A focused visual and combat rebuild, not a claim of AAA/Bannerlord realism.
 - New/continued journeys enter the third-person field with a prominently visible hero.
   REALM opens the existing strategic travel map; FIELD CAMP returns to the field.
 - Closer over-the-shoulder camera with obstacle raycasts, subtle impact motion and reduced HUD obstruction.
+  Escort formations move to the flanks so friendly troops do not crowd the startup camera.
 - Rebuilt human-proportioned armor, smaller helmet, articulated knees/elbows, textured steel/leather/cloth,
   plain heater shields and no colored foot rings or giant helmet crests.
 - Original generated ground, masonry, steel, wood, plaster and roof materials with approximate normal maps;

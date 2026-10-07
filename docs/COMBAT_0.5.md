@@ -2,7 +2,8 @@
 
 ## Start with a visible character
 New/continued journeys enter the shared village and battlefield in third person. The hero is
-framed prominently, with the camera closer than in 0.4. The **REALM** button (desktop M) opens
+framed prominently, with the camera closer than in 0.4. The default escort forms on the flanks,
+leaving the corridor between the camera and hero clear instead of crowding the foreground. The **REALM** button (desktop M) opens
 the strategic map; **FIELD CAMP** returns to the physical scene. This is the intended hybrid
 structure, but different campaign towns still reuse this one field scene; unique town interiors
 are not implemented. Campaign encounters switch into the same scene for real-time combat.

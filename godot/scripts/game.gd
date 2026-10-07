@@ -226,7 +226,7 @@ func reset_controls() -> void:
 func set_order(new_order: String) -> void:
 	order = new_order
 	if order=="HOLD" or order=="WALL":
-		hold_point = hero.position + Vector3(0,0,-2)
+		hold_point = hero.position + Vector3(-sin(yaw),0,-cos(yaw))*7.0
 	announce("Company: "+new_order.to_lower()+"!")
 
 func dash() -> void:
@@ -385,6 +385,14 @@ func _physics_process(delta: float) -> void:
 		elif living(1)==0:
 			finish_battle(true)
 
+func escort_slot(slot: int) -> Vector3:
+	# Keep a clear corridor between the shoulder camera and its hero. A trailing
+	# central formation previously put allies directly in front of the lens.
+	var right = Vector3(cos(yaw),0,-sin(yaw))
+	var forward = Vector3(-sin(yaw),0,-cos(yaw))
+	var side = -1 if slot%2==0 else 1
+	return hero.position+right*side*(3.8+int(slot/4)*.7)+forward*(1.0-int(slot/2)*1.8)
+
 func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 	knight.think -= delta
 	if knight.think<=0 or not is_instance_valid(knight.target) or knight.target.dead:
@@ -401,8 +409,10 @@ func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 		if knight.team==1 or order=="CHARGE" or distance<3:
 			target_point = target.position
 	if knight.team==0 and (target==null or (order!="CHARGE" and distance>=3)):
-		var anchor = hero.position if order=="FOLLOW" else hold_point
-		target_point = anchor+Vector3(-3.0+(slot%4)*2.0,0,2.7+(slot/4)*1.9)
+		if order=="FOLLOW":
+			target_point = escort_slot(slot)
+		else:
+			target_point = hold_point+Vector3(-3.0+(slot%4)*2.0,0,2.7+(slot/4)*1.9)
 	var movement = target_point-knight.position
 	movement.y = 0
 	if target!=null and distance<1.9:
@@ -871,6 +881,9 @@ func run_combat_tests() -> void:
 	var feet = camera.unproject_position(hero.position)
 	assert(not camera.is_position_behind(hero.position) and feet.y-head.y>160,"Hero must be prominently framed")
 	assert(head.x>280 and head.x<950 and head.y>100 and feet.y<625,"Hero must stay clear of primary HUD")
+	for slot in range(12):
+		var lateral = (escort_slot(slot)-hero.position).dot(Vector3(cos(yaw),0,-sin(yaw)))
+		assert(absf(lateral)>=3.79,"Following allies must leave the hero/camera corridor clear")
 	var saved_position = hero.position
 	var saved_angle = yaw
 	hero.position = Vector3(-6,0,-20.8)

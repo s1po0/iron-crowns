@@ -1,6 +1,8 @@
 # The Open Road — playable wanderer mode
 
 ## Start
+In 0.5, journeys begin on foot with a visible hero. Press **REALM** to open the map before following the map/journal instructions below.
+
 Select **Create Wanderer** on a clean install, choose an origin, then **Start My Journey**.
 Your character is Samir Farroad, an original caravan-raised wanderer. The new path begins
 neutral toward all four original realms, with eight soldiers and no land.
