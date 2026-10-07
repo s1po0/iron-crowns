@@ -4,11 +4,18 @@ An original Android action-strategy prototype with a **large 3D campaign map** a
 
 ![Actual third-person field rendering](docs/screenshots/iron-field.png)
 
-## Riders and separate Data 0.6 — development build
+## Riders and separate Data 0.6 — evaluation preview
 
-The current branch adds a real APK + PCK Data installer, player horseback riding and side-selected sword cuts, equipment variants and campaign terrain changes. **Validation is in progress; 0.5 below remains the last published build until 0.6 passes review.**
+[Download the paired APK and Data files](https://github.com/s1po0/iron-crowns/releases/tag/v0.6.0-riders-preview).
 
-[0.6 installation, controls and honest limitations](docs/RELEASE_0.6.0.md). The PCK is genuine game content, not a cosmetic `.obb` filename. The APK verifies its exact hash before loading. Both downloads must come from the same build.
+- **APK + real Data:** checksum-pinned PCK with materials, sound and equipment/world catalogs; Android document import into private app storage.
+- **Player horse:** acceleration, steering, walk/trot/canter, stamina, seated hero and safe dismount checks.
+- **Mounted sword cuts:** choose left/right, time the swing, keep the target in reach; capped speed bonus and vulnerable rider/horse.
+- **Map and people:** lighter textured relief, revised shores and forests, readable settlement labels, varied armor/coat/helmet silhouettes.
+
+Engine tests, package-content audits, real Android import/corruption/offline restart, mounted touch controls and existing campaign/save checks passed in [build 37637940551](https://github.com/s1po0/iron-crowns/actions/runs/37637940551). Physical-phone performance and combat feel remain unverified. The art remains procedural, not Bannerlord-level realism.
+
+[0.6 installation, controls and honest limitations](docs/RELEASE_0.6.0.md) · [Actual Android horseback view](docs/screenshots/android-mounted.png). The PCK is genuine game content, not a cosmetic `.obb` filename. The APK verifies its exact hash before loading. Both downloads must come from the same build.
 
 ## Combat and presentation rebuild 0.5 — The Western Road
 

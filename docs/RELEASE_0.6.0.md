@@ -34,3 +34,14 @@ All designs, world geometry and assets are original. Bannerlord, Warband and Ste
 This remains a small procedural 3D prototype, **not Bannerlord-level realism or a complete replacement for those games**. Only the player rides; there are no cavalry armies, horse trading, lance combat, cavalry charges or persistent horse ownership. Mounted contact uses timed reach/side/raycast checks, not blade physics. Equipment variation is cosmetic, not an inventory system. Battles still use one shared field. Horse anatomy, animation and combat balance need further art/gameplay work. Real-phone performance, touch comfort and thermal behaviour remain unverified.
 
 The release's `BUILD.txt`, `ANDROID-SMOKE.txt`, `DATA-MANIFEST.json` and `SHA256SUMS.txt` describe the exact tested artifact pair. Do not mix files from separate builds even if their visible version names match.
+
+## Verified build
+
+- Game/APK source: `81101bf944f70b9c7dd3faecf0c93af52878db82`.
+- [Actions 37637940551](https://github.com/s1po0/iron-crowns/actions/runs/37637940551): passed in 8m39s.
+- Engine regressions: existing combat/campaign/wanderer systems plus mounting, gait, dismount speed guard, side-selected hits and bounded speed damage.
+- PCK directory audit: real imported textures, audio and catalog, no game scripts/scenes. APK audit: bulk Data assets absent and embedded manifest exactly matches the exported pack.
+- Android API 29 x86_64 emulator: actual system-picker import from Downloads, same-size corrupt pack rejected, correct pack installed, public downloads deleted, offline restart, touch mounting/gait/side/riding/strike/dismount, settings, recruiting, courier/companion progression, campaign travel and save restoration.
+- Screenshots are actual engine/Android captures. Neither these tests nor the screenshots establish real-phone frame rates or production-quality animation.
+
+The native importer reads Android's selected document URI directly. This avoids Godot 4.4's built-in Downloads-provider path conversion limitation without requesting all-files storage access.
