@@ -33,9 +33,18 @@ adb logcat -d -s godot | grep IRON_SCENE_READY
 sleep 3
 adb shell pidof "$PKG"
 adb exec-out screencap -p > artifacts/android/01-title.png
-adb shell input tap 220 510
+# Godot letterboxes its 1280x720 logical canvas on wider Android displays.
+# Convert logical control positions to actual screenshot pixels, not assumed wm sizes.
+read -r SCREEN_W SCREEN_H < <(python3 -c 'import struct; b=open("artifacts/android/01-title.png","rb").read(); print(*struct.unpack(">II",b[16:24]))')
+export SCREEN_W SCREEN_H
+coords() {
+  python3 -c 'import os,sys; w=int(os.environ["SCREEN_W"]);h=int(os.environ["SCREEN_H"]);s=min(w/1280,h/720);print(round((w-1280*s)/2+float(sys.argv[1])*s),round((h-720*s)/2+float(sys.argv[2])*s))' "$1" "$2"
+}
+tap() { read -r x y < <(coords "$1" "$2"); adb shell input tap "$x" "$y"; }
+swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4"); adb shell input swipe "$x" "$y" "$tx" "$ty" "$5"; }
+tap 220 510
 sleep 3
-adb shell input tap 780 52
+tap 780 52
 sleep 1
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
 cat artifacts/android/progress.json
@@ -45,11 +54,11 @@ save=json.load(open('artifacts/android/progress.json'))
 assert save['gold']==90 and save['victories']==0, save
 print('On-device 3D HUD recruitment and progress-write assertion passed.')
 PYTEST
-adb shell input tap 570 52
+tap 570 52
 sleep 3
-adb shell input swipe 125 584 180 584 1500
-adb shell input swipe 1156 585 1157 585 1000
-adb shell input tap 691 660
+swipe 125 584 180 584 1500
+swipe 1156 585 1157 585 1000
+tap 691 660
 adb exec-out screencap -p > artifacts/android/02-battle.png
 adb shell input keyevent KEYCODE_BACK
 sleep 1
@@ -59,11 +68,25 @@ sleep 1
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 sleep 2
 adb shell am force-stop "$PKG"
+adb logcat -d > artifacts/android/before-restart.log
+adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
-sleep 5
+for attempt in $(seq 1 45); do
+  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_SCENE_READY
 adb shell pidof "$PKG"
+adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/restored.json
+python3 - <<'PYRESTORE'
+import json
+saved=json.load(open('artifacts/android/progress.json'))
+restored=json.load(open('artifacts/android/restored.json'))
+assert restored==saved, (saved,restored)
+print('Android saved progress survives process restart.')
+PYRESTORE
 adb logcat -d > artifacts/android/logcat.txt
-if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAGMENT_UNIFORM' artifacts/android/logcat.txt; then
+if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAGMENT_UNIFORM' artifacts/android/logcat.txt artifacts/android/before-restart.log; then
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi

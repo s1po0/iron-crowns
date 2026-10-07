@@ -29,7 +29,7 @@ godot --headless --path godot -- --smoke
 godot --headless --path godot --export-debug Android /absolute/path/Iron-Crowns-0.2.0-3D.apk
 ```
 
-The GitHub workflow installs the pinned editor/export template, tests gameplay, renders screenshots in a software OpenGL desktop session, exports the APK, and launches it on an Android emulator. `--capture` renders three deterministic visual review images; it does not award/save progress. It pauses the encounter AI for a legible character/world screenshot, so it is not performance evidence.
+The GitHub workflow installs the pinned editor/export template, tests gameplay, renders screenshots in a software OpenGL desktop session, exports the APK, and launches it on an Android emulator using host Mesa OpenGL. The legacy SwiftShader OpenGL backend is avoided because of its upstream shader-compiler incompatibility (Godot issue #109550); tests still fail on any shader/runtime error. `--capture` renders three deterministic visual review images; it does not award/save progress. It pauses the encounter AI for a legible character/world screenshot, so it is not performance evidence.
 
 ## Architecture
 - `art.gd`: primitive mesh generation, materials, waving cloth shader, static scenery batching.
@@ -38,10 +38,10 @@ The GitHub workflow installs the pinned editor/export template, tests gameplay, 
 - `game.gd`: camera, controls, battle rules, orders, spawning, rewards, progress.
 - `hud.gd`: scalable touch HUD, scene menus, region labels, pointer ownership.
 
-Environment meshes are combined by material to reduce draw calls. Characters still use multiple mesh parts per joint; there is no claim that the GDD's 50–120-unit targets are achieved. Maximum field scale is deliberately small (player + up to twelve allies + up to sixteen enemies). Profile physical phones before increasing that cap.
+Environment meshes are combined by material to reduce draw calls. OpenGL positional-light limits are explicitly reduced to fit mobile/emulator shader-uniform budgets; the scene uses one directional light. Characters still use multiple mesh parts per joint; there is no claim that the GDD's 50–120-unit targets are achieved. Maximum field scale is deliberately small (player + up to twelve allies + up to sixteen enemies). Profile physical phones before increasing that cap.
 
 ## Outstanding work
 Visual review with players; physical-device performance, frame pacing, safe-area and multitouch tests; stronger navmesh navigation; imported skeletal animation if justified; sound; accessibility semantics and scalable UI; full company persistence; proper campaign map progression; production signing.
 
 ## Third-party notices
-Godot is MIT-licensed; official export-template engine notices are included by the engine. Cinzel and Lato are used under the SIL Open Font License; their license files are included under `godot/assets/fonts/`. No Bannerlord assets, code, or characters are used.
+Godot is MIT-licensed; the engine license is bundled under `godot/assets/licenses/`. Cinzel and Lato are used under the SIL Open Font License; their license files are included under `godot/assets/fonts/`. No Bannerlord assets, code, or characters are used.

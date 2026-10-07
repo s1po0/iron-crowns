@@ -77,6 +77,8 @@ jobs:
           mkdir -p docs/screenshots
           if [ -f artifacts/android/02-battle.png ]; then
             cp artifacts/android/02-battle.png docs/screenshots/android-field.png
+            cp artifacts/android/02-battle.png artifacts/android-field.png
+            rm -f docs/screenshots/android-diagnostic.png
           elif [ -f artifacts/android/failure.png ]; then
             cp artifacts/android/failure.png docs/screenshots/android-diagnostic.png
           fi
@@ -101,5 +103,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.0-3d-preview artifacts/Iron-Crowns-0.2.0-3D.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png \
+          gh release create v0.2.0-3d-preview artifacts/Iron-Crowns-0.2.0-3D.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/android-field.png \
             --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.2 — Stylized 3D field preview' --notes-file docs/RELEASE_0.2.0.md

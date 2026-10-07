@@ -1,29 +1,38 @@
-# Iron Crowns
+# Iron Crowns — The Ashen Marches
 
-An original Android action-strategy **playable 2D prototype**: lead a company, trade between settlements, fight real-time battles, and capture three keeps.
+A **stylized third-person 3D Android field prototype**: an armored captain, a visible company of soldiers, and a modeled medieval village. Built with **Godot 4.4.1**, replacing the original abstract 2D presentation.
 
-> This is a small native Java/Canvas vertical slice, not the completed 3D Unity/Unreal game described in the design plan.
+![Actual engine-rendered scene](docs/screenshots/iron-field.png)
 
-## Download and play
+## Play the 3D preview
 
-Get the APK from [GitHub Releases](https://github.com/s1po0/iron-crowns/releases). Requires Android 8.0 or later. The prototype is offline, with no ads, purchases, or network permissions. Prerelease APKs use debug signing and are not Play Store production packages.
+Download **Iron-Crowns-0.2.0-3D.apk** from the [0.2 prerelease](https://github.com/s1po0/iron-crowns/releases/tag/v0.2.0-3d-preview). It is an evaluation/debug-signed APK, not a production or store release. Android 8+ ARM64 phones are the intended target; real-device performance still requires testing.
 
-See [installation, controls, build instructions, and limitations](docs/PROTOTYPE.md).
+- Animated, articulated low-poly knights: armor, helmets, swords, shields, capes.
+- Third-person movement, touch camera, melee, block, stamina, dash.
+- Follow, Hold, Charge, and Shield Wall orders.
+- Skirmish rewards, reinforcements, and saved gold/victories.
+- A village gateway, towers, houses, market props, trees, road, brook, and mountains.
+- An overhead **3D local-region overview**—not a full kingdom campaign yet.
 
-## Source and build
+[Controls, build instructions, architecture, and limitations](docs/3D_PREVIEW.md) · [Title screen](docs/screenshots/iron-title.png) · [Region overview](docs/screenshots/iron-map.png)
 
-- `app/`: native Android game and campaign rules.
-- `tests/`: platform-independent campaign tests and invariant checks.
-- `.github/workflows/android.yml`: reproducible Android APK build and lint workflow.
-- `scripts/test.sh`: compile/run rules tests with JDK 17.
+## Build and test
+
+Open `godot/project.godot` in Godot **4.4.1**. Use the Compatibility renderer. Android export requires JDK 17, Android SDK tools, the official Godot Android export template, and a debug keystore configured in the editor.
 
 ```bash
-bash scripts/test.sh
-gradle --no-daemon :app:assembleDebug :app:lintDebug
+godot --headless --path godot --editor --import --quit
+godot --headless --path godot -- --smoke
+godot --headless --path godot --export-debug Android /absolute/output/Iron-Crowns-0.2.0-3D.apk
 ```
 
-Requires JDK 17, Gradle 8.9, and Android SDK 35. See the prototype guide for details.
+The [3D workflow](.github/workflows/godot-3d.yml) tests gameplay rules, renders real screenshots, exports an APK, and checks Android interaction/rendering/lifecycle behavior. It does not replace physical-device performance or playtesting.
 
-## Long-term design
+## Scope, honestly
 
-[Master Game Design Specification & Technical Architecture Plan](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) describes the larger 3D game, proposed Unity architecture, performance targets, and Notion/Linear/GitHub workflow. Those roadmap features are not all implemented in this prototype.
+This is one playable 3D region and a repeatable skirmish, **not** a finished Bannerlord-scale RPG. There are no cavalry, siege interiors, dynasty simulation, full campaign economy, sound, localization, or production signing. Troop composition and interrupted battles reset between app sessions; only gold and victory count persist. See the preview guide before testing.
+
+`app/` and `tests/` preserve the earlier **legacy 2D Java prototype**; they are not the current 3D game. Its APK uses a different package name and its saves do not migrate to this build.
+
+[Master GDD and long-term architecture plan](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) describes proposed future systems, not the current feature list. Engine/font license notices are included in `godot/assets/`.
