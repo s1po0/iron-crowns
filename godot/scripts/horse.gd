@@ -25,31 +25,31 @@ func _ready() -> void:
 	var leather = FieldMaterials.surface("timber",Color("453d33"),5)
 	var black = MarchArt.material(Color("242822"))
 	var metal = FieldMaterials.surface("steel",Color("99968a"),3)
-	MarchArt.sphere(body,Vector3(0,1.28,0),Vector3(.44,.49,1.0),coat)
-	MarchArt.sphere(body,Vector3(0,1.62,-.79),Vector3(.28,.64,.35),coat).rotation.x = -.4
-	MarchArt.sphere(body,Vector3(0,2.12,-1.06),Vector3(.23,.30,.42),coat).rotation.x = -.4
-	MarchArt.sphere(body,Vector3(0,1.98,-1.37),Vector3(.18,.17,.25),leather)
+	ellipsoid(body,Vector3(0,1.28,0),Vector3(.44,.49,1.0),coat)
+	ellipsoid(body,Vector3(0,1.62,-.79),Vector3(.28,.64,.35),coat).rotation.x = -.4
+	ellipsoid(body,Vector3(0,2.12,-1.06),Vector3(.23,.30,.42),coat).rotation.x = -.4
+	ellipsoid(body,Vector3(0,1.98,-1.37),Vector3(.18,.17,.25),leather)
 	for side in [-1,1]:
-		MarchArt.sphere(body,Vector3(side*.13,2.42,-.99),Vector3(.07,.19,.055),coat)
-		MarchArt.sphere(body,Vector3(side*.215,2.17,-1.14),Vector3(.025,.032,.035),black)
+		ellipsoid(body,Vector3(side*.13,2.42,-.99),Vector3(.07,.19,.055),coat)
+		ellipsoid(body,Vector3(side*.215,2.17,-1.14),Vector3(.025,.032,.035),black)
 		# Bridle and reins, plus suspended iron stirrups.
 		MarchArt.box(body,Vector3(side*.245,2.10,-1.03),Vector3(.027,.04,.6),leather)
 		var rein = MarchArt.box(body,Vector3(side*.23,1.94,-.55),Vector3(.018,.018,.91),leather)
 		rein.rotation.x = -.2
 		MarchArt.box(body,Vector3(side*.43,1.26,.03),Vector3(.026,.65,.055),leather)
 		MarchArt.box(body,Vector3(side*.45,.93,.03),Vector3(.17,.035,.17),metal)
-	MarchArt.sphere(body,Vector3(0,1.7,.06),Vector3(.46,.13,.45),leather)
-	MarchArt.sphere(body,Vector3(0,1.80,.40),Vector3(.43,.16,.10),leather)
-	MarchArt.sphere(body,Vector3(0,1.84,-.30),Vector3(.28,.13,.10),leather)
-	MarchArt.sphere(body,Vector3(0,1.04,1.02),Vector3(.09,.53,.11),black).rotation.x = -.3
+	ellipsoid(body,Vector3(0,1.7,.06),Vector3(.46,.13,.45),leather)
+	ellipsoid(body,Vector3(0,1.80,.40),Vector3(.43,.16,.10),leather)
+	ellipsoid(body,Vector3(0,1.84,-.30),Vector3(.28,.13,.10),leather)
+	ellipsoid(body,Vector3(0,1.04,1.02),Vector3(.09,.53,.11),black).rotation.x = -.3
 	for z in [-.67,.65]:
 		for side in [-1,1]:
 			var leg = Node3D.new()
 			leg.position = Vector3(side*.29,1.16,z)
 			body.add_child(leg)
-			MarchArt.sphere(leg,Vector3(0,-.25,0),Vector3(.12,.33,.13),coat)
+			ellipsoid(leg,Vector3(0,-.25,0),Vector3(.12,.33,.13),coat)
 			MarchArt.cylinder(leg,Vector3(0,-.73,0),.065,.48,coat,.085,10)
-			MarchArt.sphere(leg,Vector3(0,-1.06,-.045),Vector3(.10,.075,.14),black)
+			ellipsoid(leg,Vector3(0,-1.06,-.045),Vector3(.10,.075,.14),black)
 			legs.append(leg)
 
 func drive(input: Vector2, delta: float, ridden: bool) -> void:
@@ -75,3 +75,13 @@ func drive(input: Vector2, delta: float, ridden: bool) -> void:
 	body.position.y = absf(sin(phase))*.045*minf(1,absf(speed)/4)
 	if hp>0:
 		body.rotation.z = lerpf(body.rotation.z,-input.x*speed*.008,delta*5)
+
+func ellipsoid(parent: Node3D, at: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
+	var mesh = SphereMesh.new()
+	mesh.radial_segments = 20
+	mesh.rings = 10
+	mesh.radius = 1
+	mesh.height = 2
+	var result = MarchArt.mesh(parent,mesh,at,material)
+	result.scale = dimensions
+	return result

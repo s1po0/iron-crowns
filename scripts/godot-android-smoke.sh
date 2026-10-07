@@ -102,6 +102,22 @@ done
 adb logcat -d -s godot | grep IRON_FIELD_READY
 sleep 2
 adb exec-out screencap -p > artifacts/android/06-hero.png
+# Actual touch mounting, gait, side selection, riding and safe dismount.
+tap 95 260
+sleep 1
+adb logcat -d -s godot | grep '^.*IRON_MOUNTED$'
+tap 95 310
+tap 1115 465
+sleep 1
+adb logcat -d -s godot | grep IRON_GAIT
+swipe 125 584 125 520 1200
+sleep 2
+adb exec-out screencap -p > artifacts/android/07-mounted.png
+tap 1156 585
+sleep 1
+tap 95 260
+sleep 1
+adb logcat -d -s godot | grep IRON_DISMOUNTED
 # New games now start with the visible, playable hero, not a map token.
 tap 1190 50
 for attempt in $(seq 1 90); do
@@ -233,4 +249,4 @@ if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAG
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi
-printf 'PASS: Android API 29 x86_64 emulator install, launch, visible third-person hero, mobile/high settings and sound controls, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt
+printf 'PASS: Android API 29 x86_64 emulator split APK/Data installation, native picker import, same-size corrupt pack rejection, verified offline restart, mounted touch controls/gait/side/riding/dismount, visible third-person hero, mobile/high settings and sound controls, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt

@@ -4,6 +4,12 @@ An original Android action-strategy prototype with a **large 3D campaign map** a
 
 ![Actual third-person field rendering](docs/screenshots/iron-field.png)
 
+## Riders and separate Data 0.6 — development build
+
+The current branch adds a real APK + PCK Data installer, player horseback riding and side-selected sword cuts, equipment variants and campaign terrain changes. **Validation is in progress; 0.5 below remains the last published build until 0.6 passes review.**
+
+[0.6 installation, controls and honest limitations](docs/RELEASE_0.6.0.md). The PCK is genuine game content, not a cosmetic `.obb` filename. The APK verifies its exact hash before loading. Both downloads must come from the same build.
+
 ## Combat and presentation rebuild 0.5 — The Western Road
 
 [Download the 0.5 Combat APK and screenshots](https://github.com/s1po0/iron-crowns/releases/tag/v0.5.0-combat-preview).
@@ -66,14 +72,16 @@ Open `godot/project.godot` in Godot **4.4.1**, using GL Compatibility. Android e
 ```bash
 godot --headless --path godot --editor --import --quit
 godot --headless --path godot -- --smoke
-godot --headless --path godot --export-debug Android /absolute/output/Iron-Crowns-0.5.0-Combat.apk
+bash scripts/godot-build-split.sh
 ```
+
+The split-build script exports the Data pack first, pins its size/SHA-256 into the core manifest, exports the APK without bulk assets, and audits the APK for leaked Data. Do not use a direct APK export for distribution: the source manifest intentionally has no production hash. Editor runs use unpacked source assets.
 
 The [CI workflow](.github/workflows/godot-3d.yml) tests combat, terrain orientation, road connectivity, land-only routes, trade constraints, travel, fiefs and persistence; renders review screenshots; exports the APK; and tests real Android origin selection, companion hiring, courier acceptance/payout, saved neutrality, map travel, pan/zoom, combat, and restart. The wanderer suite also checks deadlines, duplicate payouts, businesses and save migration. Combat tests assert prominent hero framing, camera obstruction, windup timing, directional shields, parry and dodge behavior, graphics density and audio resources. Android tests also exercise graphics/sound settings.
 
 ## Boundaries
 
-The larger map is a **separate strategic layer**, not a seamless continent-sized combat scene. Battles and castle challenges reuse one field arena. Actual sieges, unique interiors, dynasty systems, full diplomatic AI, comprehensive troop/equipment trees, cavalry combat, multiplayer and voice acting are not implemented. Owned caravans earn simplified arrival rewards, not simulated commodity orders. Companions are campaign specialists, not extra named combat models. Tournaments, full character skill trees and formal kingdom mercenary contracts are not implemented.
+The larger map is a **separate strategic layer**, not a seamless continent-sized combat scene. Battles and castle challenges reuse one field arena. Actual sieges, unique interiors, dynasty systems, full diplomatic AI, comprehensive troop/equipment trees, AI cavalry armies, multiplayer and voice acting are not implemented. Owned caravans earn simplified arrival rewards, not simulated commodity orders. Companions are campaign specialists, not extra named combat models. Tournaments, full character skill trees and formal kingdom mercenary contracts are not implemented.
 
 `app/` and `tests/` preserve the legacy Java/Canvas 2D prototype; `godot/` is the current game. [The master GDD](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) remains a long-term proposal, not a current feature list. Engine and font license notices are bundled under `godot/assets/`.
 

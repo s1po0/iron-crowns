@@ -239,6 +239,7 @@ func set_order(new_order: String) -> void:
 func dash() -> void:
 	if mounted:
 		horse.pace = (horse.pace+1)%3
+		print("IRON_GAIT:",horse.pace)
 		return
 	if stamina>=28 and dash_time<=0 and not hero.dead and not map_open and not paused:
 		stamina -= 28
@@ -576,6 +577,10 @@ func announce(message: String) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode==KEY_E:
+			toggle_mount()
+		if event.keycode==KEY_R:
+			cut_side *= -1
 		if event.keycode==KEY_ESCAPE:
 			back()
 		if state!="play" or paused:
@@ -984,6 +989,7 @@ func toggle_mount() -> void:
 			announce("Approach your horse on the western road to mount.")
 			return
 		mounted = true
+		print("IRON_MOUNTED")
 		hero.riding = true
 		hero.collision_layer = 0
 		dash_time = 0
@@ -1014,6 +1020,7 @@ func toggle_mount() -> void:
 			hero.collision_layer = 2
 			hero.position = at
 			hero.velocity = Vector3.ZERO
+			print("IRON_DISMOUNTED")
 			return
 		announce("No clear ground beside the saddle. Move away from obstacles.")
 
