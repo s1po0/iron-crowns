@@ -13,11 +13,11 @@ permissions:
   contents: write
   actions: write
 concurrency:
-  group: iron-crowns-${{ github.ref }}-${{ inputs.reviewed_run || 'build' }}
+  group: iron-crowns-${{ github.ref }}-${{ inputs.reviewed_run || (contains(github.event.head_commit.message, '[reviewed-apk ') && 'release') || 'build' }}
   cancel-in-progress: true
 jobs:
   three-dimensional-build:
-    if: ${{ !inputs.reviewed_run }}
+    if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[reviewed-apk ') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=arena%2F94d215f9-iron-crowns&status=in_progress&per_page=30" \
-            --jq '.workflow_runs[] | select(.path == ".github/workflows/godot-3d.yml") | .id' > running.txt
+            --jq '.workflow_runs[] | select(.path == ".github/workflows/godot-3d.yml" and (.display_title | contains("[reviewed-apk ") | not)) | .id' > running.txt
           while read -r id; do
             if [ "$id" != "$GITHUB_RUN_ID" ]; then
               gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/cancel" || true
@@ -138,7 +138,7 @@ jobs:
             --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.5 — The Western Road combat rebuild' --notes-file docs/RELEASE_0.5.0.md
 
   publish-reviewed:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.reviewed_run != '' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.reviewed_run != '') || contains(github.event.head_commit.message, '[reviewed-apk ') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -149,8 +149,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ inputs.reviewed_run }}
+          REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(printf '%s' "$REVIEW_MESSAGE" | sed -n 's/.*\[reviewed-apk \([0-9][0-9]*\)\].*/\1/p')
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
           [[ "$RUN_ID" =~ ^[0-9]+$ ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > run.json
           jq -e '.conclusion == "success" and .status == "completed" and .head_branch == "arena/94d215f9-iron-crowns" and .path == ".github/workflows/godot-3d.yml"' run.json
@@ -164,7 +169,7 @@ jobs:
         with:
           name: Iron-Crowns-3D
           path: artifacts
-          run-id: ${{ inputs.reviewed_run }}
+          run-id: ${{ steps.verify.outputs.run_id }}
           github-token: ${{ github.token }}
       - name: Verify binary provenance and publish exact reviewed APK
         env:
