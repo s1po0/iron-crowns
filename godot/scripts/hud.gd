@@ -225,8 +225,8 @@ func action(id: String) -> void:
 			game.realm.map_focus = Vector3(game.realm.party.x,0,game.realm.party.z)
 			game.realm.zoom = 280
 		"atlas":
-			game.realm.map_focus = Vector3.ZERO
-			game.realm.zoom = 630
+			game.realm.map_focus = Vector3(70,0,-10)
+			game.realm.zoom = 800
 			game.realm.selected = -1
 		"time0": game.realm.speed = 0
 		"time1": game.realm.speed = 1

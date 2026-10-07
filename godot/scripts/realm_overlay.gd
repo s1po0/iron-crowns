@@ -126,7 +126,7 @@ static func draw_settlement(h) -> void:
 		h.label("Castles can become income fiefs.",Vector2(984,492),12,h.gold)
 	else:
 		h.label("YOUR COMPANY IS HERE",Vector2(984,273),12,h.gold)
-		if r.relations[s.faction]<0:
+		if r.relations[s.faction]<0 and not r.holdings.has(r.selected):
 			h.button("truce","NEGOTIATE TRUCE · 100",Rect2(984,295,254,45),true)
 		else:
 			h.button("food","20 FOOD · 20 GOLD",Rect2(984,295,254,44),true)

@@ -30,8 +30,8 @@ var defeated: Array = []
 var quest = -1
 var quest_done = 0
 var travel_distance = 0.0
-var map_focus = Vector3.ZERO
-var zoom = 590.0
+var map_focus = Vector3(70,0,-10)
+var zoom = 760.0
 var pending = ""
 var encounter_npc = -1
 var encounter_fief = -1
@@ -127,7 +127,7 @@ func build_land() -> void:
 		for xi in range(150):
 			var x = -450+xi*step
 			var z = -340+zi*z_step
-			for corner in [Vector2(0,0),Vector2(0,z_step),Vector2(step,z_step),Vector2(0,0),Vector2(step,z_step),Vector2(step,0)]:
+			for corner in [Vector2(0,0),Vector2(step,z_step),Vector2(0,z_step),Vector2(0,0),Vector2(step,0),Vector2(step,z_step)]:
 				var p = terrain_point(Vector2(x,z)+corner)
 				var n = noise.get_noise_2d(p.x*3,p.z*3)
 				var color = Color("7c8556").lerp(Color("a09a68"),clampf(.5+n,0,1))
@@ -146,7 +146,9 @@ func build_land() -> void:
 	var mat = realm_material(Color.WHITE)
 	mat.vertex_color_use_as_albedo = true
 	mat.metallic_specular = .15
-	MarchArt.mesh(self,surface.commit(),Vector3.ZERO,mat)
+	var land_mesh = surface.commit()
+	assert(land_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL][0].y>0,"Terrain winding must face sky")
+	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)
 	var ocean = PlaneMesh.new()
 	ocean.size = Vector2(1700,1300)
 	var water = realm_material(Color("527c85"))
@@ -221,11 +223,13 @@ func build_forests() -> void:
 	trunk_mesh.bottom_radius = .4
 	trunk_mesh.top_radius = .2
 	trunk_mesh.radial_segments = 5
+	trunk_mesh.rings = 1
 	var leaf_mesh = CylinderMesh.new()
 	leaf_mesh.height = 7.5
 	leaf_mesh.bottom_radius = 2.1
 	leaf_mesh.top_radius = 0
 	leaf_mesh.radial_segments = 7
+	leaf_mesh.rings = 1
 	trunks.transform_format = MultiMesh.TRANSFORM_3D
 	leaves.transform_format = MultiMesh.TRANSFORM_3D
 	trunks.mesh = trunk_mesh
@@ -380,7 +384,7 @@ func pan(amount: Vector2) -> void:
 	map_focus.z = clampf(map_focus.z-amount.y*zoom/520,-285,285)
 
 func change_zoom(factor: float) -> void:
-	zoom = clampf(zoom*factor,150,760)
+	zoom = clampf(zoom*factor,150,950)
 
 func select_at(screen: Vector2) -> void:
 	var best = -1
@@ -519,7 +523,7 @@ func transact(action: String) -> bool:
 		return false
 	var s = settlements[selected]
 	var success = false
-	if relations[s.faction]<0 and action!="truce":
+	if relations[s.faction]<0 and not holdings.has(selected) and action!="truce":
 		game.announce("This faction is hostile. Pay a truce or choose another settlement.")
 		return false
 	match action:
