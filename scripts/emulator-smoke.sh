@@ -2,10 +2,22 @@
 set -euo pipefail
 PKG=com.ironcrowns.game.prototype
 mkdir -p artifacts/smoke
-trap 'adb logcat -d > artifacts/smoke/logcat.txt; if grep -q "FATAL EXCEPTION" artifacts/smoke/logcat.txt; then echo "::error::Android fatal exception during smoke test"; fi' EXIT
+exec > >(tee /tmp/smoke.log) 2>&1
+finish() {
+  status=$?
+  adb logcat -d > artifacts/smoke/logcat.txt
+  if [ "$status" -ne 0 ]; then
+    adb shell wm size
+    adb shell dumpsys input | grep -E 'SurfaceWidth|SurfaceHeight|SurfaceOrientation' || true
+    cat artifacts/smoke/transactions.xml 2>/dev/null || true
+    tail -60 /tmp/smoke.log | python3 -c 'import sys; s=sys.stdin.read(); print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+    grep -A 20 'FATAL EXCEPTION' artifacts/smoke/logcat.txt || true
+  fi
+}
+trap finish EXIT
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell pm clear "$PKG"
-adb shell wm size 1000x620
+adb shell wm size 620x1000
 adb shell wm density 160
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 0
@@ -27,7 +39,7 @@ python3 - <<'PY'
 import json, xml.etree.ElementTree as ET
 root=ET.parse('artifacts/smoke/transactions.xml').getroot()
 save=json.loads(next(e.text for e in root if e.attrib.get('name')=='save'))
-assert save['soldiers']==18, save
+assert save['soldiers']==18, '::error::Recruitment assertion '+str(save)
 assert save['gold']==70, save
 assert save['food']==60, save
 assert save['veterans']==4, save
