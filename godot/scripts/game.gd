@@ -34,15 +34,31 @@ var saved_realm: Dictionary = {}
 var restored_army = 8
 var realm_ready_frames = 0
 var encounter_reward_note = ""
+var audio: CombatAudio
+var sun: DirectionalLight3D
+var field_environment: Environment
+var high_detail = false
+var sound_enabled = true
+var footstep_clock = 0.0
+var camera_shake = 0.0
+var evade_direction = Vector3.ZERO
+var combat_notice = ""
+var combat_notice_time = 0.0
+var field_ready_frames = 0
 
 func _ready() -> void:
 	capture_mode = "--capture" in OS.get_cmdline_user_args()
 	smoke_mode = "--smoke" in OS.get_cmdline_user_args()
 	load_progress()
+	load_settings()
+	audio = CombatAudio.new()
+	add_child(audio)
+	audio.enabled = sound_enabled
 	build_lighting()
 	terrain = MarchWorld.new()
 	add_child(terrain)
 	terrain.build()
+	apply_quality()
 	hero = spawn_knight(Vector3(0,0,10),0,true)
 	hero.rotation.y = PI+.2
 	for i in range(restored_army):
@@ -54,7 +70,7 @@ func _ready() -> void:
 	realm.restore(saved_realm)
 	realm.visible = false
 	camera = Camera3D.new()
-	camera.fov = 62
+	camera.fov = 55
 	camera.near = .12
 	camera.far = 210
 	camera.current = true
@@ -74,12 +90,13 @@ func _ready() -> void:
 func build_lighting() -> void:
 	var world_environment = WorldEnvironment.new()
 	var env = Environment.new()
+	field_environment = env
 	var sky = Sky.new()
 	var sky_material = ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("61939f")
-	sky_material.sky_horizon_color = Color("e9dabb")
-	sky_material.ground_bottom_color = Color("779078")
-	sky_material.ground_horizon_color = Color("e9dabb")
+	sky_material.sky_top_color = Color("70868d")
+	sky_material.sky_horizon_color = Color("afb4ac")
+	sky_material.ground_bottom_color = Color("676e63")
+	sky_material.ground_horizon_color = Color("afb4ac")
 	sky_material.sky_curve = .21
 	sky_material.sun_angle_max = 5
 	sky.sky_material = sky_material
@@ -87,15 +104,18 @@ func build_lighting() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("c4d6d5")
-	env.ambient_light_energy = .30
+	env.ambient_light_energy = .48
+	env.fog_enabled = true
+	env.fog_light_color = Color("8d9b98")
+	env.fog_density = .0018
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.tonemap_exposure = .95
 	world_environment.environment = env
 	add_child(world_environment)
-	var sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-46,-34,0)
-	sun.light_color = Color("ffefdb")
-	sun.light_energy = .55
+	sun = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-37,-28,0)
+	sun.light_color = Color("eeede1")
+	sun.light_energy = .9
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 65
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -125,7 +145,8 @@ func enter_world() -> void:
 			realm.life.visit(id)
 			break
 	paused = false
-	announce("The Marches await. Select a settlement and follow the roads.")
+	realm.hide_map()
+	announce("You are on the western road. Walk, practice combat, or open REALM to travel.")
 
 func begin_battle() -> void:
 	if fighting:
@@ -138,6 +159,10 @@ func begin_battle() -> void:
 	clear_enemies()
 	realm.checkpoint_army = living(0)
 	hero.hp = hero.maximum_hp
+	hero.collision_layer = 2
+	hero.strike_clock = -1
+	hero.swing = 0
+	hero.stagger = 0
 	hero.dead = false
 	hero.fall = 0
 	hero.visual.rotation = Vector3.ZERO
@@ -155,7 +180,8 @@ func begin_battle() -> void:
 	fighting = true
 	order = "HOLD"
 	hold_point = Vector3(0,0,4)
-	announce("Raiders on the road! Defend Hearthglen.")
+	update_follow_camera(1.0,true)
+	announce("Raiders on the road. Watch their windup; block or step out of reach.")
 	reset_controls()
 
 func clear_enemies() -> void:
@@ -204,22 +230,65 @@ func set_order(new_order: String) -> void:
 	announce("Company: "+new_order.to_lower()+"!")
 
 func dash() -> void:
-	if stamina>=28 and dash_time<=0 and not hero.dead:
+	if stamina>=28 and dash_time<=0 and not hero.dead and not map_open and not paused:
 		stamina -= 28
-		dash_time = .20
+		dash_time = .23
+		var input = stick+Vector2(float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A)),float(Input.is_physical_key_pressed(KEY_S))-float(Input.is_physical_key_pressed(KEY_W)))
+		var forward = Vector3(-sin(yaw),0,-cos(yaw))
+		var right = Vector3(cos(yaw),0,-sin(yaw))
+		evade_direction = (right*input.x-forward*input.y).normalized() if input.length()>.1 else -forward
 
 func attack() -> void:
-	if hero.dead or hero.cooldown>0 or stamina<12 or hero.block:
+	if hero.dead or hero.cooldown>0 or stamina<12 or hero.block or hero.stagger>0 or paused or map_open:
 		return
 	stamina -= 12
-	hero.swing = .48
-	hero.cooldown = .57
-	var target = nearest_enemy(hero)
-	if target != null and hero.position.distance_to(target.position)<2.65:
-		var direction = target.position-hero.position
-		hero.rotation.y = atan2(-direction.x,-direction.z)
-		target.damage(38)
-		impact(target.position+Vector3(0,1.3,0))
+	hero.rotation.y = yaw
+	start_strike(hero)
+	audio.play_effect("swing",.7)
+
+func start_strike(unit: MarchKnight) -> void:
+	unit.swing = .64
+	unit.cooldown = .85 if unit.player else 1.1
+	unit.strike_clock = .23 if unit.player else .34
+
+func tick_strike(unit: MarchKnight, delta: float) -> void:
+	if unit.dead or unit.stagger>0:
+		unit.strike_clock = -1
+		return
+	if unit.strike_clock<0:
+		return
+	unit.strike_clock -= delta
+	if unit.strike_clock>0:
+		return
+	unit.strike_clock = -1
+	var victim = nearest_enemy(unit)
+	if victim==null or unit.position.distance_to(victim.position)>2.05:
+		return
+	var direction = victim.position-unit.position
+	direction.y = 0
+	if (-unit.basis.z).dot(direction.normalized())<.35:
+		return
+	var query = PhysicsRayQueryParameters3D.create(unit.position+Vector3.UP*1.2,victim.position+Vector3.UP*1.2,1)
+	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+		return
+	var guarded = victim.guarding_from(unit.position)
+	var parried = guarded and victim.player and victim.guard_time>0
+	victim.damage(38 if unit.player else 12 if victim.player else 17,unit.position)
+	if guarded:
+		unit.stagger = .42 if parried else .16
+		if victim.player:
+			stamina = maxf(0,stamina-(0 if parried else 16))
+			if stamina<=0:
+				victim.block = false
+				victim.stagger = .55
+	if unit.player or victim.player:
+		camera_shake = .035 if guarded else .065
+		combat_notice = "PARRY" if parried else "GUARD BROKEN" if guarded and victim.player and stamina<=0 else "BLOCKED" if guarded else "HIT" if unit.player else "WOUNDED"
+		combat_notice_time = .55
+	if unit.position.distance_to(hero.position)<12:
+		audio.play_effect("clang" if guarded else "impact",1.0 if unit.player or victim.player else .35)
+	if guarded:
+		impact(victim.position+Vector3(0,1.3,0))
 
 func nearest_enemy(unit: MarchKnight) -> MarchKnight:
 	var best: MarchKnight = null
@@ -238,12 +307,15 @@ func impact(at: Vector3) -> void:
 	mat.emission_enabled = true
 	mat.emission = Color("ffc971")
 	for i in range(4):
-		var particle = MarchArt.sphere(self,at+Vector3(sin(i*2)*.2,i*.06,cos(i*2)*.2),Vector3(.045,.12,.045),mat)
-		impact_nodes.append({"node":particle,"life":.16,"direction":Vector3(sin(i*2),.7,cos(i*2))})
+		var particle = MarchArt.sphere(self,at+Vector3(sin(i*2)*.2,i*.06,cos(i*2)*.2),Vector3(.018,.05,.018),mat)
+		impact_nodes.append({"node":particle,"life":.10,"direction":Vector3(sin(i*2),.7,cos(i*2))})
 
 func _physics_process(delta: float) -> void:
 	clock += delta
 	toast_time = maxf(0,toast_time-delta)
+	combat_notice_time = maxf(0,combat_notice_time-delta)
+	if audio!=null:
+		audio.ambience(state=="play" and not paused and not map_open)
 	if hud != null:
 		hud.queue_redraw()
 	if state=="title":
@@ -264,24 +336,37 @@ func _physics_process(delta: float) -> void:
 	var forward = Vector3(-sin(yaw),0,-cos(yaw))
 	var right = Vector3(cos(yaw),0,-sin(yaw))
 	var movement = right*input_vector.x-forward*input_vector.y
-	hero.block = (blocking or Input.is_physical_key_pressed(KEY_Q)) and stamina>0
+	var was_blocking = hero.block
+	hero.block = (blocking or Input.is_physical_key_pressed(KEY_Q)) and stamina>0 and hero.swing<=0 and hero.stagger<=0
+	if hero.block and not was_blocking:
+		hero.guard_time = .18
 	if hero.block:
 		stamina = maxf(0,stamina-delta*10)
 	if not hero.dead:
-		var speed = 13.0 if dash_time>0 else (2.3 if hero.block else 5.0)
+		var speed = (2.0 if hero.block else 4.3)*(0.25 if hero.stagger>0 else .55 if hero.swing>0 else 1.0)
+		if dash_time>0:
+			movement = evade_direction
+			speed = 8.5
 		hero.velocity.x = movement.x*speed
 		hero.velocity.z = movement.z*speed
 		hero.velocity.y -= 24*delta
-		if movement.length()>.1:
+		if movement.length()>.1 and hero.swing<=0 and not hero.block and dash_time<=0:
 			hero.rotation.y = lerp_angle(hero.rotation.y,atan2(-movement.x,-movement.z),delta*12)
 		hero.move_and_slide()
 		hero.position.x = clampf(hero.position.x,-26,24)
 		hero.position.z = clampf(hero.position.z,-36,24)
+		if hero.block:
+			hero.rotation.y = lerp_angle(hero.rotation.y,yaw,delta*12)
 		hero.speed = movement.length()*speed
+		footstep_clock += delta*hero.speed
+		if footstep_clock>1.9 and hero.is_on_floor():
+			footstep_clock = 0
+			audio.play_effect("step",.55)
 		if attacking or Input.is_physical_key_pressed(KEY_SPACE):
 			attack()
 	var slot = 0
 	for knight in soldiers:
+		tick_strike(knight,delta)
 		knight.animate(delta)
 		if knight.player or knight.dead:
 			continue
@@ -308,9 +393,11 @@ func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 	var target_point = knight.position
 	var target = knight.target
 	var distance = 100.0
-	knight.block = knight.team==0 and order=="WALL"
+	knight.block = knight.team==0 and order=="WALL" and knight.swing<=0
 	if target != null:
 		distance = knight.position.distance_to(target.position)
+		if knight.team==1 and knight.swing<=0 and knight.stagger<=0 and distance<2.6:
+			knight.block = target.swing>.25 and fmod(clock+float(knight.get_index())*.37,2.0)>.65
 		if knight.team==1 or order=="CHARGE" or distance<3:
 			target_point = target.position
 	if knight.team==0 and (target==null or (order!="CHARGE" and distance>=3)):
@@ -322,12 +409,8 @@ func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 		movement = Vector3.ZERO
 		var direction = target.position-knight.position
 		knight.rotation.y = lerp_angle(knight.rotation.y,atan2(-direction.x,-direction.z),delta*10)
-		if knight.cooldown<=0:
-			knight.cooldown = .95+float(slot%3)*.1
-			knight.swing = .48
-			target.damage(12 if target.player else 17)
-			if target.player:
-				impact(target.position+Vector3(0,1.2,0))
+		if knight.cooldown<=0 and knight.stagger<=0 and not knight.block:
+			start_strike(knight)
 	elif movement.length()>.7:
 		movement = movement.normalized()
 		knight.rotation.y = lerp_angle(knight.rotation.y,atan2(-movement.x,-movement.z),delta*7)
@@ -343,7 +426,7 @@ func update_ai(knight: MarchKnight, slot: int, delta: float) -> void:
 		var length = difference.length()
 		if length<.80 and length>.01:
 			separation += difference/length*(.8-length)*3
-	var speed = 2.0 if knight.block else 3.0
+	var speed = (1.5 if knight.block else 2.8)*(0.15 if knight.stagger>0 else .25 if knight.swing>0 else 1.0)
 	knight.velocity.x = movement.x*speed+separation.x
 	knight.velocity.z = movement.z*speed+separation.z
 	knight.velocity.y -= 24*delta
@@ -361,11 +444,12 @@ func _process(delta: float) -> void:
 		realm_ready_frames += 1
 		if realm_ready_frames==30:
 			print("IRON_REALM_READY")
-	elif state!="title":
-		var focus = hero.position+Vector3(0,1.3,0)
-		var offset = Vector3(sin(yaw)*7.0,2.1+pitch*2,cos(yaw)*7.0)
-		camera.position = camera.position.lerp(focus+offset,minf(1,delta*10))
-		camera.look_at(focus)
+	elif state!="title" and state!="origin":
+		update_follow_camera(delta)
+		if state=="play":
+			field_ready_frames += 1
+			if field_ready_frames==30:
+				print("IRON_FIELD_READY: third-person hero visible")
 	if capture_mode:
 		capture_frame += 1
 		if capture_frame==90:
@@ -413,6 +497,10 @@ func return_to_camp() -> void:
 	state = "play"
 	hero.dead = false
 	hero.hp = hero.maximum_hp
+	hero.collision_layer = 2
+	hero.strike_clock = -1
+	hero.swing = 0
+	hero.stagger = 0
 	hero.collision_layer = 2
 	hero.visual.rotation = Vector3.ZERO
 	hero.visual.position = Vector3.ZERO
@@ -525,7 +613,9 @@ func run_smoke() -> void:
 	enemy.position = hero.position+Vector3(0,0,-1.2)
 	var before = enemy.hp
 	attack()
-	assert(enemy.hp<before,"Player melee did not damage target")
+	assert(enemy.hp==before and hero.strike_clock>0,"Melee must have a real windup")
+	tick_strike(hero,.24)
+	assert(enemy.hp<before,"Player melee did not damage target after windup")
 	set_order("WALL")
 	assert(order=="WALL","Formation order failed")
 	for soldier in soldiers:
@@ -537,6 +627,7 @@ func run_smoke() -> void:
 	assert(gold==200,"Victory must not award twice")
 	return_to_camp()
 	assert(not hero.dead and state=="play","Return-to-camp failed")
+	run_combat_tests()
 	run_realm_tests()
 	run_wanderer_tests()
 	print("IRON_SMOKE_PASS: characters, battle, campaign roads, trade, travel, persistence, fiefs")
@@ -732,3 +823,88 @@ func run_wanderer_tests() -> void:
 	assert(npc.at.distance_to(realm.graph.get_point_position(0))<.01 and int(realm.life.caravan.paid)==paid,"Caravan reload starts home without changing earnings")
 	realm.life = old_life
 	print("IRON_WANDERER_PASS: origins, deliveries, companions, neutrality, businesses, accounting, migration, save validation")
+
+func update_follow_camera(delta: float, snap: bool = false) -> void:
+	if camera==null or hero==null:
+		return
+	camera_shake = maxf(0,camera_shake-delta*.25)
+	var right = Vector3(cos(yaw),0,-sin(yaw))
+	var back_direction = Vector3(sin(yaw),0,cos(yaw))
+	var focus = hero.position+Vector3(0,1.27,0)
+	var desired = focus+back_direction*4.1+right*.65+Vector3(0,.68+pitch*1.8,0)
+	var query = PhysicsRayQueryParameters3D.create(focus,desired,1)
+	var hit = get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		desired = hit.position+hit.normal*.23
+	camera.position = desired if snap or not hit.is_empty() else camera.position.lerp(desired,minf(1,delta*12))
+	var shake = Vector3(sin(clock*73),cos(clock*61),0)*camera_shake
+	camera.look_at(focus+right*.40+shake)
+
+func load_settings() -> void:
+	var config = ConfigFile.new()
+	if config.load("user://settings.cfg")==OK:
+		high_detail = bool(config.get_value("video","high_detail",false))
+		sound_enabled = bool(config.get_value("audio","enabled",true))
+
+func save_settings() -> void:
+	var config = ConfigFile.new()
+	config.set_value("video","high_detail",high_detail)
+	config.set_value("audio","enabled",sound_enabled)
+	config.save("user://settings.cfg")
+
+func apply_quality() -> void:
+	get_viewport().msaa_3d = Viewport.MSAA_4X if high_detail else Viewport.MSAA_2X
+	if sun!=null:
+		sun.directional_shadow_max_distance = 70 if high_detail else 42
+	if terrain!=null and terrain.grass!=null:
+		terrain.grass.multimesh.visible_instance_count = 1800 if high_detail else 600
+	if audio!=null:
+		audio.enabled = sound_enabled
+
+func run_combat_tests() -> void:
+	assert(not map_open and hero.visible and terrain.visible,"Field entry must show the actual hero")
+	update_follow_camera(1,true)
+	var head = camera.unproject_position(hero.position+Vector3.UP*1.9)
+	var feet = camera.unproject_position(hero.position)
+	assert(not camera.is_position_behind(hero.position) and feet.y-head.y>160,"Hero must be prominently framed")
+	assert(head.x>280 and head.x<950 and head.y>100 and feet.y<625,"Hero must stay clear of primary HUD")
+	var victim = MarchKnight.new()
+	add_child(victim)
+	victim.setup(1,false)
+	victim.position = Vector3(0,0,0)
+	victim.block = true
+	var hp_before = victim.hp
+	victim.damage(20,Vector3(0,0,-2))
+	assert(victim.hp>hp_before-5,"Front-facing shield reduces damage")
+	hp_before = victim.hp
+	victim.damage(20,Vector3(0,0,2))
+	assert(victim.hp==hp_before-20,"A shield cannot block a rear attack")
+	victim.player = true
+	victim.guard_time = .1
+	victim.stagger = 0
+	hp_before = victim.hp
+	victim.damage(20,Vector3(0,0,-2))
+	assert(victim.hp==hp_before,"Timed player parry prevents chip damage")
+	victim.queue_free()
+	hero.cooldown = 0
+	hero.swing = 0
+	hero.stagger = 0
+	hero.block = false
+	stamina = 100
+	var saved_yaw = yaw
+	yaw = 0
+	dash()
+	assert(dash_time>0 and stamina==72 and evade_direction.z>.9,"Stationary dodge is a real backward step")
+	dash_time = 0
+	yaw = saved_yaw
+	var old = high_detail
+	high_detail = true
+	apply_quality()
+	assert(terrain.grass.multimesh.visible_instance_count==1800,"High foliage setting")
+	high_detail = false
+	apply_quality()
+	assert(terrain.grass.multimesh.visible_instance_count==600,"Mobile foliage setting")
+	high_detail = old
+	apply_quality()
+	assert(audio.effects.size()==4 and audio.wind.stream!=null,"Combat and ambience audio available")
+	print("IRON_COMBAT_PASS: visible hero, proportional armor, delayed strikes, directional shields, parry, dodge, graphics settings, audio")

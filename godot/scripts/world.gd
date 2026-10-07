@@ -1,36 +1,27 @@
 class_name MarchWorld
 extends Node3D
 
-var stone = MarchArt.material(Color("c4bea4"))
-var light_stone = MarchArt.material(Color("e2d7b6"))
-var wood = MarchArt.material(Color("584939"))
-var roof_mat = MarchArt.material(Color("a65039"))
-var dark_roof = MarchArt.material(Color("644f45"))
-var plaster = MarchArt.material(Color("e9d9b0"))
-var leaf = MarchArt.material(Color("527e45"))
-var light_leaf = MarchArt.material(Color("75904b"))
-var dark_leaf = MarchArt.material(Color("365f47"))
-var dirt = MarchArt.material(Color("b9a175"))
-var flag_mat = MarchArt.cloth(Color("286778"))
+var stone = FieldMaterials.surface("masonry",Color("b6b2a8"),.50)
+var light_stone = FieldMaterials.surface("masonry",Color("c9c3b5"),.50)
+var wood = FieldMaterials.surface("timber",Color.WHITE,.8)
+var roof_mat = FieldMaterials.surface("roof",Color.WHITE,.7)
+var dark_roof = FieldMaterials.surface("roof",Color("959892"),.7)
+var plaster = FieldMaterials.surface("plaster",Color.WHITE,.8)
+var leaf = FieldMaterials.cutout("leaves")
+var light_leaf = MarchArt.material(Color("68704d"))
+var dark_leaf = MarchArt.material(Color("3c4d3d"))
+var dirt = FieldMaterials.surface("earth",Color.WHITE,.6)
+var flag_mat = MarchArt.cloth(Color("414d4b"))
+var noise = FastNoiseLite.new()
+var grass: MultiMeshInstance3D
+
 var rng = RandomNumberGenerator.new()
 
 func build() -> void:
 	rng.seed = 4197
-	# Warm, legible diorama terrain; distant faceted hills frame the village.
-	MarchArt.box(self,Vector3(0,-.65,0),Vector3(180,1.3,180),MarchArt.material(Color("80955a")))
-	MarchArt.collider(self,Vector3(0,-.6,0),Vector3(180,1.2,180))
-	for i in range(22):
-		var angle = float(i)/22*TAU
-		var point = Vector3(sin(angle)*rng.randf_range(66,86),0,cos(angle)*rng.randf_range(66,86))
-		var mountain_height = rng.randf_range(12,24)
-		MarchArt.cylinder(self,point+Vector3(0,mountain_height*.34,0),rng.randf_range(16,24),mountain_height,MarchArt.material(Color("587d78") if i%2==0 else Color("6b856e")),0,7)
-	# A path of overlapping low polygon discs gives an irregular, winding road.
-	for i in range(31):
-		var z = 23-i*2.0
-		var x = sin(z*.055)*2.5
-		MarchArt.cylinder(self,Vector3(x,.018,z),2.9,.035,dirt,2.9,10)
-	for i in range(14):
-		MarchArt.cylinder(self,Vector3(1+i*1.4,.023,-7-i*.45),2.1,.025,dirt,2.1,10)
+	noise.seed = 9045
+	noise.frequency = .027
+	build_ground()
 	# Stone gateway, crenellated walls, and an explorable street.
 	tower(Vector3(-6,0,-25))
 	tower(Vector3(6,0,-25))
@@ -54,7 +45,7 @@ func build() -> void:
 	# Village market awning, crates, barrels, cart and camp props.
 	for x in [8,13]:
 		MarchArt.cylinder(self,Vector3(x,1.2,-11),.07,2.4,wood,.07)
-	MarchArt.box(self,Vector3(10.5,2.5,-11.7),Vector3(5.3,.10,2.1),MarchArt.material(Color("d4b86b"))).rotation.x = -.13
+	MarchArt.box(self,Vector3(10.5,2.5,-11.7),Vector3(5.3,.10,2.1),FieldMaterials.surface("cloth",Color("a9a088"),2)).rotation.x = -.13
 	for i in range(4):
 		crate(Vector3(8.8+i*.9,0,-12.0))
 	for i in range(6):
@@ -62,15 +53,18 @@ func build() -> void:
 		MarchArt.cylinder(self,point,.34,.94,wood,.29,10)
 		MarchArt.cylinder(self,point+Vector3(0,.29,0),.353,.075,dark_roof,.353,10)
 		MarchArt.cylinder(self,point-Vector3(0,.29,0),.353,.075,dark_roof,.353,10)
-	# A sunlit brook with banks lies along the right edge of the playable meadow.
-	var water = MarchArt.material(Color("69a8a6"))
-	water.roughness = .25
-	for i in range(22):
-		var z = -38+i*3.0
-		var x = 29+sin(z*.09)*3
-		MarchArt.cylinder(self,Vector3(x,.005,z),3.3,.02,water,3.3,12)
-		for side in [-1,1]:
-			MarchArt.sphere(self,Vector3(x+side*3.4,0,z),Vector3(.7,.35,.6),stone)
+	# One continuous, subdued stream, not overlapping colored discs.
+	var stream = SurfaceTool.new()
+	stream.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(38):
+		var z = -50+i*2.5
+		for v in [Vector2(-2,0),Vector2(2,2.5),Vector2(-2,2.5),Vector2(-2,0),Vector2(2,0),Vector2(2,2.5)]:
+			var p = Vector3(29+sin((z+v.y)*.09)*3+v.x,.016,z+v.y)
+			stream.set_normal(Vector3.UP)
+			stream.add_vertex(p)
+	var water = MarchArt.material(Color("566961"),.15)
+	water.roughness = .36
+	MarchArt.mesh(self,stream.commit(),Vector3.ZERO,water)
 	# Vegetation is clear of the central combat arena.
 	for i in range(76):
 		var x = rng.randf_range(-49,49)
@@ -78,17 +72,11 @@ func build() -> void:
 		if (absf(x)<18 and z>-43 and z<27) or (x>23 and x<35):
 			continue
 		tree(Vector3(x,0,z),rng.randf_range(.8,1.7),i%3==0)
-	for i in range(100):
-		var point = Vector3(rng.randf_range(-32,26),.03,rng.randf_range(-22,28))
-		if absf(point.x)<4 or (absf(point.x)<7 and point.z<12):
-			continue
-		if i%5==0:
-			MarchArt.sphere(self,point,Vector3(.4,.25,.3),stone)
-		else:
-			var grass = MarchArt.cylinder(self,point+Vector3(0,.14,0),.13,.3,light_leaf,0,4)
-			grass.rotation.z = rng.randf_range(-.25,.25)
-			if i%4==0:
-				MarchArt.sphere(self,point+Vector3(0,.3,0),Vector3(.10,.06,.10),plaster)
+	for i in range(135):
+		var point = Vector3(rng.randf_range(-26,24),.035,rng.randf_range(-23,28))
+		var pebble = MarchArt.sphere(self,point,Vector3(.08,.04,.11)*rng.randf_range(.7,2.1),stone)
+		pebble.rotation.y = rng.randf()*TAU
+	build_grass()
 	# Training racks and banners identify the player's side.
 	for side in [-1,1]:
 		MarchArt.cylinder(self,Vector3(side*7,1.7,12),.065,3.4,wood,.065)
@@ -98,17 +86,75 @@ func build() -> void:
 	# Batch static scenery into a small set of material draw calls.
 	MarchArt.batch_static(self)
 
-func tree(at: Vector3, size: float, fir: bool) -> void:
-	var trunk_height = 2.4*size
-	MarchArt.cylinder(self,at+Vector3(0,trunk_height/2,0),.19*size,trunk_height,wood,.12*size)
-	if fir:
-		for i in range(3):
-			MarchArt.cylinder(self,at+Vector3(0,(2.1+i*.9)*size,0),(1.5-i*.3)*size,2.3*size,dark_leaf,0,7)
-	else:
-		MarchArt.sphere(self,at+Vector3(0,3.1*size,0),Vector3(1.8,1.6,1.6)*size,leaf)
-		MarchArt.sphere(self,at+Vector3(.9*size,3.7*size,0),Vector3(1.2,1.1,1.3)*size,light_leaf)
+func ground_height(x: float, z: float) -> float:
+	var outside = smoothstep(0,22,maxf(absf(x)-27,absf(z)-43))
+	var valley = smoothstep(3,7,absf(x-(29+sin(z*.09)*3)))
+	return outside*valley*(8+noise.get_noise_2d(x,z)*11+pow(maxf(0,sin(x*.045+z*.034)),2)*15)
+
+func build_ground() -> void:
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(0)
+	for zi in range(80):
+		for xi in range(80):
+			for corner in [Vector2(0,0),Vector2(2.5,2.5),Vector2(0,2.5),Vector2(0,0),Vector2(2.5,0),Vector2(2.5,2.5)]:
+				var x = -100+xi*2.5+corner.x
+				var z = -100+zi*2.5+corner.y
+				st.set_uv(Vector2(x,z)*.32)
+				st.add_vertex(Vector3(x,ground_height(x,z),z))
+	st.generate_normals()
+	st.generate_tangents()
+	var mesh = MarchArt.mesh(self,st.commit(),Vector3.ZERO,FieldMaterials.ground())
+	mesh.create_trimesh_collision()
+
+func build_grass() -> void:
+	var blade = QuadMesh.new()
+	blade.size = Vector2(.45,.50)
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.append_from(blade,0,Transform3D(Basis.IDENTITY,Vector3(0,.25,0)))
+	st.append_from(blade,0,Transform3D(Basis(Vector3.UP,PI/2),Vector3(0,.25,0)))
+	var multimesh = MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_colors = true
+	multimesh.mesh = st.commit()
+	multimesh.instance_count = 1800
+	for i in range(1800):
+		var x = rng.randf_range(-35,35)
+		var z = rng.randf_range(-42,32)
+		while absf(x-sin(z*.055)*2.5)<3.8 or (x>24 and x<35):
+			x = rng.randf_range(-35,35)
+		var scale_value = rng.randf_range(.55,1.25)
+		var basis_value = Basis(Vector3.UP,rng.randf()*TAU).scaled(Vector3.ONE*scale_value)
+		multimesh.set_instance_transform(i,Transform3D(basis_value,Vector3(x,ground_height(x,z),z)))
+		multimesh.set_instance_color(i,Color(rng.randf_range(.8,1),rng.randf_range(.8,1),.85))
+	grass = MultiMeshInstance3D.new()
+	grass.multimesh = multimesh
+	var material = FieldMaterials.cutout("grass")
+	material.vertex_color_use_as_albedo = true
+	grass.material_override = material
+	grass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(grass)
+	grass.multimesh.visible_instance_count = 600
+
+func tree(at: Vector3, size: float, _fir: bool) -> void:
+	at.y = ground_height(at.x,at.z)
+	MarchArt.cylinder(self,at+Vector3(0,2.0*size,0),.18*size,4.0*size,wood,.085*size,12)
+	for branch in range(6):
+		var direction = Vector3(sin(branch*2.4)*1.3,1.2,cos(branch*2.4)*1.3)*size
+		var base = at+Vector3(0,(1.6+branch*.32)*size,0)
+		var twig = MarchArt.cylinder(self,base+direction*.5,.065*size,direction.length(),wood,.02*size,8)
+		twig.quaternion = Quaternion(Vector3.UP,direction.normalized())
+	for cluster in range(28):
+		var angle = rng.randf()*TAU
+		var distance = rng.randf_range(.3,1.8)*size
+		var p = at+Vector3(sin(angle)*distance,rng.randf_range(2.8,5.0)*size,cos(angle)*distance)
+		var shape = QuadMesh.new()
+		shape.size = Vector2(1.4,1.4)*size
+		var foliage = MarchArt.mesh(self,shape,p,leaf)
+		foliage.rotation = Vector3(rng.randf_range(-.5,.5),rng.randf()*TAU,rng.randf_range(-.3,.3))
 	if absf(at.x)<30 and at.z>-28:
-		MarchArt.collider(self,at+Vector3(0,1,0),Vector3(.4,2,.4))
+		MarchArt.collider(self,at+Vector3(0,1.6,0),Vector3(.4,3.2,.4))
 
 func house(at: Vector3, size: Vector3, angle: float) -> void:
 	var house_node = Node3D.new()
@@ -122,7 +168,7 @@ func house(at: Vector3, size: Vector3, angle: float) -> void:
 	for side in [-1,1]:
 		MarchArt.box(house_node,Vector3(side*(size.x/2-.06),size.y/2,size.z/2+.03),Vector3(.14,size.y,.1),wood)
 		MarchArt.box(house_node,Vector3(side*size.x*.30,size.y*.63,size.z/2+.065),Vector3(.7,.8,.08),wood)
-		MarchArt.box(house_node,Vector3(side*size.x*.30,size.y*.63,size.z/2+.11),Vector3(.51,.59,.045),MarchArt.material(Color("c6a55b")))
+		MarchArt.box(house_node,Vector3(side*size.x*.30,size.y*.63,size.z/2+.11),Vector3(.51,.59,.045),FieldMaterials.surface("timber",Color("7f8074"),2))
 		MarchArt.box(house_node,Vector3(side*size.x*.30,size.y*.63,size.z/2+.15),Vector3(.06,.7,.04),wood)
 	MarchArt.box(house_node,Vector3(0,size.y*.52,size.z/2+.10),Vector3(size.x,.17,.15),wood)
 	MarchArt.box(house_node,Vector3(0,.85,size.z/2+.08),Vector3(.95,1.7,.12),wood)

@@ -19,7 +19,7 @@ PYLOG
   fi
 }
 trap finish EXIT
-adb install -r artifacts/Iron-Crowns-0.4.0-Wanderer.apk
+adb install -r artifacts/Iron-Crowns-0.5.0-Combat.apk
 adb shell pm clear "$PKG"
 adb shell wm size 720x1280
 adb shell wm density 160
@@ -46,6 +46,15 @@ tap 220 510
 sleep 1
 adb exec-out screencap -p > artifacts/android/00-origin.png
 tap 640 636
+for attempt in $(seq 1 90); do
+  if adb logcat -d -s godot | grep -q IRON_FIELD_READY; then break; fi
+  sleep 1
+done
+adb logcat -d -s godot | grep IRON_FIELD_READY
+sleep 2
+adb exec-out screencap -p > artifacts/android/06-hero.png
+# New games now start with the visible, playable hero, not a map token.
+tap 1190 50
 for attempt in $(seq 1 90); do
   if adb logcat -d -s godot | grep -q IRON_REALM_READY; then break; fi
   sleep 1
@@ -137,6 +146,17 @@ adb exec-out screencap -p > artifacts/android/02-battle.png
 adb shell input keyevent KEYCODE_BACK
 sleep 1
 adb exec-out screencap -p > artifacts/android/03-pause.png
+# Exercise both new persistent settings through actual Android touch controls.
+tap 640 334
+sleep 1
+tap 640 404
+sleep 1
+adb exec-out run-as "$PKG" cat files/settings.cfg > artifacts/android/settings.cfg
+grep -q 'high_detail=true' artifacts/android/settings.cfg
+grep -q 'enabled=false' artifacts/android/settings.cfg
+tap 640 334
+tap 640 404
+sleep 1
 adb shell input keyevent KEYCODE_HOME
 sleep 1
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
@@ -164,4 +184,4 @@ if grep -E 'FATAL EXCEPTION|SCRIPT ERROR|Parse Error|E godot.*ERROR:|GL_MAX_FRAG
   echo '::error::Runtime error during Android 3D smoke test'
   exit 1
 fi
-printf 'PASS: Android API 29 x86_64 emulator install, launch, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt
+printf 'PASS: Android API 29 x86_64 emulator install, launch, visible third-person hero, mobile/high settings and sound controls, origin selection, tavern companion hire, courier acceptance and delivery payout, neutrality, recruiting, connected-road travel, saved arrival, pan/zoom, battle controls, pause/background, and progress restore.\nReal-device performance and touch usability remain unverified.\n' > artifacts/ANDROID-SMOKE.txt

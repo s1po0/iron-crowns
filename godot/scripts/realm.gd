@@ -362,6 +362,7 @@ func token(color: Color, captain: bool, wagon: bool = false) -> Node3D:
 	return node
 
 func show_map() -> void:
+	game.field_environment.fog_enabled = false
 	build()
 	visible = true
 	game.terrain.visible = false
@@ -374,6 +375,7 @@ func show_map() -> void:
 	update_camera(1)
 
 func hide_map() -> void:
+	game.field_environment.fog_enabled = true
 	visible = false
 	game.terrain.visible = true
 	for soldier in game.soldiers:
@@ -383,7 +385,8 @@ func hide_map() -> void:
 	game.camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	game.camera.far = 210
 	game.reset_controls()
-	game.camera.position = game.hero.position+Vector3(0,4,7)
+	game.update_follow_camera(1.0,true)
+	print("IRON_FIELD_ENTERED")
 
 func update_camera(_delta: float) -> void:
 	game.camera.size = zoom

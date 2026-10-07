@@ -15,7 +15,7 @@ var joystick = Vector2.ZERO
 var heading: Font = preload("res://assets/fonts/cinzel.ttf")
 var body: Font = preload("res://assets/fonts/lato.ttf")
 var ink = Color("142f35")
-var gold = Color("e8c184")
+var gold = Color("c0a67e")
 var white = Color("f7f0dd")
 var muted = Color("b8c9c5")
 var red = Color("da8368")
@@ -103,14 +103,14 @@ func draw_title() -> void:
 	label("32 settlements. Four realms. A continent to explore.",Vector2(58,434),15,muted)
 	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
-	label("THE OPEN ROAD  /  WANDERER BUILD 0.4",Vector2(58,670),11,muted)
+	label("THE WESTERN ROAD  /  COMBAT REBUILD 0.5",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
 
 func draw_game() -> void:
 	panel(Rect2(27,24,323,87),Color(.045,.12,.15,.87),10)
 	crown(Vector2(61,66),1,gold)
-	label("THE CAPTAIN",Vector2(91,52),15,white,heading)
+	label("SAMIR FARROAD",Vector2(91,52),15,white,heading)
 	label("HEARTHGLEN COMPANY",Vector2(91,72),10,muted)
 	panel(Rect2(91,84,233,7),Color(.08,.12,.15,1),3)
 	panel(Rect2(91,84,233*maxf(0,game.hero.hp/game.hero.maximum_hp),7),Color("83bca1"),3)
@@ -123,7 +123,7 @@ func draw_game() -> void:
 	button("pause","II",Rect2(1200,92,52,45))
 	panel(Rect2(28,128,292,94),Color(.045,.12,.15,.74),8)
 	label("DEFEND HEARTHGLEN" if game.fighting else "THE WESTERN ROAD",Vector2(46,154),14,gold,heading)
-	label(str(game.living(1))+" raiders remaining" if game.fighting else "Explore the village and meadow",Vector2(46,181),14,white)
+	label(str(game.living(1))+" raiders remaining" if game.fighting else "Explore on foot or open REALM",Vector2(46,181),14,white)
 	label(str(game.living(0))+" soldiers under your banner",Vector2(46,204),12,muted)
 	if not game.fighting:
 		button("battle","BEGIN SKIRMISH",Rect2(470,29,190,48),true)
@@ -146,17 +146,17 @@ func draw_game() -> void:
 	draw_arc(Vector2(125,584),68,0,TAU,64,Color(.91,.87,.72,.4),1.5,true)
 	draw_circle(Vector2(125,584)+joystick*43,25,Color(.92,.90,.79,.56))
 	centered("MOVE",Vector2(125,679),10,white)
-	draw_circle(Vector2(1156,585),63,gold)
+	draw_circle(Vector2(1156,585),63,Color(.065,.08,.08,.82))
 	draw_arc(Vector2(1156,585),70,0,TAU,64,Color(.92,.87,.74,.4),1.5,true)
 	# Sword pictogram.
-	draw_line(Vector2(1139,591),Vector2(1173,556),ink,5,true)
-	draw_line(Vector2(1140,575),Vector2(1158,593),ink,4,true)
-	centered("STRIKE",Vector2(1156,618),11,ink)
+	draw_line(Vector2(1139,591),Vector2(1173,556),white,3,true)
+	draw_line(Vector2(1140,575),Vector2(1158,593),white,3,true)
+	centered("STRIKE",Vector2(1156,618),11,white)
 	draw_circle(Vector2(1014,605),43,Color(.06,.15,.18,.80))
 	draw_arc(Vector2(1014,605),44,0,TAU,48,Color(.91,.87,.72,.6),1,true)
 	centered("BLOCK",Vector2(1014,611),11,white)
 	draw_circle(Vector2(1115,465),35,Color(.06,.15,.18,.75))
-	centered("DASH",Vector2(1115,470),10,white)
+	centered("DODGE",Vector2(1115,470),10,white)
 	panel(Rect2(384,625,505,70),Color(.045,.12,.15,.85),10)
 	panel(Rect2(384,595,147,25),Color(.045,.12,.15,.78),5)
 	label("COMPANY ORDER",Vector2(397,612),10,white)
@@ -167,8 +167,16 @@ func draw_game() -> void:
 		panel(Rect2(365,110,550,42),Color(.045,.12,.15,.86),7)
 		centered(game.toast,Vector2(640,136),13,white)
 	if not game.fighting:
-		panel(Rect2(352,550,576,40),Color(.045,.12,.15,.70),7)
-		centered("Drag the right side to look around  ·  Tap REALM for the region overview",Vector2(640,577),12,white)
+		panel(Rect2(365,162,550,36),Color(.045,.12,.15,.70),7)
+		centered("Your hero is here. Drag to look; REALM opens long-distance travel.",Vector2(640,186),12,white)
+
+	# A restrained aim point, with brief readable feedback instead of screen-filling effects.
+	for side in [-1,1]:
+		draw_line(Vector2(640+side*4,360),Vector2(640+side*9,360),Color(.85,.84,.79,.6),1)
+	if game.combat_notice_time>0:
+		centered(game.combat_notice,Vector2(718,398),14,gold)
+	elif game.hero.block:
+		centered("GUARD",Vector2(718,398),12,muted)
 
 func draw_map() -> void:
 	RealmOverlay.draw(self)
@@ -187,12 +195,15 @@ func draw_result() -> void:
 
 func draw_pause() -> void:
 	buttons.clear()
-	draw_rect(Rect2(0,0,1280,720),Color(.03,.08,.11,.78))
-	centered("A MOMENT OF RESPITE",Vector2(640,213),34,white,heading)
-	centered("Battles restart from camp if the application is closed.",Vector2(640,256),15,muted)
-	button("pause","RESUME",Rect2(445,307,390,58),true)
-	button("help","FIELD GUIDE",Rect2(445,386,390,54))
-	button("retreat","RETREAT TO CAMP" if game.fighting else "TITLE SCREEN",Rect2(445,460,390,54))
+	draw_rect(Rect2(0,0,1280,720),Color(.025,.04,.045,.9))
+	centered("A MOMENT OF RESPITE",Vector2(640,150),32,white,heading)
+	centered("Mobile: 600 grass clusters / 2x AA. High: 1,800 / 4x AA / longer shadows.",Vector2(640,190),14,muted)
+	button("pause","RESUME",Rect2(445,235,390,54),true)
+	button("quality","GRAPHICS: "+("HIGH DETAIL" if game.high_detail else "MOBILE"),Rect2(445,306,390,54))
+	button("sound","SOUND: "+("ON" if game.sound_enabled else "OFF"),Rect2(445,377,390,54))
+	button("help","CONTROLS / FIELD GUIDE",Rect2(445,448,390,54))
+	button("retreat","RETREAT TO CAMP" if game.fighting else "TITLE SCREEN",Rect2(445,519,390,54))
+	centered("Higher detail costs performance. These settings are saved independently of your campaign.",Vector2(640,620),13,muted)
 
 func draw_help() -> void:
 	buttons.clear()
@@ -202,10 +213,10 @@ func draw_help() -> void:
 		"MOVE       Left thumbstick, or WASD on desktop.",
 		"LOOK        Drag the right side; on desktop hold the right mouse button.",
 		"STRIKE     Hold the sword button, left click, or Space near an enemy.",
-		"DEFEND   Hold BLOCK / Q. DASH / Shift costs stamina and creates space.",
+		"DEFEND   Hold BLOCK / Q facing the enemy. A fresh guard can parry; DODGE / Shift steps away.",
 		"LEAD        FOLLOW escorts you. HOLD anchors. CHARGE engages. WALL protects.",
 		"CAMPAIGN  Drag to pan, pinch to zoom. Select a settlement and tap TRAVEL.",
-		"FIGHT       Begin a skirmish, defeat the raiders, and earn gold for reinforcements.",
+		"FIGHT       Strikes land after a windup. Aim forward, stay in reach, and exploit enemy recovery.",
 		"SAVE        Company, campaign position, food, fiefs and gold persist; travel resumes paused."
 	]
 	for i in range(lines.size()):
@@ -280,6 +291,14 @@ func action(id: String) -> void:
 		"assault": game.realm.launch_encounter(game.realm.selected)
 		"fight_party": game.realm.launch_encounter()
 		"avoid_party": game.realm.avoid_encounter()
+		"quality":
+			game.high_detail = not game.high_detail
+			game.apply_quality()
+			game.save_settings()
+		"sound":
+			game.sound_enabled = not game.sound_enabled
+			game.apply_quality()
+			game.save_settings()
 		"pause":
 			game.paused = not game.paused
 			game.reset_controls()

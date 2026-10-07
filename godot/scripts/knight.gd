@@ -7,6 +7,9 @@ var hp = 100.0
 var maximum_hp = 100.0
 var cooldown = 0.0
 var swing = 0.0
+var strike_clock = -1.0
+var stagger = 0.0
+var guard_time = 0.0
 var hurt = 0.0
 var gait = 0.0
 var block = false
@@ -17,8 +20,12 @@ var visual: Node3D
 var torso: Node3D
 var right_arm: Node3D
 var left_arm: Node3D
+var right_elbow: Node3D
+var left_elbow: Node3D
 var left_leg: Node3D
 var right_leg: Node3D
+var left_knee: Node3D
+var right_knee: Node3D
 var cape: MeshInstance3D
 var ring: MeshInstance3D
 var target: MarchKnight
@@ -33,130 +40,197 @@ func setup(faction: int, is_player: bool) -> void:
 	collision_mask = 1
 	var collision = CollisionShape3D.new()
 	var capsule = CapsuleShape3D.new()
-	capsule.radius = 0.33
-	capsule.height = 1.85
+	capsule.radius = .27
+	capsule.height = 1.84
 	collision.shape = capsule
-	collision.position.y = 0.95
+	collision.position.y = .92
 	add_child(collision)
 	build_character()
+
+# Smooth oval sections give armor a human silhouette instead of block limbs.
+# Each ring is (height, half-width, half-depth); explicit radial normals prevent facets.
+func armor(parent: Node3D, rings: Array, mat: Material, offset: Vector3 = Vector3.ZERO) -> MeshInstance3D:
+	var surface = SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var segments = 20
+	for row in range(rings.size()-1):
+		for side in range(segments):
+			for corner in [Vector2i(0,0),Vector2i(1,0),Vector2i(1,1),Vector2i(0,0),Vector2i(1,1),Vector2i(0,1)]:
+				var ring_data: Vector3 = rings[row+corner.y]
+				var angle = TAU*float(side+corner.x)/segments
+				var slope = (rings[row].y-rings[row+1].y)/maxf(.01,rings[row+1].x-rings[row].x)
+				surface.set_normal(Vector3(cos(angle),slope,sin(angle)*ring_data.y/maxf(.01,ring_data.z)).normalized())
+				surface.set_uv(Vector2(float(side+corner.x)/segments,ring_data.x))
+				surface.add_vertex(Vector3(cos(angle)*ring_data.y,ring_data.x,sin(angle)*ring_data.z)+offset)
+	return MarchArt.mesh(parent,surface.commit(),Vector3.ZERO,mat)
+
+func rounded(parent: Node3D, at: Vector3, scale_value: Vector3, mat: Material) -> MeshInstance3D:
+	var mesh = SphereMesh.new()
+	mesh.radial_segments = 20
+	mesh.rings = 10
+	mesh.radius = 1
+	mesh.height = 2
+	var result = MarchArt.mesh(parent,mesh,at,mat)
+	result.scale = scale_value
+	return result
+
+func shield(parent: Node3D, mat: Material, factor: float, z: float) -> void:
+	var outline = [Vector2(-.23,.27),Vector2(.23,.27),Vector2(.22,.02),Vector2(.13,-.23),Vector2(0,-.36),Vector2(-.13,-.23),Vector2(-.22,.02)]
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(outline.size()):
+		for p in [Vector2.ZERO,outline[(i+1)%outline.size()]*factor,outline[i]*factor]:
+			st.set_normal(Vector3(0,0,-1))
+			st.set_uv(p+Vector2(.5,.5))
+			st.add_vertex(Vector3(p.x-.07,p.y-.20,z-(.03 if p==Vector2.ZERO else 0)))
+	MarchArt.mesh(parent,st.commit(),Vector3.ZERO,mat)
 
 func build_character() -> void:
 	visual = Node3D.new()
 	add_child(visual)
-	var steel = MarchArt.material(Color("a8b5b6"), 0.65)
-	var bright = MarchArt.material(Color("dce3db"), 0.65)
-	var dark = MarchArt.material(Color("293941"), 0.2)
-	var gold = MarchArt.material(Color("e6b86b"), 0.55)
-	var leather = MarchArt.material(Color("493f36"))
-	var color = Color("236d79") if team == 0 else Color("a94632")
-	if player:
-		color = Color("244957")
-	var cloth_mat = MarchArt.material(color)
+	var steel = FieldMaterials.surface("steel",Color("a6a6a0"),3,.72)
+	var dark = FieldMaterials.surface("steel",Color("565953"),7,.35)
+	var leather = FieldMaterials.surface("timber",Color("999080"),3)
+	var cloth = FieldMaterials.surface("cloth",Color("414b4b") if team==0 else Color("655044"),4)
+	var black = MarchArt.material(Color("171c1b"))
 	torso = Node3D.new()
 	visual.add_child(torso)
-	MarchArt.cylinder(torso, Vector3(0,1.31,0), .31, .64, steel, .39, 6).scale.z = .67
-	MarchArt.box(torso, Vector3(0,1.34,-.225), Vector3(.35,.49,.05), cloth_mat)
-	MarchArt.box(torso, Vector3(0,1.34,-.255), Vector3(.045,.34,.012), gold)
-	MarchArt.box(torso, Vector3(0,1.40,-.261), Vector3(.2,.045,.01), gold)
-	MarchArt.cylinder(torso, Vector3(0,.995,0), .32, .12, leather, .32).scale.z = .72
-	MarchArt.box(torso, Vector3(0,1,-.25), Vector3(.13,.12,.06), gold)
-	# Split armored skirt and a tabard: human silhouette, not an abstract marker.
+	var body = Node3D.new()
+	torso.add_child(body)
+	# Gambeson, fitted cuirass, mail skirt and a plain leather belt.
+	armor(body,[Vector3(.78,.19,.13),Vector3(.95,.20,.145),Vector3(1.13,.175,.125),Vector3(1.40,.245,.145),Vector3(1.49,.21,.13),Vector3(1.54,.095,.085)],cloth)
+	armor(body,[Vector3(1.07,.178,.134),Vector3(1.18,.193,.158),Vector3(1.37,.25,.177),Vector3(1.47,.23,.15),Vector3(1.52,.105,.093)],steel)
+	armor(body,[Vector3(.75,.24,.16),Vector3(.99,.185,.14)],dark)
+	armor(body,[Vector3(1.015,.19,.149),Vector3(1.065,.189,.146)],leather)
+	MarchArt.box(body,Vector3(.04,1.04,-.155),Vector3(.065,.043,.016),steel)
+	# Human-sized closed bascinet: no oversized head, crest or decorative gold.
+	armor(body,[Vector3(1.49,.105,.09),Vector3(1.61,.135,.13),Vector3(1.67,.13,.13)],dark)
+	armor(body,[Vector3(1.58,.12,.13),Vector3(1.67,.153,.153),Vector3(1.80,.148,.151),Vector3(1.89,.107,.11),Vector3(1.94,.008,.009)],steel)
+	MarchArt.box(body,Vector3(0,1.766,-.151),Vector3(.227,.022,.012),black)
+	MarchArt.box(body,Vector3(0,1.744,-.169),Vector3(.023,.14,.025),steel)
 	for side in [-1,1]:
-		var plate = MarchArt.box(torso,Vector3(side*.21,.88,0),Vector3(.27,.3,.37),steel)
-		plate.rotation.z = side * .14
-	MarchArt.box(torso,Vector3(0,.82,-.215),Vector3(.24,.38,.035),cloth_mat)
-	# Closed helmet, brow, visor, nose guard and crest.
-	MarchArt.cylinder(torso,Vector3(0,1.79,0),.235,.36,steel,.20,8)
-	MarchArt.sphere(torso,Vector3(0,1.98,0),Vector3(.23,.16,.23),bright)
-	MarchArt.box(torso,Vector3(0,1.85,-.224),Vector3(.32,.055,.035),dark)
-	MarchArt.box(torso,Vector3(0,1.82,-.25),Vector3(.042,.22,.04),gold if player else steel)
-	MarchArt.box(torso,Vector3(0,1.96,-.22),Vector3(.37,.045,.04),gold if player else bright)
-	for side in [-1,1]:
-		for slot in range(2):
-			MarchArt.box(torso,Vector3(side*(.08+slot*.06),1.74,-.224),Vector3(.018,.06,.025),dark)
-	if player:
-		MarchArt.box(torso,Vector3(0,2.13,.045),Vector3(.09,.23,.30),cloth_mat)
-	# Articulated shoulders and arm pivots.
+		for hole in range(3):
+			rounded(body,Vector3(side*(.045+hole*.022),1.69,-.147),Vector3(.006,.011,.006),black)
+	# A small scabbard lies beside the left hip rather than a fantasy ornament.
+	var scabbard = MarchArt.box(body,Vector3(-.235,.76,.07),Vector3(.052,.64,.034),leather)
+	scabbard.rotation.z = -.18
+	MarchArt.batch_static(body)
 	for side in [-1,1]:
 		var arm = Node3D.new()
-		arm.position = Vector3(side*.40,1.52,0)
+		arm.position = Vector3(side*.273,1.455,0)
 		torso.add_child(arm)
-		MarchArt.sphere(arm,Vector3(side*.025,0,0),Vector3(.22,.18,.24),gold if player else steel)
-		MarchArt.box(arm,Vector3(0,-.23,0),Vector3(.18,.31,.20),dark)
-		MarchArt.box(arm,Vector3(0,-.40,-.02),Vector3(.21,.27,.23),steel)
-		MarchArt.sphere(arm,Vector3(0,-.57,-.025),Vector3(.11,.13,.12),leather)
-		if side == 1:
+		var upper = Node3D.new()
+		arm.add_child(upper)
+		rounded(upper,Vector3(side*.014,-.025,0),Vector3(.118,.11,.143),steel)
+		armor(upper,[Vector3(-.31,.074,.078),Vector3(-.10,.095,.10)],dark)
+		MarchArt.batch_static(upper)
+		var elbow = Node3D.new()
+		elbow.position.y = -.30
+		arm.add_child(elbow)
+		var fore = Node3D.new()
+		elbow.add_child(fore)
+		rounded(fore,Vector3(0,0,0),Vector3(.083,.077,.09),steel)
+		armor(fore,[Vector3(-.245,.055,.06),Vector3(-.03,.075,.078)],steel)
+		rounded(fore,Vector3(0,-.28,-.012),Vector3(.064,.079,.065),leather)
+		if side==1:
 			right_arm = arm
-			MarchArt.cylinder(arm,Vector3(0,-.65,-.035),.045,.22,leather,.045,6)
-			MarchArt.box(arm,Vector3(0,-.76,-.035),Vector3(.32,.055,.065),gold)
-			MarchArt.box(arm,Vector3(0,-1.13,-.035),Vector3(.083,.72,.027),bright)
-			MarchArt.box(arm,Vector3(0,-1.13,-.053),Vector3(.012,.65,.008),steel)
+			right_elbow = elbow
+			MarchArt.cylinder(fore,Vector3(0,-.32,0),.024,.17,leather,.024,12)
+			MarchArt.box(fore,Vector3(0,-.415,0),Vector3(.235,.025,.036),steel)
+			armor(fore,[Vector3(-1.13,.002,.002),Vector3(-1.03,.035,.009),Vector3(-.43,.039,.011)],steel)
+			rounded(fore,Vector3(0,-.225,0),Vector3(.031,.035,.026),steel)
 		else:
 			left_arm = arm
-			var shield = MarchArt.cylinder(arm,Vector3(-.08,-.35,-.20),.32,.085,gold,.32,8)
-			shield.rotation.x = PI / 2
-			shield.scale.z = 1.25
-			var face = MarchArt.cylinder(arm,Vector3(-.08,-.35,-.251),.277,.035,cloth_mat,.277,8)
-			face.rotation.x = PI / 2
-			face.scale.z = 1.25
-			MarchArt.box(arm,Vector3(-.08,-.35,-.28),Vector3(.045,.55,.015),gold)
-			MarchArt.box(arm,Vector3(-.08,-.32,-.283),Vector3(.4,.045,.016),gold)
+			left_elbow = elbow
+			shield(fore,steel,1.05,-.11)
+			shield(fore,cloth,1.0,-.123)
+			for x in [-.15,.01]:
+				rounded(fore,Vector3(x,-.02,-.14),Vector3(.012,.012,.008),steel)
+		MarchArt.batch_static(fore)
 	for side in [-1,1]:
 		var leg = Node3D.new()
-		leg.position = Vector3(side*.17,.88,0)
+		leg.position = Vector3(side*.108,.94,0)
 		visual.add_child(leg)
-		MarchArt.box(leg,Vector3(0,-.20,0),Vector3(.23,.36,.26),dark)
-		MarchArt.sphere(leg,Vector3(0,-.40,-.10),Vector3(.145,.14,.13),steel)
-		MarchArt.box(leg,Vector3(0,-.58,0),Vector3(.21,.30,.24),steel)
-		MarchArt.box(leg,Vector3(0,-.78,-.07),Vector3(.25,.16,.42),leather)
-		if side == 1:
+		armor(leg,[Vector3(-.39,.082,.088),Vector3(-.07,.107,.115),Vector3(0,.095,.09)],dark)
+		var knee = Node3D.new()
+		knee.position.y = -.415
+		leg.add_child(knee)
+		rounded(knee,Vector3(0,0,-.04),Vector3(.095,.09,.097),steel)
+		armor(knee,[Vector3(-.35,.058,.065),Vector3(-.07,.081,.084)],steel)
+		rounded(knee,Vector3(0,-.425,-.072),Vector3(.081,.068,.175),leather)
+		if side==1:
 			right_leg = leg
+			right_knee = knee
 		else:
 			left_leg = leg
-	var cloth_mesh = PlaneMesh.new()
-	cloth_mesh.size = Vector2(.65,1.03)
-	cloth_mesh.subdivide_width = 2
-	cloth_mesh.subdivide_depth = 5
-	cape = MarchArt.mesh(torso,cloth_mesh,Vector3(0,1.16,.32),MarchArt.cloth(color))
-	cape.rotation.x = PI / 2 + .12
-	var circle_mesh = TorusMesh.new()
-	circle_mesh.inner_radius = .35 if player else .30
-	circle_mesh.outer_radius = .40 if player else .32
-	circle_mesh.rings = 16
-	circle_mesh.ring_segments = 6
-	ring = MarchArt.mesh(self,circle_mesh,Vector3(0,.018,0),MarchArt.material(Color("ebc985") if player else color))
+			left_knee = knee
+	var cape_mesh = PlaneMesh.new()
+	cape_mesh.size = Vector2(.43,.79)
+	cape_mesh.subdivide_width = 4
+	cape_mesh.subdivide_depth = 6
+	cape = MarchArt.mesh(torso,cape_mesh,Vector3(0,1.075,.205),cloth)
+	cape.rotation.x = PI/2+.08
+	cape.visible = player
+	# Retained as a hidden compatibility handle; no toy-like colored foot rings.
+	ring = MarchArt.mesh(self,TorusMesh.new(),Vector3.ZERO,black)
+	ring.visible = false
 
 func animate(delta: float) -> void:
 	cooldown = maxf(0,cooldown-delta)
 	hurt = maxf(0,hurt-delta)
+	stagger = maxf(0,stagger-delta)
+	guard_time = maxf(0,guard_time-delta)
+	ring.visible = false
 	if dead:
-		fall = minf(1,fall+delta*2)
-		visual.rotation.z = fall * 1.43
-		visual.position.y = -fall*.5
-		ring.visible = false
+		fall = minf(1,fall+delta*2.2)
+		visual.rotation.z = fall*1.5
+		visual.position.y = -fall*.45
+		strike_clock = -1
 		return
-	gait += delta * (speed*2.2+1)
+	gait += delta*(speed*2.0+.6)
 	var amount = clampf(speed/4,0,1)
-	left_leg.rotation.x = sin(gait)*.60*amount
-	right_leg.rotation.x = -sin(gait)*.60*amount
-	torso.position.y = absf(sin(gait))*.045*amount
-	if swing > 0:
+	left_leg.rotation.x = sin(gait)*.47*amount
+	right_leg.rotation.x = -sin(gait)*.47*amount
+	left_knee.rotation.x = -maxf(0,-sin(gait))*.8*amount
+	right_knee.rotation.x = -maxf(0,sin(gait))*.8*amount
+	torso.position.y = absf(sin(gait))*.018*amount
+	if swing>0:
 		swing = maxf(0,swing-delta)
-		var progress = 1-swing/.48
-		right_arm.rotation.x = -sin(progress*PI)*2.6
-		right_arm.rotation.z = -.25+sin(progress*PI)*.65
+		var progress = 1-swing/.64
+		var cut = smoothstep(.25,.58,progress)
+		right_arm.rotation.x = lerpf(-2.2,1.1,cut)
+		right_arm.rotation.z = lerpf(-.65,.25,cut)
+		right_elbow.rotation.x = -.35
+		torso.rotation.y = sin(progress*TAU)*.16
 	else:
-		right_arm.rotation.x = -.15-sin(gait)*.25*amount
-		right_arm.rotation.z = -.10
-	left_arm.rotation.x = -1.05 if block else sin(gait)*.22*amount
-	left_arm.rotation.z = -.2 if block else .1
-	visual.rotation.z = sin(hurt*60)*.08 if hurt>0 else 0.0
+		right_arm.rotation.x = .18-sin(gait)*.24*amount
+		right_arm.rotation.z = -.08
+		right_elbow.rotation.x = -.12
+		torso.rotation.y = sin(gait)*.025*amount
+	left_arm.rotation.x = .85 if block else sin(gait)*.20*amount
+	left_arm.rotation.z = -.13 if block else .09
+	left_elbow.rotation.x = .25 if block else -.18
+	cape.rotation.x = PI/2+.10+amount*.1+sin(gait*.5)*.025
+	visual.rotation.z = sin(hurt*45)*.045 if hurt>0 else 0.0
+	visual.rotation.x = -.10 if stagger>0 else 0.0
 
-func damage(amount: float) -> bool:
+func guarding_from(source: Vector3) -> bool:
+	if not block or not source.is_finite():
+		return false
+	var direction = source-position
+	direction.y = 0
+	return (-basis.z).dot(direction.normalized())>.25
+
+func damage(amount: float, source: Vector3 = Vector3.INF) -> bool:
 	if dead:
 		return false
-	hp = maxf(0,hp-amount*(.22 if block else 1.0))
+	var guarded = guarding_from(source)
+	hp = maxf(0,hp-amount*(0.0 if guarded and player and guard_time>0 else .18 if guarded else 1.0))
 	hurt = .2
+	if not guarded:
+		stagger = .18
+		strike_clock = -1
+		swing = 0
 	if hp<=0:
 		dead = true
 		collision_layer = 0
