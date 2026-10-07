@@ -7,15 +7,20 @@ def nodes():
     adb('shell','uiautomator','dump','/sdcard/window.xml')
     raw=adb('shell','cat','/sdcard/window.xml')
     open('artifacts/android/picker.xml','wb').write(raw)
-    print(raw.decode(errors='replace'), flush=True)
-    return list(ET.fromstring(raw).iter('node'))
+    found=list(ET.fromstring(raw).iter('node'))
+    print('Picker UI:',[(n.get('text'),n.get('content-desc'),n.get('bounds')) for n in found if n.get('text') or n.get('content-desc')],flush=True)
+    return found
 def click(labels):
-    for node in nodes():
-        if node.get('text') in labels or node.get('content-desc') in labels:
-            x,y,xx,yy=map(int,re.findall(r'\d+',node.get('bounds')))
-            adb('shell','input','tap',str((x+xx)//2),str((y+yy)//2))
-            time.sleep(1)
-            return True
+    found=nodes()
+    # Prefer the Downloads provider in the open drawer over a Download folder
+    # still present in the underlying (occluded) storage grid.
+    for label in labels:
+        for node in reversed(found):
+            if node.get('text')==label or node.get('content-desc')==label:
+                x,y,xx,yy=map(int,re.findall(r'\d+',node.get('bounds')))
+                adb('shell','input','tap',str((x+xx)//2),str((y+yy)//2))
+                time.sleep(1)
+                return True
     return False
 filename=sys.argv[1]
 if not click([filename]):
