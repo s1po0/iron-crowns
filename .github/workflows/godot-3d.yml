@@ -4,10 +4,16 @@ on:
     branches: ['arena/94d215f9-iron-crowns']
     paths: ['godot/**', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
   workflow_dispatch:
+    inputs:
+      reviewed_run:
+        description: 'Optional successful run ID to publish its exact, visually reviewed 0.5 APK without rebuilding'
+        required: false
+        type: string
 permissions:
   contents: write
 jobs:
   three-dimensional-build:
+    if: ${{ !inputs.reviewed_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -113,3 +119,45 @@ jobs:
         run: |
           gh release create v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png \
             --target "$GITHUB_SHA" --prerelease --title 'Iron Crowns 0.5 — The Western Road combat rebuild' --notes-file docs/RELEASE_0.5.0.md
+
+  publish-reviewed:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.reviewed_run != '' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Verify successful session-branch build
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.reviewed_run }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > run.json
+          jq -e '.conclusion == "success" and .status == "completed" and .head_branch == "arena/94d215f9-iron-crowns" and .path == ".github/workflows/godot-3d.yml"' run.json
+          SHA=$(jq -r .head_sha run.json)
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.verify.outputs.sha }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: Iron-Crowns-3D
+          path: artifacts
+          run-id: ${{ inputs.reviewed_run }}
+          github-token: ${{ github.token }}
+      - name: Verify binary provenance and publish exact reviewed APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_SHA: ${{ steps.verify.outputs.sha }}
+        run: |
+          set -euo pipefail
+          grep -Fx "Source: $REVIEWED_SHA" artifacts/BUILD.txt
+          grep -Fx 'Version: 0.5.0-combat-preview' artifacts/BUILD.txt
+          grep -q '^PASS:' artifacts/ANDROID-SMOKE.txt
+          (cd artifacts && sha256sum -c SHA256SUMS.txt)
+          gh release create v0.5.0-combat-preview artifacts/Iron-Crowns-0.5.0-Combat.apk artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png \
+            --target "$REVIEWED_SHA" --prerelease --title 'Iron Crowns 0.5 — The Western Road combat rebuild' --notes-file docs/RELEASE_0.5.0.md

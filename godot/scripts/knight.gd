@@ -62,6 +62,7 @@ func armor(parent: Node3D, rings: Array, mat: Material, offset: Vector3 = Vector
 				surface.set_normal(Vector3(cos(angle),slope,sin(angle)*ring_data.y/maxf(.01,ring_data.z)).normalized())
 				surface.set_uv(Vector2(float(side+corner.x)/segments,ring_data.x))
 				surface.add_vertex(Vector3(cos(angle)*ring_data.y,ring_data.x,sin(angle)*ring_data.z)+offset)
+	surface.generate_tangents()
 	return MarchArt.mesh(parent,surface.commit(),Vector3.ZERO,mat)
 
 func rounded(parent: Node3D, at: Vector3, scale_value: Vector3, mat: Material) -> MeshInstance3D:
@@ -86,15 +87,21 @@ func shield(parent: Node3D, mat: Material, factor: float, z: float, back: bool =
 			st.set_normal(Vector3(0,0,1 if back else -1))
 			st.set_uv(p+Vector2(.5,.5))
 			st.add_vertex(Vector3(p.x-.07,p.y-.20,z-(.03 if p==Vector2.ZERO else 0)))
+	st.generate_tangents()
 	MarchArt.mesh(parent,st.commit(),Vector3.ZERO,mat)
 
 func build_character() -> void:
 	visual = Node3D.new()
 	add_child(visual)
-	var steel = FieldMaterials.surface("steel",Color("a6a6a0"),3,.72)
-	var dark = FieldMaterials.surface("steel",Color("565953"),7,.35)
+	var steel = FieldMaterials.surface("steel",Color("deded4"),3,.25)
+	var dark = FieldMaterials.surface("steel",Color("92958b"),7,.12)
 	var leather = FieldMaterials.surface("timber",Color("999080"),3)
 	var cloth = FieldMaterials.surface("cloth",Color("414b4b") if team==0 else Color("655044"),4)
+	for mat in [steel,dark,leather,cloth]:
+		mat.uv1_triplanar = false
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	steel.roughness = .64
+	dark.roughness = .8
 	var black = MarchArt.material(Color("171c1b"))
 	torso = Node3D.new()
 	visual.add_child(torso)
@@ -108,7 +115,8 @@ func build_character() -> void:
 	MarchArt.box(body,Vector3(.04,1.04,-.155),Vector3(.065,.043,.016),steel)
 	# Human-sized closed bascinet: no oversized head, crest or decorative gold.
 	armor(body,[Vector3(1.49,.105,.09),Vector3(1.61,.135,.13),Vector3(1.67,.13,.13)],dark)
-	armor(body,[Vector3(1.58,.12,.13),Vector3(1.67,.153,.153),Vector3(1.80,.148,.151),Vector3(1.89,.107,.11),Vector3(1.94,.008,.009)],steel)
+	rounded(body,Vector3(0,1.762,0),Vector3(.15,.18,.15),steel)
+	MarchArt.box(body,Vector3(0,1.715,-.14),Vector3(.229,.16,.035),steel)
 	MarchArt.box(body,Vector3(0,1.766,-.151),Vector3(.227,.022,.012),black)
 	MarchArt.box(body,Vector3(0,1.744,-.169),Vector3(.023,.14,.025),steel)
 	for side in [-1,1]:
@@ -181,6 +189,7 @@ func build_character() -> void:
 				cloth_surface.set_uv(Vector2(u,v))
 				cloth_surface.add_vertex(Vector3(x,-v*.73,.04+v*.08+cos(u*TAU*3)*.014*(.25+v)))
 	cloth_surface.generate_normals()
+	cloth_surface.generate_tangents()
 	var mantle = cloth.duplicate()
 	mantle.cull_mode = BaseMaterial3D.CULL_DISABLED
 	cape = MarchArt.mesh(torso,cloth_surface.commit(),Vector3(0,1.46,.13),mantle)
