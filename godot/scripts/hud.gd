@@ -172,9 +172,10 @@ func draw_result() -> void:
 	var won = game.state=="victory"
 	crown(Vector2(640,219),1.7,gold)
 	centered("THE ROAD IS OURS" if won else "A BANNER STILL STANDS",Vector2(640,289),32,white,heading)
-	centered("Hearthglen is safe. Your company earns 80 gold." if won else "Your surviving company returns to camp. Ransom: up to 20 gold.",Vector2(640,340),15,muted)
+	centered("Victory: +80 gold. Your company holds the field." if won else "Your surviving company returns to camp. Ransom: up to 20 gold.",Vector2(640,340),15,muted)
 	centered(str(game.living(0))+" surviving soldiers  ·  "+str(game.victories)+" victories",Vector2(640,383),16,gold)
-	button("camp","RETURN TO CAMP",Rect2(445,438,390,60),true)
+	centered(game.encounter_reward_note,Vector2(640,414),12,gold)
+	button("camp","RETURN TO CAMPAIGN" if game.realm.return_to_map else "RETURN TO CAMP",Rect2(445,438,390,60),true)
 
 func draw_pause() -> void:
 	buttons.clear()

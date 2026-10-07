@@ -33,6 +33,7 @@ var realm: CrownRealm
 var saved_realm: Dictionary = {}
 var restored_army = 8
 var realm_ready_frames = 0
+var encounter_reward_note = ""
 
 func _ready() -> void:
 	capture_mode = "--capture" in OS.get_cmdline_user_args()
@@ -136,6 +137,7 @@ func begin_battle() -> void:
 	hero.ring.visible = true
 	hero.position = Vector3(0,0,10)
 	stamina = 100
+	encounter_reward_note = ""
 	var count = mini(8+victories*2,16)
 	if realm.return_to_map:
 		count = realm.settlements[realm.encounter_fief].garrison if realm.encounter_fief>=0 else realm.civilians[realm.encounter_npc].men
@@ -529,6 +531,8 @@ func run_realm_tests() -> void:
 	assert(realm.settlements.size()==32,"Campaign settlement count")
 	for id in range(32):
 		assert(realm.graph.get_point_path(0,id).size()>0,"Disconnected road node")
+	for id in realm.graph.get_point_ids():
+		assert(realm.graph.get_point_position(id).y>0,"Road node must stay on land")
 	realm.selected = 0
 	assert(realm.near_settlement(0),"Initial town proximity")
 	var money = gold

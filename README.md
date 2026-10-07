@@ -1,38 +1,49 @@
 # Iron Crowns — The Ashen Marches
 
-A **stylized third-person 3D Android field prototype**: an armored captain, a visible company of soldiers, and a modeled medieval village. Built with **Godot 4.4.1**, replacing the original abstract 2D presentation.
+An original Android action-strategy prototype with a **large 3D campaign map** and third-person field battles, built with Godot 4.4.1.
 
-![Actual engine-rendered scene](docs/screenshots/iron-field.png)
+![Actual campaign-map rendering](docs/screenshots/iron-map.png)
 
-## Play the 3D preview
+## Campaign update 0.3
 
-Download **Iron-Crowns-0.2.0-3D.apk** from the [0.2 prerelease](https://github.com/s1po0/iron-crowns/releases/tag/v0.2.0-3d-preview). It is an evaluation/debug-signed APK, not a production or store release. Android 8+ ARM64 phones are the intended target; real-device performance still requires testing.
+[Download the 0.3 campaign APK and screenshots](https://github.com/s1po0/iron-crowns/releases/tag/v0.3.0-campaign-preview).
 
-- Animated, articulated low-poly knights: armor, helmets, swords, shields, capes.
-- Third-person movement, touch camera, melee, block, stamina, dash.
-- Follow, Hold, Charge, and Shield Wall orders.
-- Skirmish rewards, reinforcements, and saved gold/victories.
-- A village gateway, towers, houses, market props, trees, road, brook, and mountains.
-- An overhead **3D local-region overview**—not a full kingdom campaign yet.
+- **900 × 680 world-unit strategic map**, about 19× the ground area of the previous diorama.
+- **32 settlements:** eight towns, eight castles, sixteen villages; four original factions.
+- Sculpted mountains, northern snow, drylands, forests, coastlines, river, roads, bridges, farms and faction standards.
+- Pan, pinch/scroll zoom, atlas, settlement inspection and connected-road travel.
+- Moving caravans, patrols and raiders; encounters lead into the existing 3D battle arena.
+- Local recruiting and grain trade, food consumption, wages, contracts, castle ownership/income and simple hostility/truce rules.
+- Persistent company count, campaign position, food, cargo, fiefs, faction standing, stocks and gold.
 
-[Controls, build instructions, architecture, and limitations](docs/3D_PREVIEW.md) · [Title screen](docs/screenshots/iron-title.png) · [Region overview](docs/screenshots/iron-map.png)
+The visual reference is a **grounded medieval strategy map**, not a copy of Bannerlord's geography, assets or factions. This is **not every system in Mount & Blade II**. See the [implemented/not-implemented feature matrix](docs/CAMPAIGN_0.3.md).
 
-## Build and test
+## Play
 
-Open `godot/project.godot` in Godot **4.4.1**. Use the Compatibility renderer. Android export requires JDK 17, Android SDK tools, the official Godot Android export template, and a debug keystore configured in the editor.
+**Begin Campaign** opens the map. Tap a settlement (or use Previous/Next in its panel), then Travel. Time pauses on arrival. Buy food, recruit, trade grain or accept a contract locally. Encounter raiders on the roads, or challenge a castle's garrison. Captured castles pay 18 gold/day.
+
+Drag to pan, pinch/scroll or use +/− to zoom. LOCATE finds the company; ATLAS shows the whole realm. **FIELD CAMP** enters the shared third-person scene; **REALM** returns to the strategic map. Field controls: left stick/WASD, right-side camera drag, Strike/Space, Block/Q, Dash/Shift, and formation orders.
+
+[Campaign guide and limits](docs/CAMPAIGN_0.3.md) · [Android campaign screenshot](docs/screenshots/android-campaign.png) · [Battle screenshot](docs/screenshots/android-field.png)
+
+## Install and save caveats
+
+Intended for Android 8+ ARM64 phones. Offline and debug-signed for evaluation, not a production/Play Store release. The CI debug certificate may differ from the previous build; Android can require uninstalling it first, which deletes local saves. Compatible-key installs accept prior v1/v2 save data. Travel reloads paused and NPC routes restart; interrupted battles restore the pre-battle company count. Physical-device performance and extended playtesting remain outstanding.
+
+## Build and tests
+
+Open `godot/project.godot` in Godot **4.4.1**, using GL Compatibility. Android export needs the official template, JDK 17, Android SDK and a configured debug keystore.
 
 ```bash
 godot --headless --path godot --editor --import --quit
 godot --headless --path godot -- --smoke
-godot --headless --path godot --export-debug Android /absolute/output/Iron-Crowns-0.2.0-3D.apk
+godot --headless --path godot --export-debug Android /absolute/output/Iron-Crowns-0.3.0-Campaign.apk
 ```
 
-The [3D workflow](.github/workflows/godot-3d.yml) tests gameplay rules, renders real screenshots, exports an APK, and checks Android interaction/rendering/lifecycle behavior. It does not replace physical-device performance or playtesting.
+The [CI workflow](.github/workflows/godot-3d.yml) tests combat, terrain orientation, road connectivity, land-only routes, trade constraints, travel, fiefs and persistence; renders review screenshots; exports the APK; and tests real Android touch purchases, map travel, saved arrivals, pan/zoom, combat, and restart.
 
-## Scope, honestly
+## Boundaries
 
-This is one playable 3D region and a repeatable skirmish, **not** a finished Bannerlord-scale RPG. There are no cavalry, siege interiors, dynasty simulation, full campaign economy, sound, localization, or production signing. Troop composition and interrupted battles reset between app sessions; only gold and victory count persist. See the preview guide before testing.
+The larger map is a **separate strategic layer**, not a seamless continent-sized combat scene. Battles and castle challenges reuse one field arena. Actual sieges, unique interiors, dynasty systems, full diplomatic AI, comprehensive troop/equipment trees, cavalry combat, multiplayer and audio are not implemented. Moving caravans are not a full autonomous trade economy.
 
-`app/` and `tests/` preserve the earlier **legacy 2D Java prototype**; they are not the current 3D game. Its APK uses a different package name and its saves do not migrate to this build.
-
-[Master GDD and long-term architecture plan](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) describes proposed future systems, not the current feature list. Engine/font license notices are included in `godot/assets/`.
+`app/` and `tests/` preserve the legacy Java/Canvas 2D prototype; `godot/` is the current game. [The master GDD](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) remains a long-term proposal, not a current feature list. Engine and font license notices are bundled under `godot/assets/`.

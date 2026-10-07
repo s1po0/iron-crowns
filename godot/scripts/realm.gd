@@ -82,7 +82,11 @@ func elevation(x: float, z: float) -> float:
 		if distance<24:
 			h = lerpf(8,h,smoothstep(8,24,distance))
 	var shore = -412+sin(z*.014)*13+cos(z*.032)*5
-	return lerpf(-7,h,smoothstep(shore-22,shore+20,x))
+	var east = 422+sin(z*.012)*13
+	var north = -318+sin(x*.010)*9
+	var south = 320+cos(x*.012)*11
+	var inland = minf(minf(x-shore,east-x),minf(z-north,south-z))
+	return lerpf(-7,h,smoothstep(-12,20,inland))
 
 func river_x(z: float) -> float:
 	return 205+sin(z*.010)*32+cos(z*.027)*8
@@ -158,8 +162,13 @@ func build_land() -> void:
 	for i in range(139):
 		var z = -345+i*5
 		river.append(terrain_point(Vector2(river_x(z),z),.25))
-	ribbon(river,5.2,realm_material(Color("76958c")),deco)
-	ribbon(river,3.3,realm_material(Color("527f87")),deco)
+	var banks: Array = []
+	var waterline: Array = []
+	for point in river:
+		banks.append(point-Vector3(0,.12,0))
+		waterline.append(point+Vector3(0,.12,0))
+	ribbon(banks,5.2,realm_material(Color("76958c")),deco)
+	ribbon(waterline,3.3,realm_material(Color("527f87")),deco)
 
 func ribbon(points: Array, width: float, mat: Material, parent: Node3D) -> MeshInstance3D:
 	var surface = SurfaceTool.new()
@@ -522,6 +531,17 @@ func transact(action: String) -> bool:
 		game.announce("Travel to this settlement first.")
 		return false
 	var s = settlements[selected]
+	if action=="quest":
+		if quest>=0:
+			game.announce("A Roadwarden contract is already active. Defeat a raider party.")
+			return false
+		var available = false
+		for id in range(12,16):
+			if not defeated.has(id):
+				available = true
+		if not available:
+			game.announce("All known raiders are defeated. No new bounty is available.")
+			return false
 	var success = false
 	if relations[s.faction]<0 and not holdings.has(selected) and action!="truce":
 		game.announce("This faction is hostile. Pay a truce or choose another settlement.")
@@ -602,8 +622,10 @@ func battle_result(won: bool) -> void:
 				game.gold += 120
 				quest = -1
 				quest_done += 1
+				game.encounter_reward_note = "Roadwarden contract completed: +120 bonus gold."
 		if encounter_fief>=0 and not holdings.has(encounter_fief):
 			holdings.append(encounter_fief)
+			game.encounter_reward_note = settlements[encounter_fief].name+" captured: +18 gold/day. Its former faction is hostile."
 			relations[settlements[encounter_fief].faction] -= 20
 			var flag = settlements[encounter_fief].get("flag")
 			if flag!=null:

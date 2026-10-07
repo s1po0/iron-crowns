@@ -68,7 +68,7 @@ static func draw(h) -> void:
 		h.draw_circle(p,2.3,h.gold)
 	var focus = Vector2(36+(r.map_focus.x+450)/900*140,488+(r.map_focus.z+340)/680*92)
 	var marker_size = Vector2(clampf(r.zoom/900*140,24,140),clampf(r.zoom/680*75,20,92))
-	h.draw_rect(Rect2(focus-marker_size/2,marker_size),Color(.9,.87,.73,.65),false,1)
+	h.draw_rect(Rect2(focus-marker_size/2,marker_size).intersection(Rect2(36,488,140,92)),Color(.9,.87,.73,.65),false,1)
 	h.button("zoom_in","+",Rect2(22,310,54,49))
 	h.button("zoom_out","−",Rect2(22,368,54,49))
 	h.panel(Rect2(212,613,856,85),Color(.055,.075,.073,.94),9,Color(.64,.55,.36,.45))

@@ -1,5 +1,7 @@
 # Stylized 3D rebuild — 0.2
 
+> Historical field-preview documentation. For the current 0.3 campaign map, persistence and feature limits, see [CAMPAIGN_0.3.md](CAMPAIGN_0.3.md).
+
 ## Direction
 The original 2D APK did not meet the intended visual brief. This is a replacement **3D vertical slice**, built with Godot 4.4.1's GL Compatibility renderer. Unity was not available in the build environment. It is a separate prototype track, not an implementation of the entire Unity architecture in the master GDD.
 
