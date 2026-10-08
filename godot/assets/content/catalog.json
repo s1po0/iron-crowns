@@ -1,5 +1,5 @@
 {
-  "id": "marches-content-v1",
+  "id": "marches-riders-0.6",
   "format": 1,
   "equipment": [
     {
@@ -7,7 +7,7 @@
       "coat": "435660",
       "armor": "aeb2ad",
       "steel": true,
-      "helmet": "closed"
+      "helmet": "uncovered"
     },
     {
       "name": "Road retainer",
@@ -49,60 +49,8 @@
     "canter": 10.0,
     "coat": "685047"
   },
-  "humans": [
-    {
-      "name": "Western retainer",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "b28c74",
-      "hair": "3b2920",
-      "eyes": "617578",
-      "width": 1
-    },
-    {
-      "name": "Northern scout",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "c8a08a",
-      "hair": "8c7350",
-      "eyes": "718184",
-      "width": 1.05
-    },
-    {
-      "name": "Steppe horseman",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "a78165",
-      "hair": "28231e",
-      "eyes": "4e4633",
-      "width": 1.08
-    },
-    {
-      "name": "Sunward guard",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "8d634b",
-      "hair": "211e19",
-      "eyes": "494536",
-      "width": 0.98
-    },
-    {
-      "name": "Coastal trader",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "b4896e",
-      "hair": "574131",
-      "eyes": "656c45",
-      "width": 1.02
-    },
-    {
-      "name": "Highland warrior",
-      "mesh": "res://assets/content/humans/human-head.obj",
-      "scalp": "res://assets/content/humans/human-hair.obj",
-      "skin": "bc927a",
-      "hair": "76523a",
-      "eyes": "748082",
-      "width": 1.1
-    }
-  ]
+  "models": {
+    "head": "res://assets/models/human-head.glb",
+    "staged_body": "res://assets/models/human-rig.glb"
+  }
 }

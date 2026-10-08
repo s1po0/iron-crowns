@@ -1,0 +1,11 @@
+Human geometry and rig derived from MakeHuman Community assets, CC0-1.0.
+Copyright at CC0 release: Data Collection AB, Joel Palmius, Jonas Hauquier.
+https://github.com/makehumancommunity/makehuman
+See MAKEHUMAN-CC0.txt and art-source/human/PROVENANCE.json for license,
+pinned upstream revision, file paths and SHA-256 hashes.
+
+Iron Crowns conversion: scripts/build-human-models.py.
+Human head: runtime static anatomical mesh with added eye surfaces.
+Human body: 163-bone weighted GLB staging asset, NOT YET the combat body.
+Existing articulated armor/body is retained pending full animation review.
+No Bannerlord, Warband or Warhammer character models were extracted or copied.
