@@ -2,7 +2,7 @@ name: Iron Crowns 3D Android
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths: ['godot/**', 'native/**', 'scripts/godot-picker.py', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
+    paths: ['godot/**', 'native/**', 'scripts/godot-picker.py', 'scripts/build-playable-human.py', 'tests/test_playable_human.py', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
   workflow_dispatch:
     inputs:
       reviewed_run:
@@ -43,6 +43,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
+          python3 -m unittest discover -s tests -p 'test_playable_human.py' -v
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/engine-tests.log || true
           if ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log; then
             python3 scripts/build-content-bundle.py "$RUNNER_TEMP/content-test.icdata"

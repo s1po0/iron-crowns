@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 var riding = false
 var cut_side = 1
+var anatomy: HumanBody
 var team = 0
 var player = false
 var hp = 100.0
@@ -96,6 +97,9 @@ func shield(parent: Node3D, mat: Material, factor: float, z: float, back: bool =
 	MarchArt.mesh(parent,st.commit(),Vector3.ZERO,mat)
 
 func build_character() -> void:
+	if FileAccess.file_exists(ContentAssets.path("res://assets/content/humans/human-body.json")):
+		build_anatomical_character()
+		return
 	visual = Node3D.new()
 	add_child(visual)
 	var outfit = MarchCatalog.equipment(0 if player else get_index()%3)
@@ -251,6 +255,8 @@ func animate(delta: float) -> void:
 	cape.rotation.x = -.04-amount*.07+sin(gait*.5)*.018
 	visual.rotation.z = sin(hurt*45)*.045 if hurt>0 else 0.0
 	visual.rotation.x = -.10 if stagger>0 else 0.0
+	if anatomy!=null:
+		anatomy.pose(self)
 
 func guarding_from(source: Vector3) -> bool:
 	if not block or not source.is_finite():
@@ -274,3 +280,30 @@ func damage(amount: float, source: Vector3 = Vector3.INF) -> bool:
 		collision_layer = 0
 		return true
 	return false
+
+func build_anatomical_character() -> void:
+	visual = Node3D.new()
+	add_child(visual)
+	torso = Node3D.new()
+	visual.add_child(torso)
+	right_arm = Node3D.new()
+	left_arm = Node3D.new()
+	right_elbow = Node3D.new()
+	left_elbow = Node3D.new()
+	left_leg = Node3D.new()
+	right_leg = Node3D.new()
+	left_knee = Node3D.new()
+	right_knee = Node3D.new()
+	for pivot in [right_arm,left_arm,right_elbow,left_elbow,left_leg,right_leg,left_knee,right_knee]:
+		visual.add_child(pivot)
+	cape = MeshInstance3D.new()
+	ring = MeshInstance3D.new()
+	visual.add_child(cape)
+	visual.add_child(ring)
+	cape.visible = false
+	ring.visible = false
+	anatomy = HumanBody.new()
+	visual.add_child(anatomy)
+	var faces: Array = MarchCatalog.data().humans
+	anatomy.build(MarchCatalog.equipment(0 if player else get_index()%3),faces[0 if player else get_index()%faces.size()])
+	anatomy.pose(self)

@@ -38,6 +38,19 @@ func test_bundle() -> void:
 	restored.store_string(catalog_text)
 	restored.close()
 	assert(bundle.validate_definitions(ContentAssets.directory),"Restored definitions failed validation")
+	var human = ContentAssets.json("res://assets/content/humans/human-body.json")
+	assert(HumanBody.validate(human),"Playable human skin must validate")
+	for mutation in ["cyclic_parent","bad_weights","bad_indices","excess_bones"]:
+		var invalid = human.duplicate(true)
+		if mutation=="cyclic_parent":
+			invalid.bones[0].parent = 0
+		elif mutation=="bad_weights":
+			invalid.surfaces[0].weights[0] = [1,1,1,1]
+		elif mutation=="bad_indices":
+			invalid.surfaces[0].indices[0] = 999999
+		else:
+			invalid.bones.append(invalid.bones[0])
+		assert(not HumanBody.validate(invalid),"Unsafe skin accepted: "+mutation)
 	var original = FileAccess.get_file_as_string(ContentBundle.ACTIVE)
 	var corrupt = FileAccess.get_file_as_bytes(source)
 	corrupt[corrupt.size()-1] = corrupt[corrupt.size()-1]^1

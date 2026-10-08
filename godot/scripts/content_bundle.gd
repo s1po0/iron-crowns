@@ -136,6 +136,8 @@ func validate_definitions(directory: String) -> bool:
 				return false
 		if not number_in(human.get("width",1),.65,1.35):
 			return false
+	if FileAccess.file_exists(directory+"/assets/content/humans/human-body.json") and not HumanBody.validate(JSON.parse_string(FileAccess.get_file_as_string(directory+"/assets/content/humans/human-body.json"))):
+		return false
 	for item in manifest.files:
 		if str(item.path).ends_with(".obj") and not ContentAssets.validate_obj(FileAccess.get_file_as_string(directory+"/"+str(item.path))):
 			return false

@@ -684,6 +684,7 @@ func run_smoke() -> void:
 	await get_tree().physics_frame
 	assert(hero!=null and soldiers.size()==9,"Character scene initialization failed")
 	assert(hero.right_arm!=null and hero.left_leg!=null,"Articulated character parts missing")
+	assert(hero.anatomy!=null and hero.anatomy.skeleton.get_bone_count()==20,"Playable anatomical skin missing")
 	realm.life.choose_origin(1)
 	enter_world()
 	begin_battle()
