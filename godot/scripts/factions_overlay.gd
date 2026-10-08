@@ -6,7 +6,7 @@ static func draw(h) -> void:
 	h.buttons.clear()
 	h.draw_rect(Rect2(0,0,1280,720),Color(.035,.055,.06,.96))
 	h.label("PEOPLES OF THE MARCHES",Vector2(100,110),32,h.white,h.heading)
-	h.label("Six original factions / clan leaders / settlement allegiance",Vector2(100,148),16,h.muted)
+	h.label(str(realm.FACTIONS.size())+" original factions / clan leaders / settlement allegiance",Vector2(100,148),16,h.muted)
 	h.button("factions_close","CLOSE",Rect2(1060,80,120,45))
 	for i in range(realm.FACTIONS.size()):
 		h.button("faction_"+str(i),realm.FACTIONS[i],Rect2(100,200+i*64,300,50),i==h.faction_choice)

@@ -18,6 +18,25 @@ func test_bundle() -> void:
 	assert(normal_length/normals.size()>.95,"Human mesh normals invalid")
 	assert(ContentAssets.audio("res://assets/audio/step.wav")!=null,"Runtime raw WAV loading failed")
 	assert(ContentAssets.texture("res://assets/materials/meadow.jpg")!=null,"Runtime raw image loading failed")
+	# A matching hash is not enough: malformed schema must fail before activation.
+	var catalog_path = ContentAssets.directory+"/assets/content/catalog.json"
+	var catalog_text = FileAccess.get_file_as_string(catalog_path)
+	for mutation in ["missing_skin","invalid_width","bad_horse"]:
+		var changed = JSON.parse_string(catalog_text)
+		if mutation=="missing_skin":
+			changed.humans[0].erase("skin")
+		elif mutation=="invalid_width":
+			changed.humans[0].width = "not a number"
+		else:
+			changed.horse.walk = {"invalid":true}
+		var output = FileAccess.open(catalog_path,FileAccess.WRITE)
+		output.store_string(JSON.stringify(changed))
+		output.close()
+		assert(not bundle.validate_definitions(ContentAssets.directory),"Invalid definition accepted: "+mutation)
+	var restored = FileAccess.open(catalog_path,FileAccess.WRITE)
+	restored.store_string(catalog_text)
+	restored.close()
+	assert(bundle.validate_definitions(ContentAssets.directory),"Restored definitions failed validation")
 	var original = FileAccess.get_file_as_string(ContentBundle.ACTIVE)
 	var corrupt = FileAccess.get_file_as_bytes(source)
 	corrupt[corrupt.size()-1] = corrupt[corrupt.size()-1]^1
