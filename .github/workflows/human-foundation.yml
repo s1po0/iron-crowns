@@ -1,0 +1,41 @@
+name: Human content foundation
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['art-source/human/**', 'scripts/build-human-model.py', 'tests/test_human_model.py', 'tools/human-preview/**', '.github/workflows/human-foundation.yml']
+permissions:
+  contents: write
+jobs:
+  validate-human:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rebuild and test licensed human asset
+        run: |
+          python3 scripts/build-human-model.py
+          python3 -m unittest discover -s tests -p 'test_human_model.py' -v
+          git diff --exit-code -- art-source/human/generated/
+      - name: Install pinned Godot editor and software renderer
+        run: |
+          curl -fsSL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+      - name: Import skin, exercise bones and capture actual head geometry
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          export IRON_HUMAN_MODEL="$GITHUB_WORKSPACE/art-source/human/generated/human-foundation.glb"
+          export IRON_HUMAN_CAPTURE="$GITHUB_WORKSPACE/artifacts/human-foundation.png"
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90 xvfb-run -a godot --path tools/human-preview --script preview.gd -- --capture 2>&1 | tee artifacts/human-review.log || true
+          if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' artifacts/human-review.log || ! grep -q IRON_HUMAN_IMPORT_PASS artifacts/human-review.log; then
+            python3 -c 's=open("artifacts/human-review.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A"))'
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: Human-Foundation-Review
+          path: artifacts/

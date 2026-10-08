@@ -108,6 +108,7 @@ func draw_title() -> void:
 	button("enter","CREATE WANDERER" if game.realm.life.origin=="" else "CONTINUE JOURNEY",Rect2(58,480,335,60),true)
 	button("help","FIELD GUIDE",Rect2(58,557,160,47))
 	button("manage_data","MANAGE DATA",Rect2(1040,620,190,48))
+	label("Closes game; reopen to select Data.",Vector2(998,690),11,muted)
 	label("PEOPLES OF THE MARCHES / DATA API 1 / 0.7",Vector2(58,670),11,muted)
 	panel(Rect2(930,42,299,47),Color(.06,.15,.18,.72),8)
 	label("HEARTHGLEN  ·  THE WESTERN ROAD",Vector2(948,71),12,white)
@@ -253,8 +254,20 @@ func action(id: String) -> void:
 		"factions_close": factions_open = false
 		"manage_data":
 			game.save_progress()
-			get_tree().set_meta("update_data",true)
-			get_tree().change_scene_to_file.call_deferred("res://bootstrap.tscn")
+			# Enter the native importer with a fresh engine, not while freeing a
+			# live battlefield's GPU/audio resources on Android's activity thread.
+			if OS.get_name()=="Android":
+				var request = FileAccess.open("user://manage_data.request",FileAccess.WRITE)
+				if request==null:
+					game.announce("Cannot open Data manager. Check free storage.")
+					return
+				request.store_string("API1")
+				request.close()
+				print("IRON_DATA_MANAGER_RESTART")
+				get_tree().quit.call_deferred()
+			else:
+				get_tree().set_meta("update_data",true)
+				get_tree().change_scene_to_file.call_deferred("res://bootstrap.tscn")
 		"mount": game.toggle_mount()
 		"cut_side": game.cut_side *= -1
 		"origin_back": game.state = "title"

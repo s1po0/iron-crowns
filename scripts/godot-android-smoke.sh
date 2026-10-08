@@ -29,6 +29,7 @@ PYLOG
   fi
   exit "$status"
 }
+trap 'printf "FAILED command at line %s: %s\n" "$LINENO" "$BASH_COMMAND"' ERR
 trap finish EXIT
 adb install -r artifacts/Iron-Crowns-0.7.0-Peoples.apk
 adb shell pm clear "$PKG"
@@ -106,6 +107,13 @@ swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4")
 adb push artifacts/Test-Revision-2.icdata /sdcard/Download/Test-Revision-2.icdata
 adb logcat -c
 tap 1135 644
+# MANAGE DATA deliberately cold-starts the installer instead of tearing down
+# the 3D battlefield and reopening the native activity in the same engine.
+sleep 2
+adb shell am force-stop "$PKG"
+adb logcat -d -s godot | grep IRON_DATA_MANAGER_RESTART
+adb logcat -c
+adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 30); do
   if godot_log | grep -q 'Choose compatible replacement Data'; then break; fi
   sleep 1

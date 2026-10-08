@@ -46,7 +46,8 @@ func _draw() -> void:
 	draw_string(body,Vector2(135,650),"Checksums detect corruption, not publisher identity. Only install content from sources you trust.",HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color("899b96"))
 
 func prepare() -> void:
-	updating = bool(get_tree().get_meta("update_data",false))
+	updating = bool(get_tree().get_meta("update_data",false)) or FileAccess.file_exists("user://manage_data.request")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://manage_data.request"))
 	get_tree().set_meta("update_data",false)
 	if updating:
 		require_data("Choose compatible replacement Data. A failed import keeps your previous installation.")
