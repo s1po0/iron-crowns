@@ -26,11 +26,24 @@ satisfy the validator; these are ceilings, not guaranteed mobile performance bud
 Use stable contiguous settlement IDs and retain old IDs when extending a world.
 The starter world is 2700×2040 with 64 settlements and six factions.
 
-Only supported appearance settings and raw head/scalp OBJ models are consumed by
-the current character implementation. Do not assume an arbitrary full-body GLB,
-new skeleton, gameplay script or Bannerlord module is supported. The staged
-full-body human rig under `art-source/human/generated` is deliberately not shipped
-as current runtime content.
+## Human body content
+
+The optional `assets/content/humans/human-body.json` contains the playable
+20-bone skin: bounded rest transforms, parents, indexed mesh surfaces, four
+normalized bone influences per vertex, and anatomical eye centers. Runtime
+validation rejects invalid parents, indices, weights, non-finite coordinates,
+and excessive counts. It loads only numeric data, never glTF extensions or
+Godot scripts/scenes. Required bone names define the retargeting contract.
+
+Surfaces are `skin`, `coat`, `trousers`, and `boots`; the shipped geometry covers
+torso and pelvis with clothing surfaces. Material colors come from the catalog.
+The rigged body is generated reproducibly by `scripts/build-playable-human.py`
+from the licensed GLB foundation. Hair remains a separate raw OBJ. Packs without
+the optional body retain the earlier head-plus-procedural-body fallback.
+
+This contract supports replacement geometry conforming to the same rig. It does
+not promise arbitrary skeletons, animations, gameplay scripts or Bannerlord
+modules. New engine capabilities can still require an APK update.
 
 ## Integrity and recovery
 

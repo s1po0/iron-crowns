@@ -66,11 +66,20 @@ func build(outfit: Dictionary, face: Dictionary) -> void:
 	skeleton = Skeleton3D.new()
 	skeleton.name = "Skeleton"
 	add_child(skeleton)
+	var rest_origins: Array[Vector3] = []
+	var skin = Skin.new()
+	skin.set_bind_count(definition.bones.size())
 	for bone in definition.bones:
 		var i = skeleton.get_bone_count()
 		skeleton.add_bone(bone.name)
 		skeleton.set_bone_parent(i,int(bone.parent))
-		skeleton.set_bone_rest(i,Transform3D(Basis.IDENTITY,Vector3(bone.rest[0],bone.rest[1],bone.rest[2])))
+		var local_rest = Vector3(bone.rest[0],bone.rest[1],bone.rest[2])
+		skeleton.set_bone_rest(i,Transform3D(Basis.IDENTITY,local_rest))
+		skeleton.set_bone_pose_position(i,local_rest)
+		var global_rest = local_rest+(rest_origins[int(bone.parent)] if int(bone.parent)>=0 else Vector3.ZERO)
+		rest_origins.append(global_rest)
+		skin.set_bind_bone(i,i)
+		skin.set_bind_pose(i,Transform3D(Basis.IDENTITY,-global_rest))
 	if cached_mesh==null:
 		cached_mesh = ArrayMesh.new()
 		for surface in definition.surfaces:
@@ -99,7 +108,7 @@ func build(outfit: Dictionary, face: Dictionary) -> void:
 			cached_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	var model = MeshInstance3D.new()
 	model.mesh = cached_mesh
-	model.skin = skeleton.create_skin_from_rest()
+	model.skin = skin
 	model.skeleton = NodePath("../Skeleton")
 	add_child(model)
 	for i in range(definition.surfaces.size()):

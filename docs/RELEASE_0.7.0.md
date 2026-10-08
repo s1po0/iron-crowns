@@ -19,7 +19,7 @@ No broad storage permission or Google Play licensing key is used. The native imp
 
 ## What changed
 
-- Anatomical **head meshes** derived from the CC0 MakeHuman base replace the old primitive heads. The Data catalog selects face width, skin, hair and eye colors, alongside cosmetic coat/armor variants.
+- A **20-bone anatomical human body** derived from the CC0 MakeHuman base replaces primitive player/soldier bodies. Skin weights drive limbs, riding and combat poses; supported geometry comes from Data. The catalog supplies skin, hair, eyes and clothing colors.
 - **2,700 × 2,040** campaign world, nine times the previous rectangular area, with **64 settlements** rather than 32.
 - **Six original factions**: Ashen Crown, Northguard, Verdant League, Sunward Dominion, Khurai Horse Clans and Storm Coast Pact.
 - Factions screen with clan names, leaders, descriptions, settlement allegiances and standings. New journeys remain independent.
@@ -36,7 +36,7 @@ Checksums detect corruption; **they are not publisher signatures or proof that a
 
 ## Important limitations
 
-This is a prototype improvement, **not the character quality shown in the reference screenshots**. The released characters use anatomical heads with existing procedural articulated bodies and equipment. Hair, skin shading, clothes and animation still need substantial art work. The separate 20-bone full-body GLB in the source repository is a tested asset-development foundation, **not an integrated playable full-body replacement in this release**.
+This is a prototype improvement, **not the character quality shown in the reference screenshots**. Characters now use a full anatomical skin, but clothing is still material-defined rather than detailed layered garments. Hair, skin shading, armor detail, weapon grips and animation still need substantial art work. This does not match the reference screenshots. The runtime body is a restricted numeric derivative of the licensed GLB, not an arbitrary executable model format.
 
 The Khurai clans are original, not Bannerlord's Khergit family tree. Clan leaders are background profiles: family-tree simulation, marriage, heirs, dynasties and AI cavalry armies are not implemented. Campaign travel and the shared battlefield remain separate. Physical-phone performance, thermals and extended combat feel are not yet verified.
 
