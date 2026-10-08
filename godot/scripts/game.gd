@@ -116,6 +116,13 @@ func build_lighting() -> void:
 	env.fog_density = .0018
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.tonemap_exposure = .95
+	# Soft sky-side fill keeps imported facial relief visible in the sun's shadow.
+	var fill = DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-20,150,0)
+	fill.light_color = Color("d6e1e5")
+	fill.light_energy = .32
+	fill.shadow_enabled = false
+	add_child(fill)
 	world_environment.environment = env
 	add_child(world_environment)
 	sun = DirectionalLight3D.new()

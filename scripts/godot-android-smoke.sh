@@ -4,6 +4,11 @@ PKG=com.ironcrowns.marches
 # A dead emulator must fail with diagnostics, not hold the job indefinitely.
 ADB_BIN=$(command -v adb)
 adb() { timeout 35 "$ADB_BIN" "$@"; }
+godot_log() {
+  local pid
+  pid=$(adb shell pidof "$PKG" | tr -d '\r')
+  adb logcat -d --pid="${pid%% *}" -s godot
+}
 mkdir -p artifacts/android
 exec > >(tee /tmp/android-smoke.log) 2>&1
 finish() {
@@ -42,10 +47,10 @@ PYCORRUPT
 adb push artifacts/Wrong-Data.icdata /sdcard/Download/Wrong-Data.icdata
 rm artifacts/Wrong-Data.icdata
 for attempt in $(seq 1 45); do
-  if adb logcat -d -s godot | grep -q IRON_DATA_REQUIRED; then break; fi
+  if godot_log | grep -q IRON_DATA_REQUIRED; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_DATA_REQUIRED
+godot_log | grep IRON_DATA_REQUIRED
 adb exec-out screencap -p > artifacts/android/00-data.png
 read -r SCREEN_W SCREEN_H < <(python3 -c 'import struct; b=open("artifacts/android/00-data.png","rb").read(); print(*struct.unpack(">II",b[16:24]))')
 export SCREEN_W SCREEN_H
@@ -57,34 +62,34 @@ import_tap() {
 import_tap
 python3 scripts/godot-picker.py Wrong-Data.icdata
 for attempt in $(seq 1 45); do
-  if adb logcat -d -s godot | grep -q IRON_DATA_REJECTED; then break; fi
+  if godot_log | grep -q IRON_DATA_REJECTED; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_DATA_REJECTED
-! adb logcat -d -s godot | grep -q IRON_SCENE_READY
+godot_log | grep IRON_DATA_REJECTED
+! godot_log | grep -q IRON_SCENE_READY
 import_tap
 python3 scripts/godot-picker.py Iron-Crowns-0.7.0-Data.icdata
 for attempt in $(seq 1 60); do
-  if adb logcat -d -s godot | grep -q IRON_DATA_READY; then break; fi
+  if godot_log | grep -q IRON_DATA_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_DATA_READY
+godot_log | grep IRON_DATA_READY
 # Let initial scene/resource/GL initialization finish before killing the process.
 for attempt in $(seq 1 60); do
-  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  if godot_log | grep -q IRON_SCENE_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_SCENE_READY
+godot_log | grep IRON_SCENE_READY
 # Imported pack remains available without public Downloads or networking.
 adb shell rm /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Wrong-Data.icdata
 adb shell am force-stop "$PKG"
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do
-  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  if godot_log | grep -q IRON_SCENE_READY; then break; fi
   sleep 1
  done
-adb logcat -d -s godot | grep IRON_SCENE_READY
+godot_log | grep IRON_SCENE_READY
 sleep 3
 adb shell pidof "$PKG"
 adb exec-out screencap -p > artifacts/android/01-title.png
@@ -101,14 +106,18 @@ swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4")
 adb push artifacts/Test-Revision-2.icdata /sdcard/Download/Test-Revision-2.icdata
 adb logcat -c
 tap 1135 644
-sleep 2
+for attempt in $(seq 1 30); do
+  if godot_log | grep -q 'Choose compatible replacement Data'; then break; fi
+  sleep 1
+done
+godot_log | grep 'Choose compatible replacement Data'
 import_tap
 python3 scripts/godot-picker.py Test-Revision-2.icdata
 for attempt in $(seq 1 60); do
-  if adb logcat -d -s godot | grep -q 'IRON_DATA_INSTALLED: API 1 revision 2'; then break; fi
+  if godot_log | grep -q 'IRON_DATA_INSTALLED: API 1 revision 2'; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep 'IRON_DATA_INSTALLED: API 1 revision 2'
+godot_log | grep 'IRON_DATA_INSTALLED: API 1 revision 2'
 adb exec-out run-as "$PKG" cat files/content/active.json > artifacts/android/active-data.json
 BUNDLE_DIR=$(python3 -c 'import json;d=json.load(open("artifacts/android/active-data.json"));assert d["manifest"]["revision"]==2;print(d["directory"])')
 adb exec-out run-as "$PKG" cat "files/content/$BUNDLE_DIR/assets/content/catalog.json" > artifacts/android/updated-catalog.json
@@ -118,31 +127,31 @@ adb shell am force-stop "$PKG"
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 60); do
-  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  if godot_log | grep -q IRON_SCENE_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep 'IRON_DATA_READY: API 1 revision 2'
-adb logcat -d -s godot | grep IRON_SCENE_READY
+godot_log | grep 'IRON_DATA_READY: API 1 revision 2'
+godot_log | grep IRON_SCENE_READY
 sleep 2
 tap 220 510
 sleep 1
 adb exec-out screencap -p > artifacts/android/00-origin.png
 tap 640 636
 for attempt in $(seq 1 90); do
-  if adb logcat -d -s godot | grep -q IRON_FIELD_READY; then break; fi
+  if godot_log | grep -q IRON_FIELD_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_FIELD_READY
+godot_log | grep IRON_FIELD_READY
 sleep 2
 adb exec-out screencap -p > artifacts/android/06-hero.png
 # Actual touch mounting, gait, side selection, riding and safe dismount.
 tap 95 260
 sleep 1
-adb logcat -d -s godot | grep '^.*IRON_MOUNTED$'
+godot_log | grep '^.*IRON_MOUNTED$'
 tap 95 310
 tap 1115 465
 sleep 1
-adb logcat -d -s godot | grep IRON_GAIT
+godot_log | grep IRON_GAIT
 swipe 125 584 125 520 1200
 sleep 2
 adb exec-out screencap -p > artifacts/android/07-mounted.png
@@ -150,14 +159,14 @@ tap 1156 585
 sleep 1
 tap 95 260
 sleep 1
-adb logcat -d -s godot | grep IRON_DISMOUNTED
+godot_log | grep IRON_DISMOUNTED
 # New games now start with the visible, playable hero, not a map token.
 tap 1190 50
 for attempt in $(seq 1 90); do
-  if adb logcat -d -s godot | grep -q IRON_REALM_READY; then break; fi
+  if godot_log | grep -q IRON_REALM_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_REALM_READY
+godot_log | grep IRON_REALM_READY
 sleep 2
 tap 1100 370
 sleep 1
@@ -198,10 +207,10 @@ tap 1172 574
 sleep 1
 tap 1110 365
 for attempt in $(seq 1 60); do
-  if adb logcat -d -s godot | grep -q IRON_ARRIVED:Dusk; then break; fi
+  if godot_log | grep -q IRON_ARRIVED:Dusk; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_ARRIVED:Dusk
+godot_log | grep IRON_ARRIVED:Dusk
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
 python3 - <<'PYTRAVEL'
 import json
@@ -264,10 +273,10 @@ adb logcat -d > artifacts/android/before-restart.log
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do
-  if adb logcat -d -s godot | grep -q IRON_SCENE_READY; then break; fi
+  if godot_log | grep -q IRON_SCENE_READY; then break; fi
   sleep 1
 done
-adb logcat -d -s godot | grep IRON_SCENE_READY
+godot_log | grep IRON_SCENE_READY
 adb shell pidof "$PKG"
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/restored.json
 python3 - <<'PYRESTORE'

@@ -9,6 +9,15 @@ var error = ""
 var manifest: Dictionary = {}
 var required = ["assets/content/catalog.json","assets/content/world.json","assets/content/humans/human-head.obj","assets/materials/meadow.jpg","assets/audio/wind.wav"]
 
+func _init() -> void:
+	for name in ["cloth","earth","masonry","meadow","plaster","roof","steel","timber"]:
+		required.append("assets/materials/"+name+".jpg")
+		required.append("assets/materials/"+name+"-normal.png")
+	for name in ["grass","leaves"]:
+		required.append("assets/materials/"+name+".png")
+	for name in ["step","swing","clang","impact"]:
+		required.append("assets/audio/"+name+".wav")
+
 func validate_manifest(value) -> bool:
 	if not value is Dictionary or value.get("api",0)!=1 or value.get("world_id","")!="ashen-marches" or int(value.get("revision",0))<1:
 		error = "Unsupported Data API, world or revision."
@@ -52,6 +61,41 @@ func validate_definitions(directory: String) -> bool:
 		var s = world.settlements[i]
 		if not s is Dictionary or int(s.get("id",-1))!=i or not s.get("at") is Array or s.at.size()!=2 or int(s.get("faction",-1))<0 or int(s.faction)>=world.factions.size() or not s.get("kind","") in ["Town","Castle","Village"]:
 			return false
+	for faction in world.factions:
+		if not faction is Dictionary:
+			return false
+		for key in ["name","color","clan","leader","description"]:
+			if not faction.get(key) is String or str(faction[key]).length()>120:
+				return false
+	if not world.get("anchors") is Array or world.anchors.size()>32 or not world.get("ridges") is Array or world.ridges.size()>64 or not world.get("roads") is Array or world.roads.size()>256:
+		return false
+	for anchor in world.anchors:
+		if not anchor is Array or anchor.size()!=2:
+			return false
+	for ridge in world.ridges:
+		if not ridge is Array or ridge.size()!=3:
+			return false
+	var reached: Dictionary = {0:true}
+	for edge in world.roads:
+		if not edge is Array or edge.size()!=2 or int(edge[0])<0 or int(edge[1])<0 or int(edge[0])>=world.settlements.size() or int(edge[1])>=world.settlements.size():
+			return false
+	for iteration in range(world.settlements.size()):
+		for edge in world.roads:
+			if reached.has(int(edge[0])) or reached.has(int(edge[1])):
+				reached[int(edge[0])] = true
+				reached[int(edge[1])] = true
+	if reached.size()!=world.settlements.size():
+		return false
+	if not catalog.get("equipment") is Array or catalog.equipment.is_empty() or catalog.equipment.size()>64 or not catalog.get("regions") is Array or catalog.regions.is_empty() or not catalog.get("horse") is Dictionary:
+		return false
+	for outfit in catalog.equipment:
+		if not outfit is Dictionary or not outfit.get("armor") is String or not outfit.get("coat") is String or not outfit.get("steel") is bool or not outfit.get("helmet","") in ["closed","open","hood"]:
+			return false
+	for key in ["walk","trot","canter","health"]:
+		if not catalog.horse.has(key) or float(catalog.horse[key])<=0 or float(catalog.horse[key])>1000:
+			return false
+	if not catalog.horse.get("coat") is String:
+		return false
 	var listed: Dictionary = {}
 	for item in manifest.files:
 		listed["res://"+str(item.path)] = true
@@ -59,6 +103,9 @@ func validate_definitions(directory: String) -> bool:
 		return false
 	for human in catalog.humans:
 		if not human is Dictionary or not listed.has(str(human.get("mesh",""))) or not str(human.mesh).ends_with(".obj") or not listed.has(str(human.get("scalp",""))) or not str(human.scalp).ends_with(".obj"):
+			return false
+	for item in manifest.files:
+		if str(item.path).ends_with(".obj") and not ContentAssets.validate_obj(FileAccess.get_file_as_string(directory+"/"+str(item.path))):
 			return false
 	return true
 

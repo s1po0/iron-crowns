@@ -67,3 +67,40 @@ static func mesh(resource: String) -> Mesh:
 	surface.generate_normals()
 	meshes[resource] = surface.commit()
 	return meshes[resource]
+
+static func validate_obj(text: String) -> bool:
+	var vertex_count = 0
+	var uv_count = 0
+	var triangles = 0
+	for line in text.split("\n"):
+		var parts = line.strip_edges().split(" ",false)
+		if parts.is_empty() or parts[0].begins_with("#"):
+			continue
+		if parts[0]=="v":
+			if parts.size()!=4:
+				return false
+			for component in parts.slice(1):
+				if not str(component).is_valid_float() or not is_finite(float(component)) or absf(float(component))>10:
+					return false
+			vertex_count += 1
+		elif parts[0]=="vt":
+			if parts.size()<3:
+				return false
+			for component in parts.slice(1,3):
+				if not str(component).is_valid_float() or not is_finite(float(component)):
+					return false
+			uv_count += 1
+		elif parts[0]=="f":
+			if parts.size()<4 or parts.size()>9:
+				return false
+			triangles += parts.size()-3
+			for part in parts.slice(1):
+				var indices = part.split("/")
+				if not str(indices[0]).is_valid_int() or int(indices[0])<1 or int(indices[0])>vertex_count:
+					return false
+				if indices.size()>1 and not indices[1].is_empty():
+					if not str(indices[1]).is_valid_int() or int(indices[1])<1 or int(indices[1])>uv_count:
+						return false
+		if vertex_count>50000 or uv_count>100000 or triangles>100000:
+			return false
+	return vertex_count>=3 and triangles>0

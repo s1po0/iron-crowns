@@ -254,7 +254,7 @@ func action(id: String) -> void:
 		"manage_data":
 			game.save_progress()
 			get_tree().set_meta("update_data",true)
-			get_tree().change_scene_to_file("res://bootstrap.tscn")
+			get_tree().change_scene_to_file.call_deferred("res://bootstrap.tscn")
 		"mount": game.toggle_mount()
 		"cut_side": game.cut_side *= -1
 		"origin_back": game.state = "title"
@@ -414,7 +414,7 @@ func _input(event: InputEvent) -> void:
 		elif owned=="map":
 			map_drag(event.index,event.position*base/size,event.relative*base/size)
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and game.map_open and not journal_open and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+	elif event is InputEventMouseButton and game.map_open and not journal_open and not factions_open and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
 		game.realm.change_zoom(.9 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.11)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:

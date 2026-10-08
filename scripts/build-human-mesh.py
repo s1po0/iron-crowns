@@ -26,7 +26,21 @@ def output(name,predicate,expand=0):
         # Reflect front to Godot -Z; reverse each face below to preserve normals.
         result.append(f'v {x*scale*(1+expand):.7f} {(y+8.1676)*scale+expand*.07:.7f} {-(z-.16075)*scale*(1+expand):.7f}')
     for i in texids:result.append('vt %.7f %.7f'%uvs[i])
-    for face in selected:result.append('f '+' '.join(f'{lookup[i]}/{tl[u]}' for i,u in reversed(face)))
+    # Explicit smooth vertex normals avoid importer-dependent unlit heads.
+    normals={i:[0.,0.,0.] for i in ids}
+    for face in selected:
+        indices=[i for i,u in reversed(face)]
+        points=[(verts[i][0]*scale,(verts[i][1]+8.1676)*scale,-(verts[i][2]-.16075)*scale) for i in indices]
+        for k in range(1,len(points)-1):
+            a,b,c=points[0],points[k],points[k+1]
+            e=[b[j]-a[j] for j in range(3)];f=[c[j]-a[j] for j in range(3)]
+            n=[e[1]*f[2]-e[2]*f[1],e[2]*f[0]-e[0]*f[2],e[0]*f[1]-e[1]*f[0]]
+            for index in [indices[0],indices[k],indices[k+1]]:
+                for j in range(3):normals[index][j]+=n[j]
+    for i in ids:
+        n=normals[i];length=math.sqrt(sum(v*v for v in n)) or 1
+        result.append('vn '+' '.join(f'{v/length:.7f}' for v in n))
+    for face in selected:result.append('f '+' '.join(f'{lookup[i]}/{tl[u]}/{lookup[i]}' for i,u in reversed(face)))
     (OUT/name).write_text('\n'.join(result)+'\n')
     print(name,len(ids),'vertices',len(selected),'faces')
     return len(selected)

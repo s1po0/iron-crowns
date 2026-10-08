@@ -45,9 +45,11 @@ jobs:
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/engine-tests.log || true
           if ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log; then
+            python3 scripts/build-content-bundle.py "$RUNNER_TEMP/content-test.icdata"
+            IRON_TEST_DATA="$RUNNER_TEMP/content-test.icdata" timeout 140 godot --headless --path godot --script res://scripts/content_bundle_test.gd 2>&1 | tee -a artifacts/engine-tests.log || true
             timeout 140 godot --headless --path godot -- --smoke 2>&1 | tee -a artifacts/engine-tests.log || true
           fi
-          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log; then
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log || ! grep -q 'IRON_CONTENT_PASS' artifacts/engine-tests.log; then
             python3 -c 's=open("artifacts/engine-tests.log").read()[-16000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
             exit 1
           fi
