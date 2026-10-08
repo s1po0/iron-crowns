@@ -3,6 +3,7 @@ extends RefCounted
 
 static var directory = ""
 static var meshes: Dictionary = {}
+static var textures: Dictionary = {}
 
 static func path(resource: String) -> String:
 	if directory.is_empty():
@@ -13,12 +14,19 @@ static func json(resource: String):
 	return JSON.parse_string(FileAccess.get_file_as_string(path(resource)))
 
 static func texture(resource: String) -> Texture2D:
+	# Raw Data has no ResourceLoader cache. Without this, every coat/skin tint
+	# uploads another copy of the same atlas and can exhaust mobile/AVD memory.
+	var resolved = path(resource)
+	if textures.has(resolved):
+		return textures[resolved]
 	if directory.is_empty():
-		return load(resource)
-	var image = Image.load_from_file(path(resource))
-	assert(image!=null and image.get_width()<=4096 and image.get_height()<=4096,"Invalid content image")
-	image.generate_mipmaps()
-	return ImageTexture.create_from_image(image)
+		textures[resolved] = load(resource)
+	else:
+		var image = Image.load_from_file(resolved)
+		assert(image!=null and image.get_width()<=4096 and image.get_height()<=4096,"Invalid content image")
+		image.generate_mipmaps()
+		textures[resolved] = ImageTexture.create_from_image(image)
+	return textures[resolved]
 
 static func audio(resource: String) -> AudioStreamWAV:
 	if directory.is_empty():

@@ -18,6 +18,7 @@ func test_bundle() -> void:
 	assert(normal_length/normals.size()>.95,"Human mesh normals invalid")
 	assert(ContentAssets.audio("res://assets/audio/step.wav")!=null,"Runtime raw WAV loading failed")
 	assert(ContentAssets.texture("res://assets/materials/meadow.jpg")!=null,"Runtime raw image loading failed")
+	assert(ContentAssets.texture("res://assets/materials/meadow.jpg")==ContentAssets.texture("res://assets/materials/meadow.jpg"),"Raw texture uploads must be shared across material variants")
 	# A matching hash is not enough: malformed schema must fail before activation.
 	var catalog_path = ContentAssets.directory+"/assets/content/catalog.json"
 	var catalog_text = FileAccess.get_file_as_string(catalog_path)
