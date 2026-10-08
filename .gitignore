@@ -16,4 +16,5 @@ godot/export/
 godot/android/.build_version
 godot/android/.gdignore
 
-__pycache__/
+**/__pycache__/
+tools/human-preview/.godot/

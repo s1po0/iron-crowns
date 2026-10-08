@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 var riding = false
 var cut_side = 1
+var anatomy: HumanBody
 var team = 0
 var player = false
 var hp = 100.0
@@ -96,6 +97,9 @@ func shield(parent: Node3D, mat: Material, factor: float, z: float, back: bool =
 	MarchArt.mesh(parent,st.commit(),Vector3.ZERO,mat)
 
 func build_character() -> void:
+	if FileAccess.file_exists(ContentAssets.path("res://assets/content/humans/human-body.json")):
+		build_anatomical_character()
+		return
 	visual = Node3D.new()
 	add_child(visual)
 	var outfit = MarchCatalog.equipment(0 if player else get_index()%3)
@@ -119,22 +123,14 @@ func build_character() -> void:
 	armor(body,[Vector3(.75,.24,.16),Vector3(.99,.185,.14)],dark)
 	armor(body,[Vector3(1.015,.19,.149),Vector3(1.065,.189,.146)],leather)
 	MarchArt.box(body,Vector3(.04,1.04,-.155),Vector3(.065,.043,.016),steel)
-	# Real CC0 anatomical geometry, loaded from the Data pack. The torso/armor
-	# remains the existing combat rig until the full-body animation pass is ready.
-	var head_path = str(MarchCatalog.data().get("models",{}).get("head",""))
-	assert(head_path.begins_with("res://assets/models/") and head_path.ends_with(".glb"),"Invalid human model path")
-	var human_scene = load(head_path) as PackedScene
-	assert(human_scene!=null,"Data pack must supply a human head model")
-	var human_head = human_scene.instantiate() as Node3D
-	body.add_child(human_head)
-	human_head.scale.x = 1.0 if player else .96+float(get_index()%3)*.045
+	armor(body,[Vector3(1.46,.105,.09),Vector3(1.57,.085,.08),Vector3(1.60,.08,.07)],dark)
+	# The head is an imported anatomical mesh, not an oval with a painted eye slit.
+	var faces: Array = MarchCatalog.data().humans
+	HumanFaces.attach(body,faces[0 if player else get_index()%faces.size()])
 	if outfit.helmet=="closed" and not player:
-		rounded(body,Vector3(0,1.762,.008),Vector3(.15,.18,.15),steel)
-		MarchArt.box(body,Vector3(0,1.715,-.14),Vector3(.229,.16,.035),steel)
-		MarchArt.box(body,Vector3(0,1.766,-.16),Vector3(.227,.022,.012),black)
-	elif outfit.helmet=="open":
-		# Keep the face uncovered; a low metal crown sits above the brow.
-		MarchArt.cylinder(body,Vector3(0,1.805,.025),.105,.045,steel,.103,20)
+		# An open nasal guard preserves the face rather than hiding every soldier.
+		MarchArt.cylinder(body,Vector3(0,1.84,.02),.13,.04,steel,.11,20)
+		MarchArt.box(body,Vector3(0,1.79,-.135),Vector3(.013,.085,.013),steel)
 	# A small scabbard lies beside the left hip rather than a fantasy ornament.
 	var scabbard = MarchArt.box(body,Vector3(-.235,.76,.07),Vector3(.052,.64,.034),leather)
 	scabbard.rotation.z = -.18
@@ -259,6 +255,8 @@ func animate(delta: float) -> void:
 	cape.rotation.x = -.04-amount*.07+sin(gait*.5)*.018
 	visual.rotation.z = sin(hurt*45)*.045 if hurt>0 else 0.0
 	visual.rotation.x = -.10 if stagger>0 else 0.0
+	if anatomy!=null:
+		anatomy.pose(self)
 
 func guarding_from(source: Vector3) -> bool:
 	if not block or not source.is_finite():
@@ -282,3 +280,30 @@ func damage(amount: float, source: Vector3 = Vector3.INF) -> bool:
 		collision_layer = 0
 		return true
 	return false
+
+func build_anatomical_character() -> void:
+	visual = Node3D.new()
+	add_child(visual)
+	torso = Node3D.new()
+	visual.add_child(torso)
+	right_arm = Node3D.new()
+	left_arm = Node3D.new()
+	right_elbow = Node3D.new()
+	left_elbow = Node3D.new()
+	left_leg = Node3D.new()
+	right_leg = Node3D.new()
+	left_knee = Node3D.new()
+	right_knee = Node3D.new()
+	for pivot in [right_arm,left_arm,right_elbow,left_elbow,left_leg,right_leg,left_knee,right_knee]:
+		visual.add_child(pivot)
+	cape = MeshInstance3D.new()
+	ring = MeshInstance3D.new()
+	visual.add_child(cape)
+	visual.add_child(ring)
+	cape.visible = false
+	ring.visible = false
+	anatomy = HumanBody.new()
+	visual.add_child(anatomy)
+	var faces: Array = MarchCatalog.data().humans
+	anatomy.build(MarchCatalog.equipment(0 if player else get_index()%3),faces[0 if player else get_index()%faces.size()])
+	anatomy.pose(self)
