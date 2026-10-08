@@ -17,6 +17,8 @@ finish() {
   set +e
   adb logcat -d > artifacts/android/logcat.txt
   if [ "$status" -ne 0 ]; then
+    tail -45 /tmp/android-smoke.log > artifacts/android/failure-context.txt
+    python3 -c 's=open("artifacts/android/failure-context.txt").read();print("::error::Failure context: "+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
     adb exec-out screencap -p > artifacts/android/failure.png
     python3 - <<'PYLOG'
 lines=open('artifacts/android/logcat.txt',errors='replace').readlines()
@@ -183,7 +185,12 @@ done
 godot_log | grep IRON_REALM_READY
 sleep 2
 tap 1100 370
-sleep 1
+# Observe the committed transaction, not a fixed one-second renderer assumption.
+for attempt in $(seq 1 25); do
+  adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/recruit-wait.json
+  if python3 -c 'import json; s=json.load(open("artifacts/android/recruit-wait.json")); exit(0 if s["gold"]==150 and s["realm"]["army"]==11 else 1)'; then break; fi
+  sleep 1
+done
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/progress.json
 cat artifacts/android/progress.json
 python3 - <<'PYTEST'

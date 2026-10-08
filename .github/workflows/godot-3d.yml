@@ -93,7 +93,7 @@ jobs:
           echo 'DISPLAY=:99' >> "$GITHUB_ENV"
           echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
       - name: Launch and exercise the 3D APK
-        timeout-minutes: 10
+        timeout-minutes: 15
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -101,7 +101,7 @@ jobs:
           target: default
           disable-animations: true
           emulator-boot-timeout: 180
-          emulator-options: -memory 2048 -cores 2 -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          emulator-options: -memory 2048 -cores 2 -no-window -gpu host -noaudio -no-boot-anim -camera-back none -feature -Vulkan
           script: bash scripts/godot-android-smoke.sh
       - name: Preserve host and emulator failure diagnostics
         if: failure()
