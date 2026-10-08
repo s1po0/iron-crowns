@@ -100,8 +100,16 @@ jobs:
           target: default
           disable-animations: true
           emulator-boot-timeout: 180
-          emulator-options: -memory 2048 -cores 2 -no-window -gpu host -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          emulator-options: -memory 2048 -cores 2 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -feature -Vulkan
           script: bash scripts/godot-android-smoke.sh
+      - name: Preserve host and emulator failure diagnostics
+        if: failure()
+        run: |
+          mkdir -p artifacts/host
+          free -h > artifacts/host/memory.txt
+          ps aux --sort=-rss | head -30 > artifacts/host/processes.txt
+          sudo dmesg --ctime | tail -180 > artifacts/host/kernel.txt || true
+          cat artifacts/host/kernel.txt | tail -30
       - name: Save real Android screenshot for review
         if: always()
         run: |
