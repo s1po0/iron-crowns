@@ -17,7 +17,7 @@ window/stretch/mode="canvas_items"
 window/handheld/orientation=0
 
 [rendering]
-limits/opengl/max_lights_per_object=1
+limits/opengl/max_lights_per_object=2
 limits/opengl/max_renderable_lights=4
 limits/opengl/max_renderable_elements=4096
 renderer/rendering_method="gl_compatibility"
