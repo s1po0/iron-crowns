@@ -4,6 +4,24 @@ An original Android action-strategy prototype with a **large 3D campaign map** a
 
 ![Actual third-person field rendering](docs/screenshots/iron-field.png)
 
+## Peoples of the Marches 0.7 — updateable Data foundation
+
+[Download the foundation APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.7.0-peoples-preview).
+
+This is the **one required APK change** from 0.6. After installing it, compatible API 1 content can be updated from **MANAGE DATA** without reinstalling the APK. New engine capabilities may still require an APK update.
+
+- Rigged, **20-bone anatomical human bodies** derived from CC0 MakeHuman geometry replace the primitive bodies. Material-defined clothing covers the body; detailed layered armor, hair and realistic skin art remain unfinished.
+- **2700 × 2040 campaign world** (9× the previous area), **64 settlements** and **six original factions**.
+- **TRIBES AND CLANS** displays clan leaders, descriptions, holdings and standings. It is not a simulated Khergit family tree.
+- Supported human geometry, appearance settings, world definitions, factions, textures and sound live in Data. Arbitrary game scripts and Bannerlord mods are not supported.
+- The Android test installed revision 1 and a changed revision 2 on the **same APK**, then checked campaign progression, riding and save restoration. [Build 37852970751 passed](https://github.com/s1po0/iron-crowns/actions/runs/37852970751).
+
+**Install:** install `Iron-Crowns-0.7.0-Peoples.apk`, launch, tap **IMPORT GAME DATA**, then select `Iron-Crowns-0.7.0-Data.icdata`. The old 0.6 APK cannot load this Data. Open **REALM → ATLAS → TRIBES AND CLANS** for the expanded world and faction profiles.
+
+[Install/update instructions and limits](docs/RELEASE_0.7.0.md) · [Data authoring contract](docs/DATA_API_1.md) · [Actual human close-up](docs/screenshots/iron-human.png) · [Actual map](docs/screenshots/iron-map.png)
+
+Checksums detect corruption, not publisher authenticity: use trusted downloads. This remains an evaluation prototype, **not the visual quality of the supplied references**. Physical-phone performance is unverified. A debug-signature mismatch may require uninstalling the old APK, which deletes saves.
+
 ## Riders and separate Data 0.6 — evaluation preview
 
 [Download the paired APK and Data files](https://github.com/s1po0/iron-crowns/releases/tag/v0.6.0-riders-preview).

@@ -41,3 +41,14 @@ This is a prototype improvement, **not the character quality shown in the refere
 The Khurai clans are original, not Bannerlord's Khergit family tree. Clan leaders are background profiles: family-tree simulation, marriage, heirs, dynasties and AI cavalry armies are not implemented. Campaign travel and the shared battlefield remain separate. Physical-phone performance, thermals and extended combat feel are not yet verified.
 
 Debug-signed for evaluation. Android may reject installation over a differently signed older build; uninstalling deletes saves and installed Data. Back up important progress before uninstalling. Do not interpret an emulator pass as production signing or device certification.
+
+## Build verification
+
+- Exact tested APK/initial Data source: `ecce218a81d87b541fb8b9246e5aa193d8699b0c`.
+- [Actions 37852970751](https://github.com/s1po0/iron-crowns/actions/runs/37852970751) passed the complete pipeline in 10m16s.
+- Engine: anatomical skin/clothing regression, Data schema/corruption checks, foot and mounted combat, world road connectivity, trade, wanderer progression and save tests.
+- Android API 29 x86_64: native document import; same-size corrupt Data rejected; initial Data plus a changed-catalog revision 2 installed without replacing the APK; offline cold restart; riding/gait/side/dismount controls; recruitment; companion hiring; courier acceptance/travel/payout; settings; campaign/save restoration.
+- Device automation waits for the rendered journal menu and committed transactions rather than assuming each screen finishes in one second. Assertions and single transactional taps are retained.
+- Actual engine and Android captures were reviewed. No claim is made about physical-phone frame rates, thermals, finished animation or reference-level graphics.
+
+The release is staged from this successful run without rebuilding the reviewed binaries.
