@@ -37,7 +37,7 @@ adb install -r artifacts/Iron-Crowns-0.7.0-Peoples.apk
 adb shell pm clear "$PKG"
 adb shell wm size 720x1280
 adb shell wm density 160
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 # Both correct and same-size corrupted packs arrive through public Downloads.
 adb push artifacts/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata
@@ -87,7 +87,7 @@ godot_log | grep IRON_SCENE_READY
 adb shell rm /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Wrong-Data.icdata
 adb shell am force-stop "$PKG"
 sleep 3
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do
   if godot_log | grep -q IRON_SCENE_READY; then break; fi
@@ -108,7 +108,7 @@ tap() { read -r x y < <(coords "$1" "$2"); adb shell input tap "$x" "$y"; }
 swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4"); adb shell input swipe "$x" "$y" "$tx" "$ty" "$5"; }
 # Update actual catalog bytes and revision without replacing/reinstalling the APK.
 adb push artifacts/Test-Revision-2.icdata /sdcard/Download/Test-Revision-2.icdata
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 tap 1135 644
 # MANAGE DATA deliberately cold-starts the installer instead of tearing down
 # the 3D battlefield and reopening the native activity in the same engine.
@@ -116,7 +116,7 @@ sleep 2
 adb shell am force-stop "$PKG"
 sleep 3
 adb logcat -d -s godot | grep IRON_DATA_MANAGER_RESTART
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 30); do
   if godot_log | grep -q 'Choose compatible replacement Data'; then break; fi
@@ -140,7 +140,7 @@ import_tap
 sleep 3
 adb shell am force-stop "$PKG"
 sleep 3
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 60); do
   if godot_log | grep -q IRON_SCENE_READY; then break; fi
@@ -292,7 +292,7 @@ sleep 2
 adb shell am force-stop "$PKG"
 sleep 3
 adb logcat -d > artifacts/android/before-restart.log
-adb logcat -c
+adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do
   if godot_log | grep -q IRON_SCENE_READY; then break; fi
