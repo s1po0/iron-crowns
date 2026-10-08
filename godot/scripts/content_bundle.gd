@@ -131,6 +131,8 @@ func validate_definitions(directory: String) -> bool:
 	for human in catalog.humans:
 		if not human is Dictionary or not listed.has(str(human.get("mesh",""))) or not str(human.mesh).ends_with(".obj") or not listed.has(str(human.get("scalp",""))) or not str(human.scalp).ends_with(".obj"):
 			return false
+		if human.has("skin_texture") and (not human.skin_texture is String or not listed.has(str(human.skin_texture)) or not str(human.skin_texture).get_extension() in ["png","jpg"]):
+			return false
 		for key in ["skin","hair","eyes"]:
 			if not color_value(human.get(key)):
 				return false

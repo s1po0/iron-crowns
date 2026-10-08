@@ -35,8 +35,12 @@ validation rejects invalid parents, indices, weights, non-finite coordinates,
 and excessive counts. It loads only numeric data, never glTF extensions or
 Godot scripts/scenes. Required bone names define the retargeting contract.
 
-Surfaces are `skin`, `coat`, `trousers`, and `boots`; the shipped geometry covers
-torso and pelvis with clothing surfaces. Material colors come from the catalog.
+Required surfaces are `skin`, `coat`, `trousers`, and `boots`. Optional `armor`,
+`leather`, `cloth_trim`, and `metal_trim` surfaces allow weighted clothing layers
+within the same validated geometry budget; the shipped geometry covers
+torso and pelvis with clothing surfaces. Material colors come from the catalog. An optional human `skin_texture` entry
+may select a listed PNG/JPG skin atlas using the model UVs; no texture is guessed
+from the reference screenshots.
 The rigged body is generated reproducibly by `scripts/build-playable-human.py`
 from the licensed GLB foundation. Hair remains a separate raw OBJ. Packs without
 the optional body retain the earlier head-plus-procedural-body fallback.

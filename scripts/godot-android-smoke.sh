@@ -25,7 +25,7 @@ s=''.join(selected[-150:])[-18000:]
 for i in range(0,len(s),2800):
     print('::error::Android diagnostics '+str(i//2800+1)+': '+s[i:i+2800].replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
 PYLOG
-    tail -60 /tmp/android-smoke.log | python3 -c 'import sys; s=sys.stdin.read(); print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+    tail -60 /tmp/android-smoke.log | python3 -c 'import sys; s=sys.stdin.read()[-3000:]; print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
   fi
   exit "$status"
 }
@@ -84,6 +84,7 @@ godot_log | grep IRON_SCENE_READY
 # Imported pack remains available without public Downloads or networking.
 adb shell rm /sdcard/Download/Iron-Crowns-0.7.0-Data.icdata /sdcard/Download/Wrong-Data.icdata
 adb shell am force-stop "$PKG"
+sleep 3
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 45); do
@@ -111,6 +112,7 @@ tap 1135 644
 # the 3D battlefield and reopening the native activity in the same engine.
 sleep 2
 adb shell am force-stop "$PKG"
+sleep 3
 adb logcat -d -s godot | grep IRON_DATA_MANAGER_RESTART
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
@@ -130,8 +132,12 @@ adb exec-out run-as "$PKG" cat files/content/active.json > artifacts/android/act
 BUNDLE_DIR=$(python3 -c 'import json;d=json.load(open("artifacts/android/active-data.json"));assert d["manifest"]["revision"]==2;print(d["directory"])')
 adb exec-out run-as "$PKG" cat "files/content/$BUNDLE_DIR/assets/content/catalog.json" > artifacts/android/updated-catalog.json
 python3 -c 'import json;assert json.load(open("artifacts/android/updated-catalog.json"))["content_revision"]==2'
+# Use the actual CLOSE GAME button; do not kill during picker/surface resume.
 adb shell rm /sdcard/Download/Test-Revision-2.icdata
+import_tap
+sleep 3
 adb shell am force-stop "$PKG"
+sleep 3
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 for attempt in $(seq 1 60); do
@@ -277,6 +283,7 @@ sleep 1
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"
 sleep 2
 adb shell am force-stop "$PKG"
+sleep 3
 adb logcat -d > artifacts/android/before-restart.log
 adb logcat -c
 adb shell am start -W -n "$PKG/com.godot.game.GodotApp"

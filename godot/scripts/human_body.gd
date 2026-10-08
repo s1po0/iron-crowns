@@ -6,7 +6,7 @@ static var definition: Dictionary = {}
 var skeleton: Skeleton3D
 
 static func validate(value) -> bool:
-	if not value is Dictionary or value.get("schema")!=1 or not value.get("bones") is Array or value.bones.size()!=20 or not value.get("surfaces") is Array or value.surfaces.size()!=4:
+	if not value is Dictionary or value.get("schema")!=1 or not value.get("bones") is Array or value.bones.size()!=20 or not value.get("surfaces") is Array or value.surfaces.size()<4 or value.surfaces.size()>8:
 		return false
 	var names: Array = []
 	for i in range(value.bones.size()):
@@ -22,7 +22,7 @@ static func validate(value) -> bool:
 	var kinds: Array = []
 	var total = 0
 	for surface in value.surfaces:
-		if not surface is Dictionary or not surface.get("kind") in ["skin","coat","trousers","boots"] or surface.kind in kinds or not surface.get("positions") is Array:
+		if not surface is Dictionary or not surface.get("kind") in ["skin","coat","trousers","boots","armor","leather","cloth_trim","metal_trim"] or surface.kind in kinds or not surface.get("positions") is Array:
 			return false
 		kinds.append(surface.kind)
 		var count = surface.positions.size()
@@ -47,6 +47,9 @@ static func validate(value) -> bool:
 		for index in surface.indices:
 			if not (index is float or index is int) or index<0 or index>=count or index!=int(index):
 				return false
+	for required_kind in ["skin","coat","trousers","boots"]:
+		if not required_kind in kinds:
+			return false
 	if not vector_valid(value.get("head_origin"),3,3) or not value.get("eyes") is Array or value.eyes.size()!=2:
 		return false
 	return vector_valid(value.eyes[0],3,3) and vector_valid(value.eyes[1],3,3)
@@ -117,6 +120,11 @@ func build(outfit: Dictionary, face: Dictionary) -> void:
 		if kind=="skin":
 			material = MarchArt.material(Color(str(face.skin)))
 			material.roughness = .78
+			if face.has("skin_texture"):
+				material.albedo_texture = ContentAssets.texture(str(face.skin_texture))
+				material.albedo_color = Color.WHITE
+		elif kind in ["armor","metal_trim"]:
+			material = FieldMaterials.surface("steel",Color(str(outfit.armor)),3,.35)
 		else:
 			material = FieldMaterials.surface("cloth" if kind!="boots" else "timber",Color(str(outfit.coat)) if kind=="coat" else Color("4c443c") if kind=="trousers" else Color("322b25"),3)
 		model.set_surface_override_material(i,material)
