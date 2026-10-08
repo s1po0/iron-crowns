@@ -180,9 +180,10 @@ void fragment(){
 	assert(land_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL][0].y>0,"Terrain winding must face sky")
 	MarchArt.mesh(self,land_mesh,Vector3.ZERO,mat)
 	var ocean = PlaneMesh.new()
-	ocean.size = Vector2(WIDTH*1.8,DEPTH*1.8)
+	ocean.size = Vector2(WIDTH*4,DEPTH*4)
 	var water = realm_material(Color("3e616a"))
-	water.roughness = .45
+	water.roughness = 1.0
+	water.metallic_specular = 0.0
 	MarchArt.mesh(self,ocean,Vector3(0,-1.3,0),water)
 	var river: Array = []
 	for i in range(139):

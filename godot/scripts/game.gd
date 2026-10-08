@@ -519,7 +519,7 @@ func _process(delta: float) -> void:
 			realm.show_map()
 			realm.selected = -1
 		if capture_frame==240:
-			realm.zoom = realm.WIDTH*1.08
+			realm.zoom = realm.WIDTH*.86
 		if capture_frame==270:
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("/tmp/iron-map.png")
