@@ -1,0 +1,214 @@
+name: Iron Crowns 3D Android
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['godot/**', 'native/**', 'scripts/godot-picker.py', 'scripts/build-playable-human.py', 'tests/test_playable_human.py', 'scripts/godot-*.sh', '.github/workflows/godot-3d.yml']
+  workflow_dispatch:
+    inputs:
+      reviewed_run:
+        description: 'Optional successful run ID to publish its exact, visually reviewed 0.7 APK without rebuilding'
+        required: false
+        type: string
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: iron-crowns-${{ github.ref }}-${{ inputs.reviewed_run || (contains(github.event.head_commit.message, '[reviewed-apk ') && 'release') || 'build' }}
+  cancel-in-progress: true
+jobs:
+  three-dimensional-build:
+    if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[reviewed-apk ') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Stop superseded builds on this session branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs?branch=arena%2F94d215f9-iron-crowns&status=in_progress&per_page=30" \
+            --jq '.workflow_runs[] | select(.path == ".github/workflows/godot-3d.yml" and (.display_title | contains("[reviewed-apk ") | not)) | .id' > running.txt
+          while read -r id; do
+            if [ "$id" != "$GITHUB_RUN_ID" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/cancel" || true
+            fi
+          done < running.txt
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Godot and Android export template
+        run: bash scripts/godot-ci-setup.sh
+      - name: Parse project and test gameplay
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          python3 -m unittest discover -s tests -p 'test_playable_human.py' -v
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/engine-tests.log || true
+          if ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log; then
+            python3 scripts/build-content-bundle.py "$RUNNER_TEMP/content-test.icdata"
+            IRON_TEST_DATA="$RUNNER_TEMP/content-test.icdata" timeout 140 godot --headless --path godot --script res://scripts/content_bundle_test.gd 2>&1 | tee -a artifacts/engine-tests.log || true
+            timeout 140 godot --headless --path godot -- --smoke 2>&1 | tee -a artifacts/engine-tests.log || true
+          fi
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/engine-tests.log || ! grep -q 'IRON_SMOKE_PASS' artifacts/engine-tests.log || ! grep -q 'IRON_CONTENT_PASS' artifacts/engine-tests.log; then
+            python3 -c 's=open("artifacts/engine-tests.log").read()[-3000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            exit 1
+          fi
+      - name: Render actual 3D screenshots
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --rendering-method gl_compatibility -- --capture 2>&1 | tee artifacts/render.log
+          mkdir -p docs/screenshots
+          cp /tmp/iron-title.png /tmp/iron-field.png /tmp/iron-map.png /tmp/iron-origin.png /tmp/iron-wanderer.png /tmp/iron-mounted.png /tmp/iron-human.png docs/screenshots/
+          cp docs/screenshots/*.png artifacts/
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
+      - name: Save reviewable screenshots on the session branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/screenshots/
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual 3D characters, village, and region overview'
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
+      - name: Export Android APK
+        run: |
+          set -o pipefail
+          bash scripts/godot-build-split.sh 2>&1 | tee artifacts/export.log || {
+            python3 -c 's=open("artifacts/export.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            exit 1
+          }
+      - name: Release build-daemon memory before device testing
+        run: |
+          (cd godot/android/build && ./gradlew --stop) || true
+          pkill -f '[K]otlinCompileDaemon' || true
+          free -h
+          echo 'LP_NUM_THREADS=2' >> "$GITHUB_ENV"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          Xvfb :99 -screen 0 1280x720x24 > /tmp/android-display.log 2>&1 &
+          echo 'DISPLAY=:99' >> "$GITHUB_ENV"
+          echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
+      - name: Launch and exercise the 3D APK
+        timeout-minutes: 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-boot-timeout: 180
+          emulator-options: -memory 2048 -cores 2 -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          script: bash scripts/godot-android-smoke.sh
+      - name: Preserve host and emulator failure diagnostics
+        if: failure()
+        run: |
+          mkdir -p artifacts/host
+          free -h > artifacts/host/memory.txt
+          ps aux --sort=-rss | head -30 > artifacts/host/processes.txt
+          sudo dmesg --ctime | tail -180 > artifacts/host/kernel.txt || true
+          cat artifacts/host/kernel.txt | tail -30
+      - name: Save real Android screenshot for review
+        if: always()
+        run: |
+          mkdir -p docs/screenshots
+          if [ -f artifacts/android/02-battle.png ]; then
+            cp artifacts/android/02-battle.png docs/screenshots/android-field.png
+            cp artifacts/android/02-battle.png artifacts/android-field.png
+            cp artifacts/android/07-mounted.png docs/screenshots/android-mounted.png
+            cp artifacts/android/07-mounted.png artifacts/android-mounted.png
+            cp artifacts/android/00-data.png docs/screenshots/android-data.png
+            cp artifacts/android/00-data.png artifacts/android-data.png
+            cp artifacts/android/06-hero.png docs/screenshots/android-hero.png
+            cp artifacts/android/06-hero.png artifacts/android-hero.png
+            cp artifacts/android/04-campaign.png docs/screenshots/android-campaign.png
+            cp artifacts/android/04-campaign.png artifacts/android-campaign.png
+            if [ -f artifacts/android/05-journal.png ]; then
+              cp artifacts/android/05-journal.png docs/screenshots/android-wanderer.png
+              cp artifacts/android/05-journal.png artifacts/android-wanderer.png
+            fi
+            rm -f docs/screenshots/android-diagnostic.png
+          elif [ -f artifacts/android/failure.png ]; then
+            cp artifacts/android/failure.png docs/screenshots/android-diagnostic.png
+          fi
+          git add docs/screenshots/
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual Android 3D field rendering'
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
+      - name: Build metadata
+        run: |
+          cd artifacts
+          sha256sum *.apk Iron-Crowns-*.icdata Iron-Crowns-*.manifest.json > SHA256SUMS.txt
+          printf 'Source: %s\nGodot: 4.4.1\nRenderer: GL Compatibility\nVersion: 0.7.0-peoples-preview\nSigning: debug evaluation only\nArchitectures: arm64-v8a, x86_64\n' "$GITHUB_SHA" > BUILD.txt
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: Iron-Crowns-3D
+          path: artifacts/
+          retention-days: 30
+
+  publish-reviewed:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.reviewed_run != '') || contains(github.event.head_commit.message, '[reviewed-apk ') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Verify successful session-branch build
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.reviewed_run }}
+          REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(printf '%s' "$REVIEW_MESSAGE" | sed -n 's/.*\[reviewed-apk \([0-9][0-9]*\)\].*/\1/p')
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > run.json
+          jq -e '.conclusion == "success" and .status == "completed" and .head_branch == "arena/94d215f9-iron-crowns" and .path == ".github/workflows/godot-3d.yml"' run.json
+          SHA=$(jq -r .head_sha run.json)
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.verify.outputs.sha }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: Iron-Crowns-3D
+          path: artifacts
+          run-id: ${{ steps.verify.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify binary provenance and stage exact reviewed APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_SHA: ${{ steps.verify.outputs.sha }}
+        run: |
+          set -euo pipefail
+          exec > >(tee /tmp/reviewed-publish.log) 2>&1
+          publish_diagnostics() {
+            code=$?
+            if [ "$code" -ne 0 ]; then
+              python3 -c 's=open("/tmp/reviewed-publish.log").read()[-12000:];print("::error::"+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+            fi
+            exit "$code"
+          }
+          trap publish_diagnostics EXIT
+          printf 'Expected source: %s\n' "$REVIEWED_SHA"
+          ls -lah artifacts
+          cat artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt
+          grep -Fx "Source: $REVIEWED_SHA" artifacts/BUILD.txt
+          grep -Fx 'Version: 0.7.0-peoples-preview' artifacts/BUILD.txt
+          grep -q '^PASS:' artifacts/ANDROID-SMOKE.txt
+          (cd artifacts && sha256sum -c SHA256SUMS.txt)
+          # A repository-authorized client creates/publishes the draft at the reviewed
+          # source SHA. The job token uploads binaries without creating an older-SHA tag.
+          gh release view v0.7.0-peoples-preview --json isDraft,targetCommitish > draft.json
+          jq -e --arg sha "$REVIEWED_SHA" '.isDraft == true and .targetCommitish == $sha' draft.json
+          gh release upload v0.7.0-peoples-preview artifacts/Iron-Crowns-0.7.0-Peoples.apk artifacts/Iron-Crowns-0.7.0-Data.icdata artifacts/Iron-Crowns-0.7.0-Data.manifest.json artifacts/iron-mounted.png artifacts/android-mounted.png artifacts/android-data.png artifacts/SHA256SUMS.txt artifacts/BUILD.txt artifacts/ANDROID-SMOKE.txt artifacts/iron-title.png artifacts/iron-field.png artifacts/iron-human.png artifacts/iron-map.png artifacts/iron-origin.png artifacts/iron-wanderer.png artifacts/android-field.png artifacts/android-campaign.png artifacts/android-wanderer.png artifacts/android-hero.png --clobber
