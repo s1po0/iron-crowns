@@ -2,6 +2,7 @@ extends Control
 
 var game
 var help_open = false
+var last_drawn_view = ""
 var journal_open = false
 var factions_open = false
 var faction_choice = 0
@@ -95,6 +96,12 @@ func _draw() -> void:
 		FactionsOverlay.draw(self)
 	if help_open:
 		draw_help()
+	# The emulator can render at <1 FPS. Report the actual rebuilt button layout,
+	# not merely the input that requested it, so device tests don't tap stale UI.
+	var view = "help" if help_open else "factions" if factions_open else "journal:"+str(journal_tab) if journal_open and game.map_open and not game.paused else "pause" if game.paused else "realm" if game.map_open else str(game.state)
+	if view!=last_drawn_view:
+		last_drawn_view = view
+		print("IRON_UI_DRAWN:"+view)
 
 func draw_title() -> void:
 	draw_texture_rect(menu_gradient,Rect2(0,0,825,720),false)

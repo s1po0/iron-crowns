@@ -106,6 +106,26 @@ coords() {
 }
 tap() { read -r x y < <(coords "$1" "$2"); adb shell input tap "$x" "$y"; }
 swipe() { read -r x y < <(coords "$1" "$2"); read -r tx ty < <(coords "$3" "$4"); adb shell input swipe "$x" "$y" "$tx" "$ty" "$5"; }
+# Wait for the new UI's button layout to have actually been drawn. Do not replay
+# transactional taps: doing so could hire/recruit/pay twice.
+wait_ui() {
+  for attempt in $(seq 1 40); do
+    if godot_log | grep -Fq "IRON_UI_DRAWN:$1"; then return 0; fi
+    sleep 1
+  done
+  echo "UI did not render expected view: $1"
+  return 1
+}
+wait_save() {
+  for attempt in $(seq 1 40); do
+    adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/wait-save.json
+    if python3 -c "import json; s=json.load(open('artifacts/android/wait-save.json')); assert $1" 2>/dev/null; then return 0; fi
+    sleep 1
+  done
+  echo "Save did not reach expected state: $1"
+  cat artifacts/android/wait-save.json
+  return 1
+}
 # Update actual catalog bytes and revision without replacing/reinstalling the APK.
 adb push artifacts/Test-Revision-2.icdata /sdcard/Download/Test-Revision-2.icdata
 adb logcat -c || true # best-effort diagnostics only; readiness checks are scoped to the current PID
@@ -201,15 +221,15 @@ print('On-device 3D HUD recruitment and progress-write assertion passed.')
 PYTEST
 # Hire the local scout and accept a neutral delivery through the real journal UI.
 tap 335 667
-sleep 1
+wait_ui journal:0
 tap 760 220
-sleep 1
+wait_ui journal:2
 tap 975 295
-sleep 1
+wait_save "s['gold']==90 and s['realm']['life']['companions']==[0]"
 tap 500 220
-sleep 1
+wait_ui journal:1
 tap 350 520
-sleep 1
+wait_save "s['realm']['life']['delivery'].get('to')==1"
 adb exec-out screencap -p > artifacts/android/05-journal.png
 adb exec-out run-as "$PKG" cat files/progress.json > artifacts/android/wanderer-active.json
 python3 - <<'PYLIFE'
