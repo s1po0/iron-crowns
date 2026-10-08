@@ -13,9 +13,15 @@ jobs:
       - uses: actions/checkout@v5
       - name: Rebuild and test licensed human asset
         run: |
-          python3 scripts/build-human-model.py
-          python3 -m unittest discover -s tests -p 'test_human_model.py' -v
-          git diff --exit-code -- art-source/human/generated/
+          set -o pipefail
+          {
+            python3 scripts/build-human-model.py &&
+            python3 -m unittest discover -s tests -p 'test_human_model.py' -v &&
+            git diff --exit-code -- art-source/human/generated/
+          } 2>&1 | tee /tmp/human-tests.log || {
+            python3 -c 's=open("/tmp/human-tests.log").read()[-12000:];print("::error::"+s.replace("%","%25").replace("\n","%0A"))'
+            exit 1
+          }
       - name: Install pinned Godot editor and software renderer
         run: |
           curl -fsSL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip

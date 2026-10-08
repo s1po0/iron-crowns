@@ -63,7 +63,7 @@ def build():
         parent = bones[name]['parent']
         parents.append(retained(parent) if parent else None)
         ids = skeleton['joints'][bones[name]['head']]
-        heads.append([sum(points[i][axis] for i in ids)/len(ids) for axis in range(3)])
+        heads.append([math.fsum(points[i][axis] for i in ids)/len(ids) for axis in range(3)])
     weights = collections.defaultdict(lambda: collections.defaultdict(float))
     for name, rows in weight_source['weights'].items():
         bone = kept.index(retained(name))
@@ -79,7 +79,7 @@ def build():
                 normal_sum[vertex][axis] += n[axis]
     normals = []
     for n in normal_sum:
-        length = math.sqrt(sum(v*v for v in n)) or 1
+        length = math.sqrt(math.fsum(v*v for v in n)) or 1
         normals.append([v/length for v in n])
     keys = sorted({key for face in faces for key in face})
     lookup = {key: index for index, key in enumerate(keys)}
@@ -91,7 +91,7 @@ def build():
         strongest = sorted(weights[vertex].items(), key=lambda p: (-p[1], p[0]))[:4]
         if not strongest:
             strongest = [(0, 1.)]
-        total = sum(w for _, w in strongest)
+        total = math.fsum(w for _, w in strongest)
         strongest += [(0, 0.)] * (4-len(strongest))
         joints.append([i for i, _ in strongest])
         skin_weights.append([w/total for _, w in strongest])
@@ -156,7 +156,7 @@ def build():
         doc['meshes'].append({'name':label,'primitives':[{'attributes':{'POSITION':accessor(ps,5126,'VEC3',True),'NORMAL':accessor(normal,5126,'VEC3')},'indices':accessor(ids,5125,'SCALAR'),'material':material}]})
         for side in ['L','R']:
             group=skeleton['joints'][bones['eye.'+side]['head']]
-            center=[sum(points[i][axis] for i in group)/len(group) for axis in range(3)]
+            center=[math.fsum(points[i][axis] for i in group)/len(group) for axis in range(3)]
             h=heads[kept.index('head')]
             at=[center[axis]-h[axis] for axis in range(3)]
             at[2]+=forward
