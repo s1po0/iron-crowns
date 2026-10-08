@@ -18,7 +18,7 @@ finish() {
   adb logcat -d > artifacts/android/logcat.txt
   if [ "$status" -ne 0 ]; then
     tail -45 /tmp/android-smoke.log > artifacts/android/failure-context.txt
-    python3 -c 's=open("artifacts/android/failure-context.txt").read();print("::error::Failure context: "+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
+    python3 -c 's=open("artifacts/android/failure-context.txt").read()[-3000:];print("::error::Failure context: "+s.replace("%","%25").replace("\n","%0A").replace("\r","%0D"))'
     adb exec-out screencap -p > artifacts/android/failure.png
     python3 - <<'PYLOG'
 lines=open('artifacts/android/logcat.txt',errors='replace').readlines()
