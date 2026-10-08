@@ -35,7 +35,7 @@ jobs:
           mkdir -p artifacts
           export IRON_HUMAN_MODEL="$GITHUB_WORKSPACE/art-source/human/generated/human-foundation.glb"
           export IRON_HUMAN_CAPTURE="$GITHUB_WORKSPACE/artifacts/human-foundation.png"
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90 xvfb-run -a godot --path tools/human-preview --script preview.gd -- --capture 2>&1 | tee artifacts/human-review.log || true
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90 xvfb-run -a godot --audio-driver Dummy --path tools/human-preview --script preview.gd -- --capture 2>&1 | tee artifacts/human-review.log || true
           if grep -E 'SCRIPT ERROR|Parse Error|ERROR:' artifacts/human-review.log || ! grep -q IRON_HUMAN_IMPORT_PASS artifacts/human-review.log; then
             python3 -c 's=open("artifacts/human-review.log").read()[-14000:];print("::error::"+s.replace("%","%25").replace("\n","%0A"))'
             exit 1
