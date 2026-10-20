@@ -79,7 +79,7 @@ func make_ui() -> void:
 	remote=label("چیرۆکی ئۆفلاین · v%d" % story.revision,row,510)
 func rebuild_town() -> void:
 	if town!=null:
-		remove_child(town);town.queue_free()
+		town.visible=false;town.process_mode=Node.PROCESS_MODE_DISABLED;town.queue_free()
 	town=CrownTown.new();add_child(town);town.setup(sim)
 func act(action: Callable,rebuild: bool=false) -> void:
 	if save_locked:

@@ -5,7 +5,7 @@ on:
     branches: ['arena/94d215f9-iron-crowns']
     paths: ['godot/scripts/crown_*.gd', 'godot/campaign/**', 'godot/campaign.tscn', '.github/workflows/crown-campaign.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -34,6 +34,19 @@ jobs:
           grep -q IRON_CROWN_RENDER_PASS artifacts/render.log
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
           cp /tmp/iron-crown-campaign.png artifacts/
+      - name: Preserve actual campaign render for review
+        run: |
+          mkdir -p docs/screenshots
+          cp artifacts/iron-crown-campaign.png docs/screenshots/crown-campaign-review.png
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add docs/screenshots/crown-campaign-review.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual Crown campaign scene'
+            git fetch origin arena/94d215f9-iron-crowns
+            git rebase origin/arena/94d215f9-iron-crowns
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
       - name: Summarize diagnostics
         if: always()
         run: |
