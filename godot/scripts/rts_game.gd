@@ -93,6 +93,20 @@ func new_game() -> void:
 	started=true
 	ui.intro.hide()
 
+func restart() -> void:
+	for node in world.structures.values()+world.actors.values():
+		node.queue_free()
+	world.structures.clear()
+	world.actors.clear()
+	world.rotating.clear()
+	sim=CastleSim.new()
+	paused=false
+	autosave=0
+	ui.finish.text=""
+	ui.notice.text=""
+	new_game()
+	locate()
+
 func resume() -> void:
 	if not sim.load_game():
 		ui.notice.text="پاشەکەوتەکە ناگونجێت؛ گوندێکی نوێ دەست پێ بکە."
@@ -221,3 +235,4 @@ func _unhandled_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED,NOTIFICATION_WM_CLOSE_REQUEST] and started:
 		sim.save_game()
+		paused=true

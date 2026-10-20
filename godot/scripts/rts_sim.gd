@@ -37,7 +37,7 @@ static func world(cell: Vector2) -> Vector3:
 static func cell(point: Vector3) -> Vector2i:
 	return Vector2i(roundi(point.x/TILE+SIZE*.5),roundi(point.z/TILE+SIZE*.5))
 
-func water(p: Vector2i) -> bool:
+static func water(p: Vector2i) -> bool:
 	return p.x<3 or p.y<3 or p.x>=SIZE-3 or p.y>=SIZE-3 or (p.x>=30 and p.x<=32 and not p.y in [16,17,18])
 
 func rebuild_navigation() -> void:
@@ -330,13 +330,13 @@ static func valid(raw) -> bool:
 		for key in ["id","x","y","hp","built"]:
 			if not b.get(key) is float and not b.get(key) is int:
 				return false
-		if b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>=SIZE-3 or b.y+FOOTPRINT[b.kind]>=SIZE-3 or b.hp<0 or b.hp>600 or b.built<0 or b.built>1:
+		if b.id<0 or b.id!=int(b.id) or b.x!=int(b.x) or b.y!=int(b.y) or b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>=SIZE-3 or b.y+FOOTPRINT[b.kind]>=SIZE-3 or b.hp<0 or b.hp>600 or b.built<0 or b.built>1:
 			return false
 		ids[b.id]=true
 		for y in FOOTPRINT[b.kind]:
 			for x in FOOTPRINT[b.kind]:
 				var p=Vector2i(b.x+x,b.y+y)
-				if p in occupied:
+				if water(p) or p in occupied:
 					return false
 				occupied[p]=true
 	if raw.buildings[0].kind!="keep":
@@ -350,12 +350,15 @@ static func valid(raw) -> bool:
 		for key in ["hp","home","id","wait","amount","attack","facing"]:
 			if not valid_number(u.get(key),-600,1000000):
 				return false
+		if not u.get("walking") is bool or u.id<0 or u.id!=int(u.id) or u.id in ids:
+			return false
+		ids[u.id]=true
 		if not u.get("carry") in ["","wood","stone","grain","flour","bread"] or not u.get("phase") in ["out","input","return"]:
 			return false
 	for key in ["time","food_clock","stage","next_id","wave","baked","kills","deliveries"]:
 		if not valid_number(raw[key],0,1000000):
 			return false
-	return raw.stage<=9 and raw.wave<=1 and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,SIZE)
+	return raw.next_id>ids.keys().max() and raw.stage<=9 and raw.wave<=1 and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,SIZE)
 
 static func valid_number(value, low: float, high: float) -> bool:
 	return (value is float or value is int) and is_finite(float(value)) and value>=low and value<=high

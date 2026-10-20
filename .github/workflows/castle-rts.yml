@@ -4,10 +4,16 @@ on:
     branches: ['arena/94d215f9-iron-crowns']
     paths: ['godot/scripts/rts_*.gd', 'godot/rts.tscn', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
+    inputs:
+      reviewed_run:
+        description: 'Successful reviewed castle run to publish without rebuilding'
+        required: false
+        type: string
 permissions:
   contents: write
 jobs:
   castle:
+    if: ${{ !inputs.reviewed_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -75,3 +81,31 @@ jobs:
           name: castle-rts-preview
           path: artifacts/
           retention-days: 30
+
+  publish-reviewed:
+    if: ${{ inputs.reviewed_run != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish the exact reviewed preview, not a rebuilt binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REVIEWED: ${{ inputs.reviewed_run }}
+        run: |
+          gh run view "$REVIEWED" --repo "$REPO" --json conclusion,workflowName,headBranch,headSha > run.json
+          python3 - <<'PYRELEASE'
+          import json
+          r=json.load(open('run.json'))
+          assert r['conclusion']=='success' and r['workflowName']=='Castle RTS preview' and r['headBranch']=='arena/94d215f9-iron-crowns'
+          open('head.txt','w').write(r['headSha'])
+          PYRELEASE
+          gh run download "$REVIEWED" --repo "$REPO" -n castle-rts-preview -D artifacts
+          cat > notes.md <<'NOTES'
+          Independent Android castle-building RTS evaluation preview, package com.ironcrowns.castles.
+          Install the APK, launch and import the matching .icdata through the native picker. Old releases/saves are not replaced.
+          Includes a Sorani guided first mission, physical worker deliveries, wheat/flour/bread production, construction and a defensive raid.
+          Low/Medium/High are targets for 4 / 6–8 / 8+ GB devices, not certified physical-device performance.
+          This is NOT a full Stronghold-scale game, NOT a >1-GB asset pack, and NOT an OBB. Data contains roughly 20 MB of actually used assets, with no padding.
+          Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render and Android export passed; physical-phone testing is outstanding.
+          NOTES
+          gh release create v0.8.0-castle-preview --repo "$REPO" --target "$(cat head.txt)" --title "Iron Crowns 0.8 — Castle RTS evaluation" --prerelease --notes-file notes.md artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png

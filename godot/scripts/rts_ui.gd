@@ -11,6 +11,7 @@ var selected: Label
 var controller: Node
 var quality: OptionButton
 var finish: Label
+var restart: Button
 
 func button(text: String, action: Callable, parent: Node, width: float=100) -> Button:
 	var b=Button.new()
@@ -126,10 +127,14 @@ func setup(game: Node) -> void:
 	finish.add_theme_font_size_override("font_size",30)
 	finish.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(finish)
+	restart=button("گوندێکی نوێ",game.restart,root,180)
+	restart.position=Vector2(550,380)
+	restart.visible=false
 
 func update(sim: CastleSim) -> void:
 	stats.text="دار %d   بەرد %d   گەنم %d   ئارد %d   نان %d   زێڕ %d" % [sim.resources.wood,sim.resources.stone,sim.resources.grain,sim.resources.flour,sim.resources.bread,sim.resources.gold]
 	tutorial.text=STEPS[sim.stage]
 	selected.text=NAMES.get(controller.chosen,"فەرمانی سوپا")+" — شوێنێک لە نەخشە دیاری بکە"
+	restart.visible=not sim.ended.is_empty()
 	if not sim.ended.is_empty():
 		finish.text="گوندەکەت پاراست!" if sim.ended=="victory" else "قەڵاکەت ڕووخا"

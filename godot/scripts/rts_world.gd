@@ -22,8 +22,8 @@ func setup() -> void:
 	env.sky=sky
 	env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color=Color("b9c6cd")
-	env.ambient_light_energy=.55
-	env.tonemap_mode=Environment.TONE_MAPPER_FILMIC
+	env.ambient_light_energy=.45
+	env.tonemap_mode=Environment.TONE_MAPPER_LINEAR
 	env.fog_enabled=true
 	env.fog_light_color=Color("aebcb3")
 	env.fog_density=.0015
@@ -32,7 +32,7 @@ func setup() -> void:
 	sun=DirectionalLight3D.new()
 	sun.rotation_degrees=Vector3(-48,-35,0)
 	sun.light_color=Color("ffe0b0")
-	sun.light_energy=1.65
+	sun.light_energy=1.1
 	sun.directional_shadow_max_distance=90
 	sun.shadow_enabled=true
 	add_child(sun)
@@ -84,6 +84,7 @@ func landscape() -> void:
 	var terrain=MeshInstance3D.new()
 	terrain.mesh=surface.commit()
 	terrain.material_override=FieldMaterials.ground()
+	terrain.material_override.shader.code=terrain.material_override.shader.code.replace("NORMAL_MAP =", "ALBEDO *= vec3(.68,.76,.68); NORMAL_MAP =")
 	add_child(terrain)
 	var water=MeshInstance3D.new()
 	var plane=PlaneMesh.new()
@@ -112,7 +113,7 @@ func landscape() -> void:
 
 func forest() -> void:
 	var leaf=QuadMesh.new()
-	leaf.size=Vector2(7,8)
+	leaf.size=Vector2(3.6,3.6)
 	# Crossed textured canopy cards instead of cone symbols. One draw per crossed layer.
 	for layer in 3:
 		var multi=MultiMesh.new()
@@ -126,18 +127,24 @@ func forest() -> void:
 			multi.mesh=trunk
 		else:
 			multi.mesh=leaf
-		multi.instance_count=220
-		for i in 220:
+		var factor=1 if layer==2 else 6
+		multi.instance_count=220*factor
+		for instance in multi.instance_count:
+			var i=int(instance/factor)
+			var cluster=instance%factor
 			var angle=i*2.399
 			var p=Vector3(-35+sin(angle)*14,3.8,-29+cos(angle)*15)
 			if i>120:
 				p=Vector3(-47+sin(angle)*9,3.8,cos(angle)*42)
 			if layer==2:
 				p.y=2
+			else:
+				p+=Vector3(cos(cluster*2.4)*1.4,1+sin(cluster*2.4)*.8,sin(cluster*2.4)*1.4)
 			var basis=Basis(Vector3.UP,layer*PI*.5+sin(i)*.3).scaled(Vector3.ONE*(.65+(i%7)*.08))
-			multi.set_instance_transform(i,Transform3D(basis,p))
+			multi.set_instance_transform(instance,Transform3D(basis,p))
 		var node=MultiMeshInstance3D.new()
 		node.multimesh=multi
+		node.set_meta("density",factor)
 		node.material_override=FieldMaterials.surface("timber",Color("605342"),1) if layer==2 else FieldMaterials.cutout("leaves")
 		node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
@@ -157,8 +164,19 @@ func building(b: Dictionary) -> Node3D:
 		MarchArt.box(root,Vector3(1,.8,1),Vector3(2,1.6,2),FieldMaterials.surface("masonry",Color.WHITE,1))
 	elif b.kind=="farm":
 		MarchArt.box(root,Vector3(0,.04,0),Vector3(8,.08,8),FieldMaterials.surface("earth",Color.WHITE,1))
-		for row in 12:
-			MarchArt.box(root,Vector3(-3.7+row*.65,.35,0),Vector3(.16,.6,7.6),MarchArt.material(Color("a79b55")))
+		var crop=MultiMeshInstance3D.new()
+		var plants=MultiMesh.new()
+		plants.transform_format=MultiMesh.TRANSFORM_3D
+		var stalk=QuadMesh.new()
+		stalk.size=Vector2(.7,.8)
+		plants.mesh=stalk
+		plants.instance_count=144
+		for i in 144:
+			plants.set_instance_transform(i,Transform3D(Basis(Vector3.UP,(i%3)*.7),Vector3(-3.6+(i%12)*.65,.4,-3.6+int(i/12)*.65)))
+		crop.multimesh=plants
+		crop.material_override=FieldMaterials.cutout("grass").duplicate()
+		crop.material_override.albedo_color=Color("d5b879")
+		root.add_child(crop)
 	elif b.kind in ["wall","gate"]:
 		for x in [-1.0,1.0] if b.kind=="gate" else [0.0]:
 			MarchArt.box(root,Vector3(x,1.5,0),Vector3(.8 if b.kind=="gate" else 3,3,.8),FieldMaterials.surface("masonry",Color("aea58d"),.6))
@@ -185,7 +203,7 @@ func building(b: Dictionary) -> Node3D:
 	label.text=CastleUI.NAMES.get(b.kind,"")
 	label.font=load("res://assets/fonts/vazirmatn.ttf")
 	label.font_size=40
-	label.pixel_size=.013
+	label.pixel_size=.022
 	label.position=Vector3(0,8 if b.kind=="keep" else 6,0)
 	label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	label.modulate=Color("e7dec1")
@@ -223,4 +241,4 @@ func set_quality(index: int) -> void:
 	sun.directional_shadow_max_distance=[0,55,90][quality]
 	for child in get_children():
 		if child is MultiMeshInstance3D:
-			child.multimesh.visible_instance_count=[85,150,220][quality]
+			child.multimesh.visible_instance_count=[85,150,220][quality]*int(child.get_meta("density",1))
