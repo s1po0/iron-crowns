@@ -7,7 +7,10 @@ const MAPS={
  "crossing":{"title":"٢ — پردی باشوور","story":"ڕووبار گوندەکەت لە کانگەکە جیا دەکاتەوە. پردەکە ڕێگای بەرد و هێرشەکانی باشوورە؛ ڕێگای کرێکاران مەبەستە و بەرگری لە سەری پرد بکە.","axis":"y","river":[25,27],"bridge":[18,21],"wood":[8,10],"quarry":[8,30],"spawn":[6,30],"waves":[10,14,18],"soldiers":8,"bread":8,"wood_start":280,"stone_start":150,"tint":"c5bf9d"},
  "ridge":{"title":"٣ — دەروازەی ڕۆژئاوا","story":"لە زەوییە بەردینەکان قەڵاکەت بنیاد بنێ. دارستان لە لای بەرامبەری ڕووبارە؛ کرێکار و دوژمن هەردووکیان بە پردی ڕۆژئاوا دێن. خواردن و سوپای زیاتر ئامادە بکە.","axis":"x","river":[10,12],"bridge":[14,17],"wood":[7,10],"quarry":[28,28],"spawn":[5,5],"waves":[12,16,20],"soldiers":10,"bread":12,"wood_start":320,"stone_start":200,"tint":"bcb7ab"}
 }
+static var cache: Dictionary={}
 static func data(id: String) -> Dictionary:
+	if cache.has(id):
+		return cache[id]
 	if id.begins_with("realm_"):
 		var m: Dictionary=MAPS.get(id.trim_prefix("realm_"),MAPS.valley).duplicate(true)
 		m["size"]=400
@@ -17,6 +20,7 @@ static func data(id: String) -> Dictionary:
 		for key in ["river","bridge"]:
 			m[key]=[m[key][0]+180,m[key][1]+180]
 		m.title+=" — شانشینی فراوان"
+		cache[id]=m
 		return m
 	return MAPS.get(id,MAPS.valley)
 static func exists(id: String) -> bool:

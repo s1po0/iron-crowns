@@ -10,8 +10,16 @@ func setup(id: String) -> void:
 	mission_id=id
 	fallback=FieldMaterials.surface("earth",Color("778260"),1)
 	# Coarse 400²-cell base stays visible while near-camera detail streams in.
-	add_child(mesh_for(Vector2i.ZERO,400,fallback,-.025))
 	var m=CastleMissions.data(id)
+	for span in [[-.5,m.river[0]-.5],[m.river[1]+.5,399.5]]:
+		var ground=MeshInstance3D.new()
+		var slab=PlaneMesh.new()
+		slab.size=Vector2((span[1]-span[0])*3,1200) if m.axis=="x" else Vector2(1200,(span[1]-span[0])*3)
+		ground.mesh=slab
+		var middle=(span[0]+span[1])*.5
+		ground.position=CastleSim.world(Vector2(middle,199.5) if m.axis=="x" else Vector2(199.5,middle))+Vector3(0,-.025,0)
+		ground.material_override=fallback
+		add_child(ground)
 	var river=MeshInstance3D.new()
 	var plane=PlaneMesh.new()
 	plane.size=Vector2(9,1200) if m.axis=="x" else Vector2(1200,9)

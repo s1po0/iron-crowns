@@ -1,0 +1,43 @@
+name: Realm terrain data
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['.github/workflows/realm-data.yml', 'scripts/build-realm-data.py']
+permissions:
+  contents: write
+jobs:
+  terrain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy==2.2.6 pillow==11.2.1
+      - name: Generate all used terrain tiles without padding
+        run: python3 scripts/build-realm-data.py build/realm-data
+      - name: Verify and attach only to the source-matched draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view v0.11.0-realm-data --json isDraft,targetCommitish,assets > build/release.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open('build/release.json'))
+          assert r['isDraft'] and not r['assets'] and r['targetCommitish']==os.environ['GITHUB_SHA']
+          m=json.load(open('build/realm-data/realm-manifest.json'))
+          assert not m['test_fixture'] and len(m['regions'])==25 and m['total_bytes']>1073741824
+          assert all(0<r['bytes']<100000000 for r in m['regions'])
+          print('Verified genuine terrain bytes:',m['total_bytes'])
+          PY
+          (cd build/realm-data && sha256sum --check SHA256SUMS.txt)
+          gh release upload v0.11.0-realm-data build/realm-data/*.icregion build/realm-data/realm-manifest.json build/realm-data/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: realm-content-manifest
+          path: |
+            build/realm-data/realm-manifest.json
+            build/realm-data/SHA256SUMS.txt

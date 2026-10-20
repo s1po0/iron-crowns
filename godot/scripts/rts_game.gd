@@ -154,7 +154,10 @@ func restart() -> void:
 	chosen="stockpile"
 	ui.finish.text=""
 	ui.notice.text=""
-	select_mission(CastleMissions.IDS.find(selected_mission))
+	sim=CastleSim.new(selected_mission)
+	rebuild_world()
+	locate()
+	ui.refresh_briefing()
 	ui.intro.show()
 
 func next_mission() -> void:
