@@ -87,13 +87,14 @@ jobs:
     if: ${{ inputs.reviewed_run != '' || contains(github.event.head_commit.message, '[castle-reviewed ') }}
     runs-on: ubuntu-24.04
     steps:
-      - name: Publish the exact reviewed preview, not a rebuilt binary
+      - name: Upload the exact reviewed preview to a verified draft
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           REVIEWED: ${{ inputs.reviewed_run }}
           REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          set -euo pipefail
           exec > >(tee /tmp/castle-release.log) 2>&1
           if [ -z "$REVIEWED" ]; then
             REVIEWED=$(python3 -c 'import os,re; m=re.search(r"\[castle-reviewed ([0-9]+)\]",os.environ["REVIEW_MESSAGE"]); assert m; print(m.group(1))')
@@ -114,7 +115,22 @@ jobs:
           This is NOT a full Stronghold-scale game, NOT a >1-GB asset pack, and NOT an OBB. Data contains roughly 20 MB of actually used assets, with no padding.
           Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render and Android export passed; physical-phone testing is outstanding.
           NOTES
-          gh release create v0.8.0-castle-preview --repo "$REPO" --target "$(cat head.txt)" --title "Iron Crowns 0.8 — Castle RTS evaluation" --prerelease --notes-file notes.md artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png
+          # Tag/release creation can require permissions unavailable to GITHUB_TOKEN.
+          # An authorized maintainer creates the draft; CI only attaches verified files.
+          # Never overwrite a published release or silently replace any assets.
+          gh release view v0.8.0-castle-preview --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
+          python3 - <<'PYDRAFT'
+          import json
+          r=json.load(open('release.json'))
+          assert r['isDraft'], 'Refusing to change a published release'
+          assert r['targetCommitish']==open('head.txt').read().strip(), 'Draft must target the reviewed source commit'
+          assert not r['assets'], 'Draft has assets already; inspect before retrying'
+          PYDRAFT
+          (cd artifacts && sha256sum --check SHA256SUMS.txt)
+          printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
+          gh release upload v0.8.0-castle-preview --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png
+          gh release edit v0.8.0-castle-preview --repo "$REPO" --notes-file notes.md
+          echo 'Verified files attached. Maintainer must inspect assets and explicitly publish the draft.'
       - name: Report publication diagnostics
         if: failure()
         run: |
