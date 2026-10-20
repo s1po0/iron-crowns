@@ -2,7 +2,7 @@ name: Castle RTS preview
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'godot/rts.tscn', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
+    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'scripts/castle-android-smoke.py', 'godot/rts.tscn', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
     inputs:
       reviewed_run:
