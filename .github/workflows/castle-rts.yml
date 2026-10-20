@@ -14,7 +14,7 @@ permissions:
   actions: read
 jobs:
   castle:
-    if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[castle-reviewed ') && !contains(github.event.head_commit.message, '[castle-diagnose]') }}
+    if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[castle-reviewed ') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -164,27 +164,3 @@ jobs:
           s=p.read_text(errors='replace')[-5000:] if p.exists() else 'Publication did not produce a log.'
           print('::error::'+s.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
           PYREPORT
-
-  inspect-android:
-    if: ${{ contains(github.event.head_commit.message, '[castle-diagnose]') }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Retrieve failed Android test evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          gh run download 39369623805 --repo "$REPO" -n castle-rts-preview -D artifacts
-          python3 - <<'PYDIAG'
-          import pathlib,json,base64,subprocess,os
-          for p in [pathlib.Path('artifacts/rts-touch-points.json'),pathlib.Path('artifacts/android/farm-save.json')]:
-              text=p.read_text() if p.exists() else str(p)+' missing'
-              print('::notice::'+text.replace('%','%25').replace('\n','%0A'))
-          p=pathlib.Path('artifacts/android/failure.png')
-          if p.exists():
-              path='docs/screenshots/android-castle-diagnostic.png'; branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
-              lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
-              data={'branch':branch,'message':'docs: record Android construction diagnostic','content':base64.b64encode(p.read_bytes()).decode()}
-              if lookup.returncode==0:data['sha']=json.loads(lookup.stdout)['sha']
-              subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(data),text=True,check=True)
-          PYDIAG

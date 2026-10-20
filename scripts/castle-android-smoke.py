@@ -37,10 +37,18 @@ try:
     def tap(name): tap_xy(*points[name])
     tap('start'); tap('farm'); screenshot('02-farm-selected.png')
     tap('suggest'); screenshot('03-farm-position.png')
-    tap('build'); time.sleep(10); tap('save')
-    saved=json.loads(adb('exec-out','run-as',PKG,'cat','files/castle-rts-v1.json'))
-    (OUT/'farm-save.json').write_text(json.dumps(saved,indent=2))
-    farms=[b for b in saved['buildings'] if b['kind']=='farm']
+    tap('build')
+    # Software-emulated graphics can advance simulation much slower than wall time.
+    # Observe actual completed construction; never change speed/resources for the test.
+    deadline=time.monotonic()+180
+    while True:
+        tap('save')
+        saved=json.loads(adb('exec-out','run-as',PKG,'cat','files/castle-rts-v1.json'))
+        (OUT/'farm-save.json').write_text(json.dumps(saved,indent=2))
+        farms=[b for b in saved['buildings'] if b['kind']=='farm']
+        if len(farms)==1 and farms[0]['built']==1: break
+        if time.monotonic()>=deadline: break
+        time.sleep(1)
     assert len(farms)==1 and farms[0]['built']==1, saved
     assert saved['resources']['wood']==185, saved['resources']
     screenshot('04-built-farm.png')
@@ -54,7 +62,8 @@ try:
     screenshot('05-restored-farm.png')
     assert 'SCRIPT ERROR' not in logs(), logs()[-4000:]
     print('IRON_ANDROID_TOUCH_FARM_PASS',flush=True)
-except Exception:
+except Exception as exc:
+    print('::error::Android farm smoke: '+repr(exc).replace('%','%25').replace('\n','%0A'),flush=True)
     try:
         screenshot('failure.png')
         print('::error::'+logs()[-4000:].replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
