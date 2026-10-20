@@ -94,7 +94,7 @@ func by_kind(kind: String) -> Array:
 	return buildings.filter(func(b):return b.kind==kind and b.built>=1.0 and b.hp>0)
 
 func add_unit(kind: String, p: Vector2i, home: int=-1) -> void:
-	units.append({"id":next_id,"kind":kind,"at":Vector2(p),"hp":45.0 if kind=="raider" else 75.0,"home":home,"route":[],"goal":p,"phase":"out","wait":0.0,"carry":"","amount":0,"attack":0.0,"facing":0.0,"walking":false})
+	units.append({"id":next_id,"kind":kind,"at":Vector2(p),"hp":45.0 if kind=="raider" else 75.0,"home":home,"route":[],"goal":p,"phase":"out","wait":0.0,"carry":"","amount":0,"attack":0.0,"facing":0.0,"walking":false,"hit":false})
 	next_id+=1
 
 func train() -> bool:
@@ -136,7 +136,7 @@ func route(u: Dictionary, goal: Vector2i, dt: float) -> bool:
 	var delta: Vector2 = next-u.at
 	u.facing=atan2(-delta.x,-delta.y)
 	u.walking=true
-	u.at=u.at.move_toward(next,dt*(1.1 if u.kind=="worker" else 1.6))
+	u.at=u.at.move_toward(next,dt*(.55 if u.kind=="worker" else .8))
 	if u.at.distance_to(next)<.04:
 		u.route.pop_front()
 	return false
@@ -192,25 +192,32 @@ func combat(u: Dictionary, dt: float) -> void:
 	enemies.sort_custom(func(a,b):return u.at.distance_squared_to(a.at)<u.at.distance_squared_to(b.at))
 	if not enemies.is_empty() and u.at.distance_to(enemies[0].at)<7:
 		var target: Dictionary=enemies[0]
-		if u.at.distance_to(target.at)<1.3:
+		if u.at.distance_to(target.at)<.65:
 			u.walking=false
 			u.facing=atan2(u.at.x-target.at.x,u.at.y-target.at.y)
 			if u.attack<=0:
 				u.attack=1.1
+				u.hit=false
+			if u.attack<=.65 and u.attack>.45 and not u.hit:
+				u.hit=true
 				target.hp-=12 if u.kind=="soldier" else 7
 				if target.hp<=0 and target.kind=="raider":
 					kills+=1
 		else:
 			route(u,Vector2i(target.at.round()),dt)
 	elif u.kind=="soldier":
-		route(u,rally,dt)
+		var rank=units.filter(func(other):return other.kind=="soldier" and other.hp>0).find(u)
+		var goal=rally+Vector2i(rank%4,int(rank/4))
+		if water(goal) or navigation.is_point_solid(goal):
+			goal=rally
+		route(u,goal,dt)
 	else:
 		var target: Dictionary=buildings[0]
 		var walls=buildings.filter(func(b):return b.kind in ["wall","gate"] and b.hp>0)
 		walls.sort_custom(func(a,b):return u.at.distance_squared_to(Vector2(a.x,a.y))<u.at.distance_squared_to(Vector2(b.x,b.y)))
 		if not walls.is_empty():
 			target=walls[0]
-		if u.at.distance_to(Vector2(entrance(target)))<1.5:
+		if u.at.distance_to(Vector2(entrance(target)))<.65:
 			u.walking=false
 			if u.attack<=0:
 				u.attack=1.1
@@ -296,6 +303,7 @@ func load_game(path: String=SAVE) -> bool:
 		b.x=int(b.x)
 		b.y=int(b.y)
 	for u in units:
+		u.hit=bool(u.get("hit",false))
 		u.id=int(u.id)
 		u.home=int(u.home)
 		u.amount=int(u.amount)

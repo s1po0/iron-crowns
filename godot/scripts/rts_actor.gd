@@ -66,6 +66,7 @@ func update(unit: Dictionary, dt: float) -> void:
 		name="attack"
 	elif unit.wait>0:
 		name="work"
+	animation.speed_scale=1.35 if name in ["walk","carry"] else 1.0
 	if animation.current_animation!=name:
 		animation.play(name,.18)
 	carrying.visible=not str(unit.carry).is_empty()
