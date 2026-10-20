@@ -33,6 +33,15 @@ static func run() -> void:
 		var bad=JSON.parse_string(FileAccess.get_file_as_string(path))
 		bad.mission_id="unknown"
 		assert(not CastleSim.valid(bad))
+		if id=="valley":
+			var legacy=JSON.parse_string(FileAccess.get_file_as_string(path))
+			legacy.schema=2
+			legacy.erase("mission_id")
+			var file=FileAccess.open("user://map-legacy-v2.json",FileAccess.WRITE)
+			file.store_string(JSON.stringify(legacy))
+			file.close()
+			assert(restored.load_game("user://map-legacy-v2.json") and restored.mission_id=="valley")
+			assert(FileAccess.file_exists("user://map-legacy-v2.json.v2-backup"))
 		var battle=CastleSim.new(id)
 		battle.spawn_wave()
 		assert(battle.units.size()==CastleMissions.data(id).waves[0])

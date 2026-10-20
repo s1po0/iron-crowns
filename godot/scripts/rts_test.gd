@@ -99,6 +99,10 @@ func run() -> void:
 	await tap(game.ui.suggest_button.get_global_rect().get_center())
 	await tap(game.ui.build_button.get_global_rect().get_center())
 	assert(game.sim.buildings.size()==3 and game.sim.resources.wood==original_wood-70,"Suggested plot must build through touch controls too")
+	await tap(game.ui.minimap.get_global_rect().position+Vector2(120,40))
+	assert(game.focus.distance_to(CastleSim.world(Vector2(30,10)))<.1,"Minimap touch must move camera, not place a building")
+	assert(game.sim.buildings.size()==3)
+	game.locate()
 	print("IRON_RTS_TOUCH_FARM_BUILD_PASS")
 	assert(game.sim.place("gate",Vector2i(25,12)))
 	game.sim.buildings[-1].built=1

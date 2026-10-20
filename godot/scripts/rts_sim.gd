@@ -390,12 +390,13 @@ func load_game(path: String=SAVE) -> bool:
 	var raw=JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not valid(raw):
 		return false
+	if raw.schema<3:
+		var backup=path+".v%d-backup" % int(raw.schema)
+		if not FileAccess.file_exists(backup) and DirAccess.copy_absolute(ProjectSettings.globalize_path(path),ProjectSettings.globalize_path(backup))!=OK:
+			return false
 	mission_id=str(raw.mission_id) if raw.schema==3 else "valley"
 	morale=int(raw.get("morale",100))
 	wave_clock=float(raw.get("wave_clock",REST_SECONDS if raw.wave>0 else 0))
-	if raw.schema==1 and not FileAccess.file_exists(path+".v1-backup"):
-		if DirAccess.copy_absolute(ProjectSettings.globalize_path(path),ProjectSettings.globalize_path(path+".v1-backup"))!=OK:
-			return false
 	resources=raw.resources
 	for key in resources:
 		resources[key]=int(resources[key])

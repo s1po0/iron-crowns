@@ -25,6 +25,7 @@ var screenshot_clock=0.0
 var demolition_id=-1
 var demolition_until=0
 var selected_mission="valley"
+var end_save_attempted=false
 
 func _ready() -> void:
 	# Native Control widgets need emulated mouse clicks; map gestures handle raw touches separately.
@@ -81,6 +82,10 @@ func _process(dt: float) -> void:
 	camera.look_at(focus)
 	if started and not paused:
 		sim.step(dt)
+		if not sim.ended.is_empty() and not end_save_attempted:
+			end_save_attempted=true
+			if not sim.save_game():
+				ui.notice.text="ئەنجامی میشن پاشەکەوت نەکرا؛ بۆشایی ئامێرەکەت بپشکنە."
 		world.sync(sim,dt)
 		autosave+=dt
 		if autosave>30:
@@ -101,6 +106,7 @@ func _process(dt: float) -> void:
 			get_tree().quit()
 
 func new_game() -> void:
+	end_save_attempted=false
 	started=false
 	if FileAccess.file_exists(CastleSim.SAVE):
 		if DirAccess.copy_absolute(ProjectSettings.globalize_path(CastleSim.SAVE),ProjectSettings.globalize_path(CastleSim.SAVE+".previous"))!=OK:
