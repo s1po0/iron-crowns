@@ -39,7 +39,7 @@ func _ready() -> void:
 	if not "--crown-offline" in OS.get_cmdline_user_args():cloud.refresh()
 	print("IRON_CROWN_READY")
 func label(text: String,parent: Node,width: int=0) -> Label:
-	var node=Label.new();node.text=text;node.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	var node=Label.new();node.text=text;node.text_direction=Control.TEXT_DIRECTION_RTL;node.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;node.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if width>0:node.custom_minimum_size.x=width
 	parent.add_child(node);return node
 func button(text: String,call: Callable,parent: Node,width: int=120,key: String="") -> Button:
@@ -52,7 +52,8 @@ func panel(parent: Node,rect: Rect2) -> VBoxContainer:
 func make_ui() -> void:
 	var canvas=CanvasLayer.new();add_child(canvas)
 	body=Control.new();body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);body.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	body.layout_direction=Control.LAYOUT_DIRECTION_RTL
+	# Fixed screen geometry must not mirror over the playable town. Text remains RTL.
+	body.layout_direction=Control.LAYOUT_DIRECTION_LTR
 	var theme=Theme.new();theme.default_font=load("res://assets/fonts/vazirmatn.ttf");theme.default_font_size=17
 	var style=StyleBoxFlat.new();style.bg_color=Color("142526f2");style.border_color=Color("b19a60");style.set_border_width_all(1);style.set_content_margin_all(12)
 	theme.set_stylebox("panel","PanelContainer",style)
