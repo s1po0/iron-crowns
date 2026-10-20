@@ -4,9 +4,9 @@
 
 Independent castle-building preview: worker deliveries, wheat → flour → bread, walls, soldier rally orders and a first raid, with a Sorani tutorial. This is **not a finished Stronghold-scale game**.
 
-[Download the tested APK + Data artifact](https://github.com/s1po0/iron-crowns/actions/runs/39365548276/artifacts/12238942914) (GitHub sign-in required; unzip `castle-rts-preview`) · [Successful engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39365548276) · [Controls and limitations](docs/CASTLE_RTS_PREVIEW.md).
+[Download the tested APK + Data release](https://github.com/s1po0/iron-crowns/releases/tag/v0.8.0-castle-preview) · [Successful engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39365548276) · [Controls and limitations](docs/CASTLE_RTS_PREVIEW.md).
 
-Install `Iron-Crowns-0.8.0-Castle-Preview.apk`, open it, choose **IMPORT GAME DATA**, and select the matching `Iron-Crowns-0.8.0-Castle-Data.icdata`. Package `com.ironcrowns.castles` is separate from the previous app and saves. Public Release creation is currently blocked by HTTP 403; no public 0.8 release is available yet.
+Install `Iron-Crowns-0.8.0-Castle-Preview.apk`, open it, choose **IMPORT GAME DATA**, and select the matching `Iron-Crowns-0.8.0-Castle-Data.icdata`. Package `com.ironcrowns.castles` is separate from the previous app and saves. The public prerelease contains the exact files from verified build `39365548276`, with SHA-256 checksums.
 
 Actual Data is about **20 MB, not over 1 GB**. Android cloud saves and physical-phone performance validation are not implemented. Low/Medium/High are rendering presets, not certified RAM-tier benchmarks.
 
