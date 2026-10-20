@@ -52,6 +52,26 @@ func run() -> void:
 		Input.flush_buffered_events()
 		await process_frame
 	assert(game.started,"A real touch event must activate New Game")
+	assert(game.sim.place("gate",Vector2i(25,12)))
+	game.sim.buildings[-1].built=1
+	game.inspect()
+	game.placement=Vector2i(25,12)
+	await process_frame
+	await process_frame
+	var gate_button=game.ui.management.get_child(0)
+	assert(gate_button.is_visible_in_tree())
+	for pressed in [true,false]:
+		var touch=InputEventScreenTouch.new()
+		touch.index=0
+		touch.position=gate_button.get_global_rect().get_center()
+		touch.pressed=pressed
+		Input.parse_input_event(touch)
+		Input.flush_buffered_events()
+		await process_frame
+	assert(game.sim.navigation.is_point_solid(Vector2i(25,12)),"Touch management button must really close the selected gate")
+	game.paused=true
+	game.manage("gate")
+	assert(game.sim.navigation.is_point_solid(Vector2i(25,12)),"Paused management cannot alter simulation")
 	game.queue_free()
 	await process_frame
 	print("IRON_RTS_TEST_PASS")
