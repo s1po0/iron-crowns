@@ -1,5 +1,6 @@
 class_name CastleWorld
 extends Node3D
+var mission_id="valley"
 var models: Dictionary={}
 var structures: Dictionary={}
 var actors: Dictionary={}
@@ -9,7 +10,8 @@ var sun: DirectionalLight3D
 var environment: WorldEnvironment
 var trees: MultiMeshInstance3D
 
-func setup() -> void:
+func setup(map_id: String="valley") -> void:
+	mission_id=map_id
 	models=ContentAssets.json("res://assets/content/rts/models.json")
 	environment=WorldEnvironment.new()
 	var env=Environment.new()
@@ -38,18 +40,29 @@ func setup() -> void:
 	add_child(sun)
 	landscape()
 	forest()
-	# A stone bridge spans the actual impassable river; paths use its walkable cells.
-	MarchArt.box(self,Vector3(33,.35,-9),Vector3(12,.7,9),FieldMaterials.surface("masonry",Color("9b9886"),.5))
-	for z in [-13.5,-4.5]:
-		MarchArt.box(self,Vector3(33,1,z),Vector3(12,.8,.4),FieldMaterials.surface("masonry",Color("9b9886"),.5))
-	for x in [-14,0,12]:
-		var house=model("house_small")
-		house.position=Vector3(x,0,-22)
-		house.rotation.y=.3
-		add_child(house)
-	var yard=model("yard_corner")
-	yard.position=Vector3(-8,0,-19)
-	add_child(yard)
+	var m=CastleMissions.data(mission_id)
+	var center=CastleSim.world(CastleMissions.bridge_center(mission_id))
+	var length=(m.bridge[1]-m.bridge[0]+1)*3.0
+	var along_x=m.axis=="x"
+	MarchArt.box(self,center+Vector3(0,.35,0),Vector3(12,.7,length) if along_x else Vector3(length,.7,12),FieldMaterials.surface("masonry",Color("9b9886"),.5))
+	for side in [-1,1]:
+		var offset=Vector3(0,1,side*length*.5) if along_x else Vector3(side*length*.5,1,0)
+		MarchArt.box(self,center+offset,Vector3(12,.8,.4) if along_x else Vector3(.4,.8,12),FieldMaterials.surface("masonry",Color("9b9886"),.5))
+	# Roads follow the same navigable grid as gameplay, not an unrelated painted route.
+	var road_sim=CastleSim.new(mission_id)
+	var road=road_sim.navigation.get_id_path(Vector2i(21,17),Vector2i(CastleMissions.bridge_center(mission_id)))
+	for cell in road:
+		if not CastleMissions.channel(Vector2(cell),mission_id):
+			MarchArt.box(self,CastleSim.world(Vector2(cell))+Vector3(0,.025,0),Vector3(2.8,.05,2.8),FieldMaterials.surface("earth",Color("b9a688"),1))
+	for key in ["wood","quarry"]:
+		var label=Label3D.new()
+		label.text="دارستان" if key=="wood" else "کانگەی بەرد"
+		label.font=load("res://assets/fonts/vazirmatn.ttf")
+		label.font_size=40
+		label.pixel_size=.025
+		label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+		label.position=CastleSim.world(Vector2(CastleMissions.point(mission_id,key)))+Vector3(0,6,0)
+		add_child(label)
 
 func model(key: String) -> Node3D:
 	var root=Node3D.new()
@@ -68,7 +81,7 @@ func model(key: String) -> Node3D:
 func height_at(x: float,z: float) -> float:
 	var edge=maxf(absf(x),absf(z))
 	var h=maxf(0,(edge-43)/12)*(2.5+sin(x*.1)*1.7+cos(z*.12)*1.4)
-	if x>=29 and x<=39:
+	if CastleMissions.channel(Vector2(x/CastleSim.TILE+20,z/CastleSim.TILE+20),mission_id):
 		h=-.7
 	return h
 
@@ -83,14 +96,15 @@ func landscape() -> void:
 	surface.generate_normals()
 	var terrain=MeshInstance3D.new()
 	terrain.mesh=surface.commit()
-	terrain.material_override=FieldMaterials.ground()
-	terrain.material_override.shader.code=terrain.material_override.shader.code.replace("NORMAL_MAP =", "ALBEDO *= vec3(.68,.76,.68); NORMAL_MAP =")
+	terrain.material_override=FieldMaterials.ground().duplicate(true)
+	terrain.material_override.shader.code=terrain.material_override.shader.code.replace("NORMAL_MAP =", "ALBEDO *= vec3(%f,%f,%f); NORMAL_MAP =" % [Color(CastleMissions.data(mission_id).tint).r,Color(CastleMissions.data(mission_id).tint).g,Color(CastleMissions.data(mission_id).tint).b])
 	add_child(terrain)
 	var water=MeshInstance3D.new()
 	var plane=PlaneMesh.new()
-	plane.size=Vector2(12,150)
+	plane.size=Vector2(9,150) if CastleMissions.data(mission_id).axis=="x" else Vector2(150,9)
 	water.mesh=plane
-	water.position=Vector3(34,-.3,0)
+	var river_center=CastleSim.world(CastleMissions.bridge_center(mission_id))
+	water.position=Vector3(river_center.x,-.3,0) if CastleMissions.data(mission_id).axis=="x" else Vector3(0,-.3,river_center.z)
 	var shader=Shader.new()
 	shader.code="shader_type spatial; void fragment(){float wave=sin(UV.y*180.0+TIME)*sin(UV.x*30.0-TIME*.6); ALBEDO=mix(vec3(.14,.27,.28),vec3(.26,.39,.36),wave*.18+.5); ROUGHNESS=.3; SPECULAR=.6;}"
 	var material=ShaderMaterial.new()
@@ -98,7 +112,7 @@ func landscape() -> void:
 	water.material_override=material
 	add_child(water)
 	for i in 24:
-		var p=Vector3(-36+sin(i*2.3)*7,.3,24+cos(i*1.7)*8)
+		var p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"quarry")))+Vector3(sin(i*2.3)*5,.3,cos(i*1.7)*5)
 		var stone=SphereMesh.new()
 		stone.radial_segments=7
 		stone.rings=4
@@ -133,9 +147,9 @@ func forest() -> void:
 			var i=int(instance/factor)
 			var cluster=instance%factor
 			var angle=i*2.399
-			var p=Vector3(-35+sin(angle)*14,3.8,-29+cos(angle)*15)
-			if i>120:
-				p=Vector3(-47+sin(angle)*9,3.8,cos(angle)*42)
+			var p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"wood")))+Vector3(sin(angle)*9,3.8,cos(angle)*12)
+			if CastleMissions.blocked(CastleSim.cell(p),mission_id):
+				p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"wood")))+Vector3(sin(angle)*3,3.8,cos(angle)*3)
 			if layer==2:
 				p.y=2
 			else:

@@ -24,6 +24,7 @@ var audio: AudioStreamPlayer
 var screenshot_clock=0.0
 var demolition_id=-1
 var demolition_until=0
+var selected_mission="valley"
 
 func _ready() -> void:
 	# Native Control widgets need emulated mouse clicks; map gestures handle raw touches separately.
@@ -33,7 +34,7 @@ func _ready() -> void:
 		quality_index=clampi(int(prefs.get_value("graphics","quality",1)),0,2)
 		sound=bool(prefs.get_value("audio","enabled",true))
 	add_child(world)
-	world.setup()
+	world.setup(sim.mission_id)
 	add_child(camera)
 	camera.current=true
 	camera.fov=42
@@ -54,6 +55,11 @@ func _ready() -> void:
 			audio.play())
 	if sound:
 		audio.play()
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--mission="):
+			var id=arg.trim_prefix("--mission=")
+			if CastleMissions.MAPS.has(id):
+				select_mission(CastleMissions.IDS.find(id))
 	if "--rts-capture" in OS.get_cmdline_user_args():
 		new_game()
 		sim.resources.wood=1000
@@ -104,24 +110,50 @@ func new_game() -> void:
 	started=true
 	ui.intro.hide()
 
+func rebuild_world() -> void:
+	remove_child(world)
+	world.queue_free()
+	world=CastleWorld.new()
+	add_child(world)
+	world.setup(sim.mission_id)
+	world.set_quality(quality_index)
+	world.sync(sim,0)
+
+func select_mission(index: int) -> void:
+	if started or index<0 or index>=CastleMissions.IDS.size():
+		return
+	selected_mission=CastleMissions.IDS[index]
+	sim=CastleSim.new(selected_mission)
+	rebuild_world()
+	ui.mission_choice.select(index)
+	ui.refresh_briefing()
+	locate()
+
 func restart() -> void:
-	for node in world.structures.values()+world.actors.values():
-		node.queue_free()
-	world.structures.clear()
-	world.actors.clear()
-	world.rotating.clear()
-	sim=CastleSim.new()
+	started=false
 	paused=false
 	autosave=0
+	placement_selected=false
+	chosen="stockpile"
 	ui.finish.text=""
 	ui.notice.text=""
-	new_game()
-	locate()
+	select_mission(CastleMissions.IDS.find(selected_mission))
+	ui.intro.show()
+
+func next_mission() -> void:
+	var index=CastleMissions.IDS.find(sim.mission_id)+1
+	if sim.ended!="victory" or index>=CastleMissions.IDS.size():
+		return
+	restart()
+	select_mission(index)
 
 func resume() -> void:
 	if not sim.load_game():
 		ui.notice.text="پاشەکەوتەکە ناگونجێت؛ گوندێکی نوێ دەست پێ بکە."
 		return
+	selected_mission=sim.mission_id
+	ui.mission_choice.select(CastleMissions.IDS.find(selected_mission))
+	rebuild_world()
 	started=true
 	ui.intro.hide()
 

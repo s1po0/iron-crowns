@@ -3,6 +3,7 @@ func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
 	CastleCampaignTest.run()
+	CastleMapsTest.run()
 	var sim=CastleSim.new()
 	assert(not sim.can_build("farm",Vector2i(31,10)))
 	assert(not sim.place("stockpile",Vector2i(18,16)))
@@ -59,7 +60,7 @@ func run() -> void:
 	await tap(farm_button.get_global_rect().get_center())
 	assert(game.chosen=="farm" and game.ui.build_button.is_visible_in_tree())
 	var points={"viewport":[root.size.x,root.size.y]}
-	for entry in [["start",start_button],["farm",farm_button],["build",game.ui.build_button],["suggest",game.ui.suggest_button],["save",game.ui.save_button]]:
+	for entry in [["start",start_button],["farm",farm_button],["build",game.ui.build_button],["suggest",game.ui.suggest_button],["save",game.ui.save_button],["mission",game.ui.mission_choice]]:
 		var pos=entry[1].get_global_rect().get_center()
 		points[entry[0]]=[pos.x,pos.y]
 	var point_file=FileAccess.open("/tmp/rts-touch-points.json",FileAccess.WRITE)
@@ -75,7 +76,7 @@ func run() -> void:
 		for x in range(6,29):
 			var p=Vector2i(x,y)
 			var projected=game.camera.unproject_position(CastleSim.world(Vector2(p)))
-			if game.sim.can_build("farm",p) and Rect2(30,185,1220,160).has_point(projected):
+			if game.sim.can_build("farm",p) and Rect2(30,185,1220,160).has_point(projected) and not game.ui.minimap.get_global_rect().has_point(projected):
 				candidate=p
 				screen=projected
 				break

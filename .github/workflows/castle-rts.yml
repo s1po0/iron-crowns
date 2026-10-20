@@ -43,14 +43,20 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-render.log
           grep -q IRON_RTS_RENDER_PASS artifacts/rts-render.log
           cp /tmp/iron-castle-rts.png artifacts/
+          for mission in crossing ridge; do
+            LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture --mission=$mission 2>&1 | tee artifacts/rts-$mission.log
+            ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-$mission.log
+            grep -q IRON_RTS_RENDER_PASS artifacts/rts-$mission.log
+            cp /tmp/iron-castle-rts.png artifacts/castle-$mission.png
+          done
       - name: Export independent Android package and genuine Data
         shell: bash
         run: |
           set -o pipefail
           bash scripts/godot-android-template.sh
-          python3 scripts/build-content-bundle.py artifacts/Iron-Crowns-0.9.1-Castle-Data.icdata --revision 3
-          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.9.1-Castle-Buildfix.apk" 2>&1 | tee artifacts/rts-export.log
-          test -s artifacts/Iron-Crowns-0.9.1-Castle-Buildfix.apk
+          python3 scripts/build-content-bundle.py artifacts/Iron-Crowns-0.10.0-Castle-Data.icdata --revision 3
+          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.10.0-Castle-Maps.apk" 2>&1 | tee artifacts/rts-export.log
+          test -s artifacts/Iron-Crowns-0.10.0-Castle-Maps.apk
           cd artifacts
           sha256sum *.apk *.icdata > SHA256SUMS.txt
       - name: Prepare Android farm construction smoke test
@@ -132,7 +138,7 @@ jobs:
           gh run download "$REVIEWED" --repo "$REPO" -n castle-rts-preview -D artifacts
           cat > notes.md <<'NOTES'
           Farm construction fix: dedicated green Build button, visible two-row building choices, suitable-plot suggestion and explicit placement feedback.
-          Independent Android castle-building RTS campaign preview, package com.ironcrowns.castles.buildfix.
+          Independent Android castle-building RTS campaign preview, package com.ironcrowns.castles.maps.
           Install the APK, launch and import the matching .icdata through the native picker. Old releases/saves are not replaced.
           IMPORTANT: this is a separate app, not an in-place 0.8/0.9 update. Keep the older app installed; private saves do not automatically transfer between packages. Prior CI debug signing keys are unavailable. Production signing and cross-package save transfer remain future work.
           Includes a Sorani guided first mission, physical worker deliveries, wheat/flour/bread production, housing, food morale, construction, controllable gates, repairs, demolition and three defensive raids.
@@ -143,7 +149,7 @@ jobs:
           # Tag/release creation can require permissions unavailable to GITHUB_TOKEN.
           # An authorized maintainer creates the draft; CI only attaches verified files.
           # Never overwrite a published release or silently replace any assets.
-          gh release view v0.9.1-castle-buildfix --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
+          gh release view v0.10.0-castle-maps --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
           python3 - <<'PYDRAFT'
           import json
           r=json.load(open('release.json'))
@@ -154,8 +160,8 @@ jobs:
           (cd artifacts && sha256sum --check SHA256SUMS.txt)
           printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
           cp artifacts/android/04-built-farm.png artifacts/android-castle-farm.png
-          gh release upload v0.9.1-castle-buildfix --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-farm.png
-          gh release edit v0.9.1-castle-buildfix --repo "$REPO" --notes-file notes.md
+          gh release upload v0.10.0-castle-maps --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-farm.png
+          gh release edit v0.10.0-castle-maps --repo "$REPO" --notes-file notes.md
           python3 - <<'PYANDROID'
           import pathlib,base64,json,subprocess,os
           path='docs/screenshots/android-castle-farm.png'; branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']

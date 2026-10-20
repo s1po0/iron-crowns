@@ -23,6 +23,10 @@ var placement_help: Label
 var suggest_button: Button
 var cancel_button: Button
 var building_buttons: Dictionary={}
+var mission_choice: OptionButton
+var briefing: Label
+var next_button: Button
+var minimap: CastleMinimap
 
 func button(text: String, action: Callable, parent: Node, width: float=100) -> Button:
 	var b=Button.new()
@@ -146,8 +150,8 @@ func setup(game: Node) -> void:
 	notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(notice)
 	intro=PanelContainer.new()
-	intro.position=Vector2(330,180)
-	intro.size=Vector2(620,330)
+	intro.position=Vector2(240,90)
+	intro.size=Vector2(800,510)
 	root.add_child(intro)
 	var box=VBoxContainer.new()
 	box.add_theme_constant_override("separation",14)
@@ -156,11 +160,19 @@ func setup(game: Node) -> void:
 	title.text="تاجە ئاسنینەکان — بناغەی قەڵا"
 	title.add_theme_font_size_override("font_size",29)
 	box.add_child(title)
+	mission_choice=OptionButton.new()
+	mission_choice.custom_minimum_size.y=52
+	for id in CastleMissions.IDS:
+		mission_choice.add_item(CastleMissions.data(id).title)
+	mission_choice.item_selected.connect(game.select_mission)
+	box.add_child(mission_choice)
 	var description=Label.new()
+	briefing=description
 	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی سێ هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، «شوێنی گونجاو» دابگرە، پاشان دوگمەی سەوزی «دروست بکە» دابگرە."
 	description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	description.custom_minimum_size=Vector2(560,140)
+	description.custom_minimum_size=Vector2(760,200)
 	box.add_child(description)
+	refresh_briefing()
 	if FileAccess.file_exists(CastleSim.SAVE):
 		button("بەردەوام بە",game.resume,box)
 	button("دەستپێکردنی گوندی نوێ",game.new_game,box)
@@ -170,9 +182,20 @@ func setup(game: Node) -> void:
 	finish.add_theme_font_size_override("font_size",30)
 	finish.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(finish)
-	restart=button("گوندێکی نوێ",game.restart,root,180)
-	restart.position=Vector2(550,380)
+	restart=button("هەڵبژاردنی نەخشە",game.restart,root,220)
+	restart.position=Vector2(420,380)
 	restart.visible=false
+	next_button=button("میشنی داهاتوو",game.next_mission,root,220)
+	next_button.position=Vector2(650,380)
+	next_button.visible=false
+	minimap=CastleMinimap.new()
+	minimap.game=game
+	minimap.position=Vector2(18,190)
+	root.add_child(minimap)
+
+func refresh_briefing() -> void:
+	var m=CastleMissions.data(controller.selected_mission)
+	briefing.text=m.story+"\n\nئامادەکاری: %d سەرباز و %d نانی بەرهەمهاتوو؛ سێ هێرش: %d / %d / %d.\nکۆگا ← داربڕ ← کێڵگە ← ئاش ← نانەواخانە.\nبینا هەڵبژێرە ← شوێنی گونجاو ← دوگمەی سەوزی دروست بکە. نەخشە بچووکەکە بۆ گواستنەوەی کامێرایە." % [m.soldiers,m.bread,m.waves[0],m.waves[1],m.waves[2]]
 
 func update(sim: CastleSim) -> void:
 	stats.text="دار %d   بەرد %d   گەنم %d   ئارد %d   نان %d   زێڕ %d" % [sim.resources.wood,sim.resources.stone,sim.resources.grain,sim.resources.flour,sim.resources.bread,sim.resources.gold]
@@ -197,11 +220,15 @@ func update(sim: CastleSim) -> void:
 			if b.kind=="gate":
 				management_info.text+=" — کراوە" if b.get("open",true) else " — داخراوە"
 	tutorial.text=STEPS[sim.stage]
+	if sim.stage==7:
+		var m=CastleMissions.data(sim.mission_id)
+		tutorial.text="ماڵ بۆ شوێنی نیشتەجێبوون دروست بکە؛ %d سەرباز و %d نانی بەرهەمهاتوو ئامادە بکە." % [m.soldiers,m.bread]
 	if sim.stage==8 and not sim.units.any(func(u):return u.kind=="raider" and u.hp>0):
 		tutorial.text="هێرشی داهاتوو: %d چرکە. بیناکان چاک بکەرەوە، نان کۆ بکەرەوە و سوپا زیاد بکە." % ceili(sim.wave_clock)
 	elif sim.population()>=sim.capacity() and sim.stage<8:
 		tutorial.text+="\nشوێن پڕە؛ ماڵێکی تر دروست بکە."
 	selected.text=NAMES.get(controller.chosen,"بەڕێوەبردنی بینا" if controller.chosen=="inspect" else "فەرمانی سوپا")+" — شوێنێک لە نەخشە دیاری بکە"
-	restart.visible=not sim.ended.is_empty()
+	restart.visible=controller.started and not sim.ended.is_empty()
+	next_button.visible=controller.started and sim.ended=="victory" and CastleMissions.IDS.find(sim.mission_id)<CastleMissions.IDS.size()-1
 	if not sim.ended.is_empty():
 		finish.text="گوندەکەت لە سێ هێرش پاراست!" if sim.ended=="victory" else "قەڵاکەت ڕووخا"
