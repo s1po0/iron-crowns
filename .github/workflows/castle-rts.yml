@@ -13,7 +13,7 @@ permissions:
   contents: write
 jobs:
   castle:
-    if: ${{ !inputs.reviewed_run }}
+    if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[castle-reviewed ') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -83,7 +83,7 @@ jobs:
           retention-days: 30
 
   publish-reviewed:
-    if: ${{ inputs.reviewed_run != '' }}
+    if: ${{ inputs.reviewed_run != '' || contains(github.event.head_commit.message, '[castle-reviewed ') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Publish the exact reviewed preview, not a rebuilt binary
@@ -91,7 +91,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           REVIEWED: ${{ inputs.reviewed_run }}
+          REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          if [ -z "$REVIEWED" ]; then
+            REVIEWED=$(python3 -c 'import os,re; m=re.search(r"\[castle-reviewed ([0-9]+)\]",os.environ["REVIEW_MESSAGE"]); assert m; print(m.group(1))')
+          fi
           gh run view "$REVIEWED" --repo "$REPO" --json conclusion,workflowName,headBranch,headSha > run.json
           python3 - <<'PYRELEASE'
           import json
