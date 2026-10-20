@@ -33,3 +33,9 @@ No new OBB is supplied. `.icdata` is the existing native Android file-picker/imp
 The connected Supabase project is healthy, and the separate web game's auth/RLS remain intact. **This new Android preview still saves locally; authenticated Android cloud-save integration is not implemented.** Unrelated Gmail/Notion/other connectors are not accessed simply to increase a connection count. Asset size, use of connectors and feature count are not substitutes for visual review and gameplay testing.
 
 Not yet included: full siege machinery, controllable gate state, housing simulation, seasons, multiple missions, multiplayer, adaptive GPU benchmarking, or certified 4/6/8-GB phone performance. The installer is inherited from the previous English bootstrap; the new RTS mission UI itself is Sorani.
+
+## Verified preview build and installation
+
+Build [39365548276](https://github.com/s1po0/iron-crowns/actions/runs/39365548276), source `50963b6`, passed engine import, production/save/combat tests, native Control startup via injected screen-touch events in an Xvfb window, actual rendering and Android APK/Data export. Headless dummy display does not dispatch this native GUI test correctly, so it runs with a real virtual display. This remains desktop-engine touch simulation, **not an Android emulator or physical-phone test**.
+
+[Download castle-rts-preview](https://github.com/s1po0/iron-crowns/actions/runs/39365548276/artifacts/12238942914) while the Actions artifact is retained. GitHub sign-in is required. Extract the ZIP, install `Iron-Crowns-0.8.0-Castle-Preview.apk`, launch it, choose **IMPORT GAME DATA**, then select `Iron-Crowns-0.8.0-Castle-Data.icdata` from the same download. Checksums are included. Do not select the older 0.7 Data. The separate package leaves the older app and its saves intact.

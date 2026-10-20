@@ -1,5 +1,17 @@
 # Iron Crowns — The Ashen Marches
 
+## Castle RTS 0.8 — first playable Android mission
+
+Independent castle-building preview: worker deliveries, wheat → flour → bread, walls, soldier rally orders and a first raid, with a Sorani tutorial. This is **not a finished Stronghold-scale game**.
+
+[Download the tested APK + Data artifact](https://github.com/s1po0/iron-crowns/actions/runs/39365548276/artifacts/12238942914) (GitHub sign-in required; unzip `castle-rts-preview`) · [Successful engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39365548276) · [Controls and limitations](docs/CASTLE_RTS_PREVIEW.md).
+
+Install `Iron-Crowns-0.8.0-Castle-Preview.apk`, open it, choose **IMPORT GAME DATA**, and select the matching `Iron-Crowns-0.8.0-Castle-Data.icdata`. Package `com.ironcrowns.castles` is separate from the previous app and saves. Public Release creation is currently blocked by HTTP 403; no public 0.8 release is available yet.
+
+Actual Data is about **20 MB, not over 1 GB**. Android cloud saves and physical-phone performance validation are not implemented. Low/Medium/High are rendering presets, not certified RAM-tier benchmarks.
+
+![Actual Castle RTS engine capture](docs/screenshots/castle-rts-review.png)
+
 ## New: Sorani hybrid strategy web MVP
 
 The Phase 1 web game lives in [`web/`](web/README.md): React/Vite/TypeScript, Canvas world map, lazy-loaded three.js castle and battle scenes, and the connected Supabase backend. Run `cd web && npm ci && npm run dev`. The Android releases below are separate and unchanged.
