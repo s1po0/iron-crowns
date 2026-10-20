@@ -55,6 +55,7 @@ func setup(game: Node) -> void:
 	var row=HBoxContainer.new()
 	top.add_child(row)
 	stats=Label.new()
+	stats.clip_text=true
 	stats.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	row.add_child(stats)
 	quality=OptionButton.new()
@@ -83,10 +84,12 @@ func setup(game: Node) -> void:
 	var actions=HBoxContainer.new()
 	column.add_child(actions)
 	selected=Label.new()
+	selected.clip_text=true
 	selected.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	actions.add_child(selected)
 	build_button=button("بنیاتی بنێ",game.confirm_build,actions,130)
 	button("فەرمانی سوپا",game.choose_rally,actions,140)
+	button("بەڕێوەبردن",game.inspect,actions,120)
 	train_button=button("سەرباز · ٢٠ زێڕ",game.train,actions,160)
 	button("+",func():game.zoom(-5),actions,50)
 	button("−",func():game.zoom(5),actions,50)
@@ -98,7 +101,6 @@ func setup(game: Node) -> void:
 	column.add_child(scroll)
 	var choices=HBoxContainer.new()
 	scroll.add_child(choices)
-	button("بەڕێوەبردنی بینا",game.inspect,choices,150)
 	for kind in CastleSim.COSTS:
 		var cost: Array=CastleSim.COSTS[kind]
 		button(NAMES[kind]+"\n"+str(cost[0])+" دار · "+str(cost[1])+" بەرد",func():game.choose(kind),choices,120)

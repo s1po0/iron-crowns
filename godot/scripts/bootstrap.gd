@@ -10,14 +10,21 @@ var android_picker: Object
 var picker: FileDialog
 var heading: Font = preload("res://assets/fonts/cinzel.ttf")
 var body: Font = preload("res://assets/fonts/lato.ttf")
+var castle_mode=false
 
 func _ready() -> void:
+	castle_mode=OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args()
+	if castle_mode:
+		heading=load("res://assets/fonts/vazirmatn.ttf")
+		body=heading
+		status="پشکنینی داتای دامەزراو…"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	import_button = Button.new()
-	import_button.text = "IMPORT GAME DATA"
+	import_button.text = "هێنانی داتا / IMPORT GAME DATA" if castle_mode else "IMPORT GAME DATA"
 	import_button.position = Vector2(400,485)
 	import_button.size = Vector2(480,60)
 	import_button.add_theme_font_size_override("font_size",20)
+	import_button.add_theme_font_override("font",body)
 	import_button.pressed.connect(select_data)
 	add_child(import_button)
 	picker = FileDialog.new()
@@ -36,6 +43,14 @@ func _ready() -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO,size),Color("101c20"))
+	if castle_mode:
+		draw_string(heading,Vector2(135,155),"تاجە ئاسنینەکان — بەرگری لە قەڵا",HORIZONTAL_ALIGNMENT_RIGHT,1010,32,Color("ded5c1"))
+		var instructions=["١ — APK دامەزرێنە و فایلی Castle Data (.icdata) دابگرە.","٢ — دوگمەی هێنانی داتا دابگرە و فایلەکە هەڵبژێرە.","٣ — تا کۆتایی پشکنین یارییەکە مەخە؛ پاشان گوندێکی نوێ دەست پێ بکە.","یاری بەبێ ئینتەرنێت کار دەکات؛ پاشەکەوت لە ناو ئامێرەکەتە.","داتای وەشانی کۆنی Peoples 0.7 بۆ ئەم یارییە نییە."]
+		for i in instructions.size():
+			draw_string(body,Vector2(135,250+i*36),instructions[i],HORIZONTAL_ALIGNMENT_RIGHT,1010,21,Color("b7c3be"))
+		draw_string(body,Vector2(135,590),status,HORIZONTAL_ALIGNMENT_RIGHT,1010,18,Color("ddc9a6"))
+		draw_string(body,Vector2(135,650),"تەنها فایل لە سەرچاوەی متمانەپێکراو دابگرە. هیچ گواستنەوەیەک بۆ Android/obb پێویست نییە.",HORIZONTAL_ALIGNMENT_RIGHT,1010,16,Color("899b96"))
+		return
 	var title = "IRON CROWNS / PEOPLES OF THE MARCHES"
 	draw_string(heading,Vector2(135,155),title,HORIZONTAL_ALIGNMENT_LEFT,-1,29,Color("ded5c1"))
 	draw_string(body,Vector2(135,215),"APK + DATA  /  OFFLINE INSTALLATION",HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color("c0a67e"))
@@ -67,6 +82,14 @@ func require_data(message: String) -> void:
 	busy = false
 	import_button.disabled = false
 	status = message
+	if castle_mode:
+		var translated={
+			"Compatible Data not installed or damaged. Import an API 1 .icdata file.":"داتا نییە یان تێکچووە؛ فایلی Castle Data هەڵبژێرە.",
+			"Missing native importer. Install the official foundation APK.":"فایلهێنەر نییە؛ APKـی فەرمی دابمەزرێنە.",
+			"Installed content could not be verified. Import a fresh copy.":"داتا پشتڕاست نەکرایەوە؛ کۆپییەکی نوێ دابگرە.",
+			"Choose compatible replacement Data. A failed import keeps your previous installation.":"داتای گونجاو هەڵبژێرە؛ ئەگەر نەکرا، داتای پێشوو دەپارێزرێت."
+		}
+		status=translated.get(message,"هەڵەی داتا: "+message)
 	queue_redraw()
 	print("IRON_DATA_REQUIRED: "+message)
 
@@ -118,12 +141,12 @@ func complete_native_import(path: String) -> void:
 		require_data("Installed content could not be verified. Import a fresh copy.")
 
 func native_progress(percent: int) -> void:
-	status = "Installing and checking Data: "+str(percent)+"%"
+	status = ("دامەزراندن و پشکنینی داتا: " if castle_mode else "Installing and checking Data: ")+str(percent)+"%"
 	queue_redraw()
 
 func start_game() -> void:
 	if (OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args()) and not FileAccess.file_exists(ContentAssets.path("res://assets/content/rts/models.json")):
-		require_data("Castle RTS needs the matching 0.8 Castle Data, not the earlier 0.7 pack.")
+		require_data("Castle RTS needs the compatible Castle Data (0.8 or later), not the earlier 0.7 pack.")
 		return
 	get_tree().change_scene_to_file("res://rts.tscn" if OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args() else "res://main.tscn")
 
