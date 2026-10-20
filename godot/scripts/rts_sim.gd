@@ -411,7 +411,7 @@ func load_game(path: String=SAVE) -> bool:
 	return true
 
 static func valid(raw) -> bool:
-	if not raw is Dictionary or not raw.get("schema") in [1,2]:
+	if not raw is Dictionary or (raw.get("schema")!=1 and raw.get("schema")!=2):
 		return false
 	if raw.schema==2 and (not valid_number(raw.get("morale"),0,100) or not valid_number(raw.get("wave_clock"),0,REST_SECONDS)):
 		return false
