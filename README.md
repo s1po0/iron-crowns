@@ -1,6 +1,22 @@
 # Iron Crowns — The Ashen Marches
 
-## Latest: Godot 0.12 — one complete Data
+## Latest: Godot 0.13 — Crown Campaign
+
+**[Download the new Android APK](https://github.com/s1po0/iron-crowns/releases/tag/v0.13.0-crown-campaign)** · [Install, controls, progression and verification](docs/CROWN_CAMPAIGN_0.13.md).
+
+Start as an ordinary person among four empires and twelve settlements: work, contracts,
+recruitment, property, allegiance and earned governorship. Animated inhabitants,
+royal-house records, border raids and strategic castle battles; read-only Supabase
+story with offline fallback. The original castle RTS remains accessible.
+
+Uses the **same complete 0.12 Data** below, with all 25 regions already included.
+Native full-Data import, campaign recruitment/travel/save/restart and RTS construction
+passed [39388145001](https://github.com/s1po0/iron-crowns/actions/runs/39388145001).
+This is an incremental preview, **not a finished Warband equivalent**: campaign battles
+are autoresolved, not player-controlled melee/riding. Keep old apps to retain their
+separate private saves; no automatic cross-package migration.
+
+## Preserved: Godot 0.12 — one complete Data
 
 **[Download APK + the single 1.69 GB Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.12.0-castle-complete)** · [Installation and verification](docs/COMPLETE_DATA_0.12.md).
 
