@@ -2,7 +2,7 @@ name: Castle RTS preview
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'scripts/castle-android-smoke.py', 'godot/rts.tscn', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
+    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'scripts/castle-android-smoke.py', 'godot/rts.tscn', 'godot/export_presets.cfg', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
     inputs:
       reviewed_run:
@@ -163,13 +163,13 @@ jobs:
           (cd artifacts && sha256sum --check SHA256SUMS.txt)
           printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
           cp artifacts/android/04-built-farm.png artifacts/android-castle-realms.png
-          cp artifacts/android/01-intro.png artifacts/android-castle-menu.png
-          gh release upload v0.11.0-castle-realms --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-realms.png artifacts/android-castle-menu.png artifacts/castle-realm_crossing.png artifacts/castle-realm_ridge.png
+          cp artifacts/android/01-intro.png artifacts/android-realms-menu.png
+          gh release upload v0.11.0-castle-realms --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-realms.png artifacts/android-realms-menu.png artifacts/castle-realm_crossing.png artifacts/castle-realm_ridge.png
           gh release edit v0.11.0-castle-realms --repo "$REPO" --notes-file notes.md
           python3 - <<'PYANDROID'
           import pathlib,base64,json,subprocess,os
           branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
-          for name in ['android-castle-realms.png','android-castle-menu.png','castle-realm_crossing.png','castle-realm_ridge.png']:
+          for name in ['android-castle-realms.png','android-realms-menu.png','castle-realm_crossing.png','castle-realm_ridge.png']:
               path='docs/screenshots/'+name
               lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
               payload={'branch':branch,'message':'docs: record verified Godot mission review '+name,'content':base64.b64encode(pathlib.Path('artifacts',name).read_bytes()).decode()}
