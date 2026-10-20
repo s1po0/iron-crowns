@@ -140,6 +140,26 @@ func validate_definitions(directory: String) -> bool:
 			return false
 	if FileAccess.file_exists(directory+"/assets/content/humans/human-body.json") and not HumanBody.validate(JSON.parse_string(FileAccess.get_file_as_string(directory+"/assets/content/humans/human-body.json"))):
 		return false
+	var rts_path=directory+"/assets/content/rts/models.json"
+	if FileAccess.file_exists(rts_path):
+		var rts=JSON.parse_string(FileAccess.get_file_as_string(rts_path))
+		if not rts is Dictionary or rts.get("schema")!=1 or not rts.get("models") is Dictionary:
+			return false
+		var available={}
+		for entry in manifest.files:
+			available["res://"+str(entry.path)]=true
+		for model_name in ["house_small","house_long","yard_corner"]:
+			var parts=rts.models.get(model_name)
+			if not parts is Array or parts.is_empty() or parts.size()>24:
+				return false
+			for part in parts:
+				if not part is Dictionary or not part.get("mesh") is String or not available.has(part.mesh) or not str(part.mesh).begins_with("res://assets/content/rts/") or not str(part.mesh).ends_with(".obj") or not vector_in(part.get("color"),3,1):
+					return false
+				for component in part.color:
+					if component<0:
+						return false
+				if part.has("texture") and (not part.texture is String or not available.has(part.texture) or not str(part.texture).begins_with("res://assets/materials/rts/") or not str(part.texture).get_extension() in ["png","jpg"]):
+					return false
 	for item in manifest.files:
 		if str(item.path).ends_with(".obj") and not ContentAssets.validate_obj(FileAccess.get_file_as_string(directory+"/"+str(item.path))):
 			return false

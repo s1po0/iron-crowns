@@ -122,6 +122,9 @@ func native_progress(percent: int) -> void:
 	queue_redraw()
 
 func start_game() -> void:
+	if (OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args()) and not FileAccess.file_exists(ContentAssets.path("res://assets/content/rts/models.json")):
+		require_data("Castle RTS needs the matching 0.8 Castle Data, not the earlier 0.7 pack.")
+		return
 	get_tree().change_scene_to_file("res://rts.tscn" if OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args() else "res://main.tscn")
 
 func _input(event: InputEvent) -> void:
