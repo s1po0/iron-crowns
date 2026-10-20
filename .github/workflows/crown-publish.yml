@@ -1,0 +1,78 @@
+name: Attach verified Crown campaign
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['.github/workflows/crown-publish.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  attach:
+    if: contains(github.event.head_commit.message, '[crown-reviewed 39388145001]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: arena/94d215f9-iron-crowns
+      - name: Validate exact successful native build and untouched draft
+        run: |
+          gh run view 39388145001 --json conclusion,workflowName,headBranch,headSha > /tmp/run.json
+          gh release view v0.13.0-crown-campaign --json isDraft,targetCommitish,assets > /tmp/release.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/run.json')); d=json.load(open('/tmp/release.json'))
+          assert r['conclusion']=='success' and r['workflowName']=='Crown Android verification'
+          assert r['headBranch']=='arena/94d215f9-iron-crowns'
+          assert r['headSha']=='0aaff251fd429180b1caeee1991a34ab2def2e75'
+          assert d['isDraft'] and not d['assets'] and d['targetCommitish']==r['headSha']
+          PY
+          gh run download 39388145001 -n crown-android-preview -D artifacts
+          (cd artifacts && sha256sum --check SHA256SUMS.txt)
+          python3 - <<'PY'
+          import json,pathlib
+          a=pathlib.Path('artifacts')
+          c=json.loads((a/'android/campaign-save.json').read_text()); f=json.loads((a/'android/farm-save.json').read_text())
+          assert c['day']==4 and c['location']==0 and c['gold']==70 and c['party']['levy']==3
+          assert f['resources']['wood']==245
+          assert 'IRON_CROWN_TEST_PASS' in (a/'crown-tests.log').read_text()
+          assert 'IRON_CROWN_STORY_REMOTE_PASS' in (a/'crown-tests.log').read_text()
+          assert 'SCRIPT ERROR' not in (a/'android/logcat.txt').read_text()
+          PY
+      - name: Attach exact APK and native screenshots without publishing
+        run: |
+          cp artifacts/android/06-crown-start.png artifacts/android-crown-start.png
+          cp artifacts/android/07-crown-travel.png artifacts/android-crown-travel.png
+          cp artifacts/android/08-crown-restored.png artifacts/android-crown-restored.png
+          cp artifacts/android/04-built-farm.png artifacts/android-crown-rts.png
+          gh release upload v0.13.0-crown-campaign artifacts/*.apk artifacts/SHA256SUMS.txt artifacts/android-crown-*.png artifacts/iron-crown-campaign.png
+          cat > /tmp/notes.md <<'NOTES'
+          New Godot campaign: start as an ordinary person; work, take contracts, recruit and train troops, buy property, swear allegiance and earn governorship. Four empires, twelve settlements, royal-house records, animated inhabitants, map travel, border raids and strategic castle battles. Original castle RTS remains accessible.
+
+          Install Iron-Crowns-0.13.0-Crown-Campaign.apk. Import the SAME complete 0.12 Data; no new terrain download is needed if you already have that file:
+          https://github.com/s1po0/iron-crowns/releases/download/v0.12.0-complete-data/Iron-Crowns-0.12.0-Complete-Data.icdata
+          One 1,691,433,345-byte Data file contains all 25 regions/1,250 terrain images. Allow around 6 GB free during import. Keep older applications installed to retain their private saves. This independent preview package is com.ironcrowns.crowncampaign; no automatic cross-package save migration.
+
+          Supabase supplies eight curated Sorani story chapters via read-only public HTTPS. Offline story/cache and local private saves remain available; no player state is uploaded.
+
+          Verified: Godot progression to governor, save round-trip/recovery, real public story fetch, touch UI and walking; actual Android full-size SAF import, recruitment/travel/save/restart, and returning to castle RTS to construct and restore a farm. Physical-phone performance is not certified. Low-detail 3D representation; battles are strategic autoresolution, NOT player-controlled Warband melee/riding. Marriage, inheritance and unrestricted diplomacy are not implemented.
+
+          Exact runtime source: 0aaff251fd429180b1caeee1991a34ab2def2e75
+          Verified build: https://github.com/s1po0/iron-crowns/actions/runs/39388145001
+          NOTES
+          gh release edit v0.13.0-crown-campaign --notes-file /tmp/notes.md
+      - name: Preserve native evidence for visual inspection
+        run: |
+          git fetch origin arena/94d215f9-iron-crowns
+          git rebase origin/arena/94d215f9-iron-crowns
+          mkdir -p docs/screenshots docs/verification
+          cp artifacts/android-crown-*.png docs/screenshots/
+          cp artifacts/android/campaign-save.json docs/verification/crown-android-save.json
+          cp artifacts/SHA256SUMS.txt docs/verification/crown-0.13-SHA256SUMS.txt
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add docs/screenshots/android-crown-*.png docs/verification/
+          git commit -m 'docs: record exact Android Crown campaign verification'
+          git push origin HEAD:arena/94d215f9-iron-crowns
