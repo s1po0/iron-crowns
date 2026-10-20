@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_Plaster
 v 1.16999981 0.00000000 -0.65000000
 v 1.16999997 1.95000000 -0.65000000
 v 1.17000005 0.00000000 -1.95000000

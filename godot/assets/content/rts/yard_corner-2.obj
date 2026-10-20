@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_RockTrim
 v 1.08179637 0.12503560 -1.51994753
 v 1.08179637 0.12503560 -1.51994753
 v 1.11926056 0.03582324 -1.54149919

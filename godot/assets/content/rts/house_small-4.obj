@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_Brick
 v 1.29999992 0.00000000 1.30000000
 v 1.30000015 0.00000000 0.00000000
 v 1.29999992 0.57200000 1.30000000

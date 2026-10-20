@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_RoundTiles
 v 0.22538341 4.26204267 0.97996097
 v 0.22538341 4.26204267 0.97996097
 v 0.22538341 4.26204267 0.97996097

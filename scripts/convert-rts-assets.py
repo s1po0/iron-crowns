@@ -12,7 +12,8 @@ for name in ['house_small','house_long','yard_corner']:
  for i,mesh in enumerate(scene.geometry.values()):
   mesh=mesh.copy();mesh.apply_scale(.65)
   dest=root/'content/rts'/f'{name}-{i}.obj'
-  dest.write_text(trimesh.exchange.obj.export_obj(mesh,include_normals=True,include_texture=True,write_texture=False,return_texture=False))
+  raw=trimesh.exchange.obj.export_obj(mesh,include_normals=True,include_texture=True,write_texture=False,return_texture=False)
+  dest.write_text("\n".join(line for line in raw.splitlines() if not line.startswith(("mtllib ","usemtl ")))+"\n")
   mat=mesh.visual.material;tex=getattr(mat,'baseColorTexture',None)
   color=getattr(mat,'baseColorFactor',None)
   item={'mesh':'res://'+dest.relative_to(Path('godot')).as_posix()}

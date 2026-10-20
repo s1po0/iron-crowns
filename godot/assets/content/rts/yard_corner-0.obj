@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_WoodTrim_Wear
 v -0.09062566 0.38669132 0.33537399
 v -0.09062566 0.38669132 0.33537399
 v -0.09062566 0.38669132 0.33537399

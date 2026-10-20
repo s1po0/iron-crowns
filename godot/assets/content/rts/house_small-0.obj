@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_WoodTrim
 v 1.09587775 2.02589695 -0.00000004
 v 1.09587775 2.02589695 -0.00000004
 v 1.09587775 1.87410429 0.00000000

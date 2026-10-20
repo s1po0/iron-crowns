@@ -1,6 +1,4 @@
 # https://github.com/mikedh/trimesh
-mtllib material.mtl
-usemtl MI_WindowGlass
 v 1.30252728 1.47753167 -0.94604409
 v 1.30252728 1.47753167 -0.94604409
 v 1.30252713 1.70251517 -1.30014211

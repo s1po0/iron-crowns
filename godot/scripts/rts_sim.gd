@@ -287,17 +287,23 @@ func load_game(path: String=SAVE) -> bool:
 	if not valid(raw):
 		return false
 	resources=raw.resources
+	for key in resources:
+		resources[key]=int(resources[key])
 	buildings=raw.buildings
 	units=raw.units
 	for b in buildings:
+		b.id=int(b.id)
 		b.x=int(b.x)
 		b.y=int(b.y)
 	for u in units:
+		u.id=int(u.id)
+		u.home=int(u.home)
+		u.amount=int(u.amount)
 		u.at=Vector2(u.at[0],u.at[1])
 		u.goal=Vector2i(u.goal[0],u.goal[1])
 		u.route=[]
 	for key in ["time","food_clock","stage","next_id","wave","ended","baked","kills","deliveries"]:
-		set(key,raw[key])
+		set(key,int(raw[key]) if key in ["stage","next_id","wave","baked","kills","deliveries"] else raw[key])
 	rally=Vector2i(raw.rally[0],raw.rally[1])
 	rebuild_navigation()
 	loaded=true

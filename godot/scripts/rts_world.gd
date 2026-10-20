@@ -111,25 +111,34 @@ func landscape() -> void:
 		add_child(rock)
 
 func forest() -> void:
-	var mesh=ArrayMesh.new()
 	var leaf=QuadMesh.new()
 	leaf.size=Vector2(7,8)
 	# Crossed textured canopy cards instead of cone symbols. One draw per crossed layer.
-	for layer in 2:
+	for layer in 3:
 		var multi=MultiMesh.new()
 		multi.transform_format=MultiMesh.TRANSFORM_3D
-		multi.mesh=leaf
+		if layer==2:
+			var trunk=CylinderMesh.new()
+			trunk.top_radius=.12
+			trunk.bottom_radius=.3
+			trunk.height=4
+			trunk.radial_segments=6
+			multi.mesh=trunk
+		else:
+			multi.mesh=leaf
 		multi.instance_count=220
 		for i in 220:
 			var angle=i*2.399
 			var p=Vector3(-35+sin(angle)*14,3.8,-29+cos(angle)*15)
 			if i>120:
 				p=Vector3(-47+sin(angle)*9,3.8,cos(angle)*42)
+			if layer==2:
+				p.y=2
 			var basis=Basis(Vector3.UP,layer*PI*.5+sin(i)*.3).scaled(Vector3.ONE*(.65+(i%7)*.08))
 			multi.set_instance_transform(i,Transform3D(basis,p))
 		var node=MultiMeshInstance3D.new()
 		node.multimesh=multi
-		node.material_override=FieldMaterials.cutout("leaves")
+		node.material_override=FieldMaterials.surface("timber",Color("605342"),1) if layer==2 else FieldMaterials.cutout("leaves")
 		node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(node)
 		if layer==0:
