@@ -134,12 +134,14 @@ func setup(game: Node) -> void:
 	placement_help.custom_minimum_size.x=220
 	placement_row.add_child(placement_help)
 	management=HBoxContainer.new()
+	management.size=Vector2(540,60)
 	management.position=Vector2(16,435)
 	root.add_child(management)
 	button("دەروازە: کردنەوە / داخستن",func():game.manage("gate"),management,240)
 	button("چاککردنەوە",func():game.manage("repair"),management,145)
 	button("ڕووخاندن",func():game.manage("demolish"),management,125)
 	management_info=Label.new()
+	management_info.size=Vector2(1000,40)
 	management_info.position=Vector2(20,490)
 	management_info.add_theme_color_override("font_color",Color("fff1c5"))
 	root.add_child(management_info)
@@ -191,6 +193,7 @@ func setup(game: Node) -> void:
 	next_button.visible=false
 	minimap=CastleMinimap.new()
 	minimap.game=game
+	minimap.size=Vector2(160,160)
 	minimap.position=Vector2(18,190)
 	root.add_child(minimap)
 

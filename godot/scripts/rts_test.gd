@@ -99,6 +99,7 @@ func run() -> void:
 	await tap(game.ui.suggest_button.get_global_rect().get_center())
 	await tap(game.ui.build_button.get_global_rect().get_center())
 	assert(game.sim.buildings.size()==3 and game.sim.resources.wood==original_wood-70,"Suggested plot must build through touch controls too")
+	assert(root.get_visible_rect().encloses(game.ui.minimap.get_global_rect()),"Minimap must fit inside the physical screen in RTL")
 	await tap(game.ui.minimap.get_global_rect().position+Vector2(120,40))
 	assert(game.focus.distance_to(CastleSim.world(Vector2(30,10)))<.1,"Minimap touch must move camera, not place a building")
 	assert(game.sim.buildings.size()==3)
@@ -112,6 +113,7 @@ func run() -> void:
 	await process_frame
 	var gate_button=game.ui.management.get_child(0)
 	assert(gate_button.is_visible_in_tree())
+	assert(root.get_visible_rect().encloses(gate_button.get_global_rect()),"Gate management must not extend outside RTL viewport")
 	for pressed in [true,false]:
 		var touch=InputEventScreenTouch.new()
 		touch.index=0
