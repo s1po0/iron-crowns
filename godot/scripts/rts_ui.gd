@@ -208,6 +208,8 @@ func refresh_briefing() -> void:
 	briefing.text=m.story+"\n\nئامادەکاری: %d سەرباز و %d نانی بەرهەمهاتوو؛ سێ هێرش: %d / %d / %d.\nکۆگا ← داربڕ ← کێڵگە ← ئاش ← نانەواخانە.\nبینا هەڵبژێرە ← شوێنی گونجاو ← دوگمەی سەوزی دروست بکە. نەخشە بچووکەکە بۆ گواستنەوەی کامێرایە." % [m.soldiers,m.bread,m.waves[0],m.waves[1],m.waves[2]]
 
 func update(sim: CastleSim) -> void:
+	data_button.disabled=ContentBundle.complete
+	data_button.text="Data ✓" if ContentBundle.complete else "Data +"
 	stats.text="دار %d   بەرد %d   گەنم %d   ئارد %d   نان %d   زێڕ %d" % [sim.resources.wood,sim.resources.stone,sim.resources.grain,sim.resources.flour,sim.resources.bread,sim.resources.gold]
 	stats.text+="\nدانیشتووان %d/%d   ڕەزامەندی %d%%   قەڵا %d/600   هێرش %d/3" % [sim.population(),sim.capacity(),sim.morale,sim.buildings[0].hp,sim.wave]
 	pause_button.text="بەردەوام بە" if controller.paused else "وەستان"

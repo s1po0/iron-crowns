@@ -1,13 +1,13 @@
 """Real APK + public SAF import + touch controls; inspect saves read-only via debug run-as."""
 import json, struct, subprocess, time
 from pathlib import Path
-PKG='com.ironcrowns.castles.realms'
+PKG='com.ironcrowns.castles.complete'
 OUT=Path('artifacts/android'); OUT.mkdir(parents=True,exist_ok=True)
 def adb(*args):
-    return subprocess.check_output(['adb',*args],timeout=40)
+    return subprocess.check_output(['adb',*args],timeout=180)
 def logs():
     return adb('logcat','-d','-s','godot').decode(errors='replace')
-def wait(marker, seconds=90):
+def wait(marker, seconds=300):
     deadline=time.monotonic()+seconds
     while time.monotonic()<deadline:
         if marker in logs(): return
@@ -17,11 +17,11 @@ def screenshot(name):
     image=adb('exec-out','screencap','-p'); (OUT/name).write_bytes(image)
     return struct.unpack('>II',image[16:24])
 try:
-    adb('install','-r','artifacts/Iron-Crowns-0.11.0-Castle-Realms.apk')
+    adb('install','-r','artifacts/Iron-Crowns-0.12.0-Castle-Complete.apk')
     adb('shell','wm','size','720x1280'); adb('shell','wm','density','160')
     adb('logcat','-c')
     adb('shell','am','start','-W','-n',PKG+'/com.godot.game.GodotApp')
-    adb('push','artifacts/Iron-Crowns-0.11.0-Castle-Data.icdata','/sdcard/Download/Iron-Crowns-0.11.0-Castle-Data.icdata')
+    adb('push','artifacts/Iron-Crowns-0.12.0-Complete-Data.icdata','/sdcard/Download/Iron-Crowns-0.12.0-Complete-Data.icdata')
     wait('IRON_DATA_REQUIRED')
     w,h=screenshot('00-installer.png')
     def tap_xy(x,y):
@@ -29,7 +29,7 @@ try:
         adb('shell','input','tap',str(round((w-1280*scale)/2+x*scale)),str(round((h-720*scale)/2+y*scale)))
         time.sleep(2)
     tap_xy(640,515)
-    subprocess.run(['python3','scripts/godot-picker.py','Iron-Crowns-0.11.0-Castle-Data.icdata'],check=True,timeout=90)
+    subprocess.run(['python3','scripts/godot-picker.py','Iron-Crowns-0.12.0-Complete-Data.icdata'],check=True,timeout=90)
     wait('IRON_RTS_READY'); time.sleep(3)
     w,h=screenshot('01-intro.png')
     points=json.loads(Path('artifacts/rts-touch-points.json').read_text())
@@ -37,13 +37,10 @@ try:
     def tap(name): tap_xy(*points[name])
     tap('mission'); time.sleep(4)
     tap('start')
-    adb('push','build/realm-sample/Realm-Region-2-2.icregion','/sdcard/Download/Realm-Region-2-2.icregion')
-    tap('data')
-    subprocess.run(['python3','scripts/godot-picker.py','Realm-Region-2-2.icregion'],check=True,timeout=90)
-    wait('IRON_REGION_INSTALLED',180)
-    count=adb('exec-out','run-as',PKG,'ls','-1','files/realm-regions/region_2_2').decode().split()
-    assert len(count)==50,count
-    tap('pause')
+    pointer=json.loads(adb('exec-out','run-as',PKG,'cat','files/content/active.json'))
+    assert pointer['manifest']['api']==3 and len(pointer['manifest']['files'])==1306,pointer
+    files=adb('exec-out','run-as',PKG,'ls','-1','files/content/'+pointer['directory']+'/assets/content/realm').decode().split()
+    assert len(files)==1250,len(files)
     tap('farm'); screenshot('02-farm-selected.png')
     tap('suggest'); screenshot('03-farm-position.png')
     tap('build')
@@ -72,7 +69,7 @@ try:
     assert [b['id'] for b in restored['buildings'] if b['kind']=='farm']==[farms[0]['id']],restored
     screenshot('05-restored-farm.png')
     assert 'SCRIPT ERROR' not in logs(), logs()[-4000:]
-    print('IRON_ANDROID_TOUCH_FARM_PASS',flush=True)
+    print('IRON_ANDROID_COMPLETE_DATA_AND_FARM_PASS',flush=True)
 except Exception as exc:
     print('::error::Android farm smoke: '+repr(exc).replace('%','%25').replace('\n','%0A'),flush=True)
     try:

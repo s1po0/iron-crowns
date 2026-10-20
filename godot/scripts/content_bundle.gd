@@ -2,9 +2,11 @@ class_name ContentBundle
 extends RefCounted
 
 const ACTIVE = "user://content/active.json"
-const LIMIT = 256*1024*1024
+const LIMIT = 2*1024*1024*1024-1
+const LEGACY_LIMIT = 256*1024*1024
+static var complete=false
 const FILE_LIMIT = 16*1024*1024
-const EXTENSIONS = ["png","jpg","wav","obj","json","txt"]
+const EXTENSIONS = ["png","jpg","wav","obj","json","txt","webp"]
 var error = ""
 var manifest: Dictionary = {}
 var required = ["assets/content/catalog.json","assets/content/world.json","assets/content/humans/human-head.obj","assets/materials/meadow.jpg","assets/audio/wind.wav"]
@@ -19,11 +21,11 @@ func _init() -> void:
 		required.append("assets/audio/"+name+".wav")
 
 func validate_manifest(value) -> bool:
-	if not value is Dictionary or value.get("api",0)!=1 or value.get("world_id","")!="ashen-marches" or int(value.get("revision",0))<1:
+	if not value is Dictionary or (value.get("api",0)!=1 and value.get("api",0)!=3) or value.get("world_id","")!="ashen-marches" or int(value.get("revision",0))<1:
 		error = "Unsupported Data API, world or revision."
 		return false
 	var files = value.get("files",[])
-	if not files is Array or files.size()<5 or files.size()>256:
+	if not files is Array or files.size()<5 or files.size()>(1536 if value.api==3 else 256):
 		error = "Invalid Data file table."
 		return false
 	var names: Dictionary = {}
@@ -36,15 +38,36 @@ func validate_manifest(value) -> bool:
 		if not (name.begins_with("assets/materials/") or name.begins_with("assets/audio/") or name.begins_with("assets/content/")) or ".." in name or "/./" in name or "//" in name or "\u0000" in name or "\\" in name or ":" in name or name in names or not name.get_extension() in EXTENSIONS or length<0 or length>FILE_LIMIT or str(item.get("sha256","")).length()!=64:
 			error = "Data contains an unsafe path, unsupported file or invalid size."
 			return false
+		if name.ends_with(".webp") and not name.begins_with("assets/content/realm/"):
+			return false
 		names[name] = true
 		total += length
-	if total>LIMIT:
+	if total>(LIMIT if value.api==3 else LEGACY_LIMIT):
 		error = "Data exceeds the supported size budget."
 		return false
 	for name in required:
 		if not names.has(name):
 			error = "Required Data resources are missing."
 			return false
+	if value.api==3:
+		var expected={}
+		for y in 25:
+			for x in 25:
+				for kind in ["albedo","normal"]:
+					expected["assets/content/realm/%d_%d_%s.webp" % [x,y,kind]]=true
+		for name in names:
+			if name.begins_with("assets/content/realm/"):
+				if not expected.has(name):
+					error="Unexpected terrain filename."
+					return false
+				expected.erase(name)
+		if not expected.is_empty():
+			error="Complete Data is missing terrain tiles."
+			return false
+	else:
+		for name in names:
+			if name.ends_with(".webp") or name.begins_with("assets/content/realm/"):
+				return false
 	manifest = value
 	return true
 
@@ -167,15 +190,22 @@ func validate_definitions(directory: String) -> bool:
 
 func install(source: String, tree: SceneTree, progress: Callable) -> bool:
 	var file = FileAccess.open(source,FileAccess.READ)
-	if file==null or file.get_length()>LIMIT or file.get_length()<12 or file.get_buffer(8).get_string_from_ascii()!="ICDATA01":
+	if file==null or file.get_length()>LIMIT or file.get_length()<12:
 		error = "Not a supported .icdata file. The old .pck format is not compatible."
 		return false
+	var magic=file.get_buffer(8).get_string_from_ascii()
+	if magic not in ["ICDATA01","ICDATA03"]:
+		error="Unsupported Data container."
+		return false
 	var length = file.get_32()
-	if length<2 or length>131072:
+	if length<2 or length>(524288 if magic=="ICDATA03" else 131072):
 		error = "Invalid Data header."
 		return false
 	var header = file.get_buffer(length)
 	if not validate_manifest(JSON.parse_string(header.get_string_from_utf8())):
+		return false
+	if manifest.api!=(3 if magic=="ICDATA03" else 1):
+		error="Data API does not match its container."
 		return false
 	var expected = 12+length
 	for item in manifest.files:
@@ -183,6 +213,13 @@ func install(source: String, tree: SceneTree, progress: Callable) -> bool:
 	if expected!=file.get_length():
 		error = "Truncated Data or unexpected trailing bytes."
 		return false
+	var previous=""
+	if FileAccess.file_exists(ACTIVE):
+		var old=JSON.parse_string(FileAccess.get_file_as_string(ACTIVE))
+		if old is Dictionary and old.get("directory") is String:
+			var old_name: String=old.directory
+			if old_name.begins_with("bundle-") and not "/" in old_name and not "\\" in old_name and not ".." in old_name and not ":" in old_name:
+				previous="user://content/"+old_name
 	var name = "bundle-"+str(Time.get_unix_time_from_system()).replace(".","-")+"-"+str(randi())
 	var directory = "user://content/"+name
 	for i in range(manifest.files.size()):
@@ -195,6 +232,17 @@ func install(source: String, tree: SceneTree, progress: Callable) -> bool:
 			error = "Corrupt Data: "+str(item.path)
 			remove_directory(directory)
 			return false
+		if str(item.path).begins_with("assets/content/realm/"):
+			# Lossless WebP VP8L dimensions checked BEFORE invoking the image decoder.
+			if not valid_terrain_webp(bytes):
+				error="Invalid or oversized terrain image."
+				remove_directory(directory)
+				return false
+			var image=Image.new()
+			if image.load_webp_from_buffer(bytes)!=OK or image.get_size()!=Vector2i(1024,1024):
+				error="Terrain image could not be decoded."
+				remove_directory(directory)
+				return false
 		var target_path = directory+"/"+str(item.path)
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(target_path.get_base_dir()))
 		var target = FileAccess.open(target_path,FileAccess.WRITE)
@@ -211,7 +259,8 @@ func install(source: String, tree: SceneTree, progress: Callable) -> bool:
 			remove_directory(directory)
 			return false
 		progress.call(int(float(i+1)/manifest.files.size()*100))
-		await tree.process_frame
+		if i%8==0:
+			await tree.process_frame
 	file.close()
 	if not validate_definitions(directory):
 		error = "Invalid model/world definitions. Existing Data is unchanged."
@@ -230,6 +279,8 @@ func install(source: String, tree: SceneTree, progress: Callable) -> bool:
 		error = "Cannot activate Data. Previous installation is unchanged."
 		remove_directory(directory)
 		return false
+	if not previous.is_empty() and previous!=directory:
+		remove_directory(previous)
 	return true
 
 func installed(tree: SceneTree) -> bool:
@@ -242,6 +293,7 @@ func installed(tree: SceneTree) -> bool:
 	if not name.begins_with("bundle-") or "/" in name or "\\" in name or ".." in name or ":" in name:
 		return false
 	var directory = "user://content/"+name
+	var checked=0
 	for item in manifest.files:
 		var path = directory+"/"+str(item.path)
 		var file = FileAccess.open(path,FileAccess.READ)
@@ -250,10 +302,13 @@ func installed(tree: SceneTree) -> bool:
 		file.close()
 		if FileAccess.get_sha256(path)!=str(item.sha256):
 			return false
-		await tree.process_frame
+		checked+=1
+		if checked%16==0:
+			await tree.process_frame
 	if not validate_definitions(directory):
 		return false
 	ContentAssets.directory = directory
+	complete=manifest.api==3
 	return true
 
 func remove_directory(path: String) -> void:
@@ -267,3 +322,9 @@ func remove_directory(path: String) -> void:
 	for name in dir.get_directories():
 		remove_directory(path+"/"+name)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+static func valid_terrain_webp(bytes: PackedByteArray) -> bool:
+	if bytes.size()<25 or bytes.slice(0,4).get_string_from_ascii()!="RIFF" or bytes.slice(8,12).get_string_from_ascii()!="WEBP" or bytes.slice(12,16).get_string_from_ascii()!="VP8L" or bytes[20]!=47:
+		return false
+	var bits=bytes.decode_u32(21)
+	return (bits&16383)+1==1024 and ((bits>>14)&16383)+1==1024 and (bits>>29)==0

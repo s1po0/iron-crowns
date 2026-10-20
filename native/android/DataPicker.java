@@ -39,7 +39,7 @@ public final class DataPicker extends GodotPlugin {
     private void beginSelection(long bytes, boolean region) {
         if (active) return;
         regionMode=region;
-        if (bytes<=0 || bytes>256L*1024*1024) {
+        if (bytes<=0 || bytes>3L*1024*1024*1024) {
             emitSignal(regionMode ? "region_error" : "data_error", "Invalid expected Data size."); return;
         }
         expectedBytes=bytes;

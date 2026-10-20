@@ -45,7 +45,7 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO,size),Color("101c20"))
 	if castle_mode:
 		draw_string(heading,Vector2(135,155),"تاجە ئاسنینەکان — بەرگری لە قەڵا",HORIZONTAL_ALIGNMENT_RIGHT,1010,32,Color("ded5c1"))
-		var instructions=["١ — APK دامەزرێنە و فایلی Castle Data (.icdata) دابگرە.","٢ — دوگمەی هێنانی داتا دابگرە و فایلەکە هەڵبژێرە.","٣ — تا کۆتایی پشکنین یارییەکە مەخە؛ پاشان گوندێکی نوێ دەست پێ بکە.","یاری بەبێ ئینتەرنێت کار دەکات؛ پاشەکەوت لە ناو ئامێرەکەتە.","داتای وەشانی کۆنی Peoples 0.7 بۆ ئەم یارییە نییە."]
+		var instructions=["١ — APKی Complete و یەک فایلی Complete Data (.icdata) دابگرە.","٢ — دوگمەی هێنانی داتا دابگرە و فایلەکە هەڵبژێرە.","٣ — تا کۆتایی پشکنین یارییەکە مەخە؛ پاشان گوندێکی نوێ دەست پێ بکە.","یاری بەبێ ئینتەرنێت کار دەکات؛ پاشەکەوت لە ناو ئامێرەکەتە.","هەموو ٢٥ ناوچەی زەوی لە Complete Data دان؛ هێنانی جیاواز پێویست نییە."]
 		for i in instructions.size():
 			draw_string(body,Vector2(135,250+i*36),instructions[i],HORIZONTAL_ALIGNMENT_RIGHT,1010,21,Color("b7c3be"))
 		draw_string(body,Vector2(135,590),status,HORIZONTAL_ALIGNMENT_RIGHT,1010,18,Color("ddc9a6"))
@@ -54,7 +54,7 @@ func _draw() -> void:
 	var title = "IRON CROWNS / PEOPLES OF THE MARCHES"
 	draw_string(heading,Vector2(135,155),title,HORIZONTAL_ALIGNMENT_LEFT,-1,29,Color("ded5c1"))
 	draw_string(body,Vector2(135,215),"APK + DATA  /  OFFLINE INSTALLATION",HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color("c0a67e"))
-	var lines = ["This APK is the game engine and code. Its separate Data file contains", "human meshes, materials, sound, factions and the world. No scripts are loaded.", "1. Download compatible API 1 .icdata content. Later Data releases need no new APK.", "2. Tap Import Game Data and select that file in Android's file picker.", "3. Keep the game open while it verifies and installs. No Android/obb copying needed."]
+	var lines = ["This APK is the game engine and code. Its separate Data file contains", "human meshes, materials, sound, factions and the world. No scripts are loaded.", "1. Download compatible API 1 or API 3 .icdata content. Later Data releases need no new APK.", "2. Tap Import Game Data and select that file in Android's file picker.", "3. Keep the game open while it verifies and installs. No Android/obb copying needed."]
 	for i in range(lines.size()):
 		draw_string(body,Vector2(135,275+i*31),lines[i],HORIZONTAL_ALIGNMENT_LEFT,-1,17,Color("b7c3be"))
 	draw_string(body,Vector2(135,590),status,HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color("ddc9a6"))
@@ -73,10 +73,10 @@ func prepare() -> void:
 	busy = true
 	import_button.disabled = true
 	if await bundle.installed(get_tree()):
-		print("IRON_DATA_READY: API 1 revision "+str(bundle.manifest.revision))
+		print("IRON_DATA_READY: API "+str(bundle.manifest.api)+" revision "+str(bundle.manifest.revision))
 		start_game()
 	else:
-		require_data("Compatible Data not installed or damaged. Import an API 1 .icdata file.")
+		require_data("Compatible Data not installed or damaged. Import an API 1 or API 3 .icdata file.")
 
 func require_data(message: String) -> void:
 	busy = false
@@ -84,7 +84,7 @@ func require_data(message: String) -> void:
 	status = message
 	if castle_mode:
 		var translated={
-			"Compatible Data not installed or damaged. Import an API 1 .icdata file.":"داتا نییە یان تێکچووە؛ فایلی Castle Data هەڵبژێرە.",
+			"Compatible Data not installed or damaged. Import an API 1 or API 3 .icdata file.":"داتا نییە یان تێکچووە؛ فایلی Castle Data هەڵبژێرە.",
 			"Missing native importer. Install the official foundation APK.":"فایلهێنەر نییە؛ APKـی فەرمی دابمەزرێنە.",
 			"Installed content could not be verified. Import a fresh copy.":"داتا پشتڕاست نەکرایەوە؛ کۆپییەکی نوێ دابگرە.",
 			"Choose compatible replacement Data. A failed import keeps your previous installation.":"داتای گونجاو هەڵبژێرە؛ ئەگەر نەکرا، داتای پێشوو دەپارێزرێت."
@@ -125,7 +125,7 @@ func complete_native_import(path: String) -> void:
 		require_data(bundle.error)
 		print("IRON_DATA_REJECTED")
 		return
-	print("IRON_DATA_INSTALLED: API 1 revision "+str(bundle.manifest.revision))
+	print("IRON_DATA_INSTALLED: API "+str(bundle.manifest.api)+" revision "+str(bundle.manifest.revision))
 	if updating:
 		needs_restart = true
 		busy = false
@@ -135,7 +135,7 @@ func complete_native_import(path: String) -> void:
 		queue_redraw()
 		return
 	if await bundle.installed(get_tree()):
-		print("IRON_DATA_READY: API 1 revision "+str(bundle.manifest.revision))
+		print("IRON_DATA_READY: API "+str(bundle.manifest.api)+" revision "+str(bundle.manifest.revision))
 		start_game()
 	else:
 		require_data("Installed content could not be verified. Import a fresh copy.")

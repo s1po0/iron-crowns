@@ -115,6 +115,9 @@ static func texture(x: int,y: int,kind: String,quality: int) -> Texture2D:
 	if not DirAccess.dir_exists_absolute(dir) and DirAccess.dir_exists_absolute(dir+".previous"):
 		DirAccess.rename_absolute(dir+".previous",dir)
 	var path=dir+"/%d_%d_%s.png" % [x,y,kind]
+	var unified=ContentAssets.directory+"/assets/content/realm/%d_%d_%s.webp" % [x,y,kind]
+	if ContentBundle.complete:
+		path=unified
 	if not FileAccess.file_exists(path):
 		return null
 	var image=Image.new()
