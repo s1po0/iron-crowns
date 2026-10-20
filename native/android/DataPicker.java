@@ -19,18 +19,25 @@ public final class DataPicker extends GodotPlugin {
     private static final int REQUEST = 6306;
     private volatile boolean active;
     private long expectedBytes;
+    private volatile boolean regionMode;
     public DataPicker(Godot godot) { super(godot); }
     @Override public String getPluginName() { return "DataPicker"; }
     @Override public Set<SignalInfo> getPluginSignals() {
         return new HashSet<>(Arrays.asList(
+            new SignalInfo("region_selected", String.class),
+            new SignalInfo("region_error", String.class),
+            new SignalInfo("region_progress", Integer.class),
             new SignalInfo("data_selected", String.class),
             new SignalInfo("data_error", String.class),
             new SignalInfo("data_progress", Integer.class)));
     }
-    @UsedByGodot public void selectData(long bytes) {
+    @UsedByGodot public void selectData(long bytes) { beginSelection(bytes,false); }
+    @UsedByGodot public void selectRegion() { beginSelection(96L*1024*1024,true); }
+    private void beginSelection(long bytes, boolean region) {
         if (active) return;
+        regionMode=region;
         if (bytes<=0 || bytes>256L*1024*1024) {
-            emitSignal("data_error", "Invalid expected Data size."); return;
+            emitSignal(regionMode ? "region_error" : "data_error", "Invalid expected Data size."); return;
         }
         expectedBytes=bytes;
         active=true;
@@ -44,7 +51,7 @@ public final class DataPicker extends GodotPlugin {
                 getActivity().startActivityForResult(intent,REQUEST);
             } catch (Exception error) {
                 active=false;
-                emitSignal("data_error","Cannot open Android's document picker.");
+                emitSignal(regionMode ? "region_error" : "data_error","Cannot open Android's document picker.");
             }
         });
     }
@@ -52,7 +59,7 @@ public final class DataPicker extends GodotPlugin {
         if (requestCode!=REQUEST) return;
         if (resultCode!=Activity.RESULT_OK || data==null || data.getData()==null) {
             active=false;
-            emitSignal("data_error","Selection cancelled. Import the matching Data file to continue.");
+            emitSignal(regionMode ? "region_error" : "data_error","Selection cancelled. Import the matching Data file to continue.");
             return;
         }
         final Uri uri=data.getData();
@@ -60,7 +67,7 @@ public final class DataPicker extends GodotPlugin {
         // The transient URI grant remains valid while this activity copies the file.
         // Bound bytes here; version/schema, per-file hashes and atomic activation are checked by the game.
         new Thread(() -> {
-            File partial=new File(activity.getFilesDir(),"content/selected-data.part");
+            File partial=new File(activity.getFilesDir(),regionMode ? "content/selected-region.part" : "content/selected-data.part");
             try {
                 File folder=partial.getParentFile();
                 if (!folder.isDirectory() && !folder.mkdirs()) throw new Exception("Storage unavailable");
@@ -77,7 +84,7 @@ public final class DataPicker extends GodotPlugin {
                         output.write(buffer,0,count);
                         int percent=(int)(total*100/expectedBytes);
                         if (percent!=previous) {
-                            emitSignal("data_progress",percent);
+                            emitSignal(regionMode ? "region_progress" : "data_progress",percent);
                             previous=percent;
                         }
                     }
@@ -85,11 +92,11 @@ public final class DataPicker extends GodotPlugin {
                     if (total<12) throw new Exception("Data file is empty or truncated");
                 }
                 active=false;
-                emitSignal("data_selected",partial.getAbsolutePath());
+                emitSignal(regionMode ? "region_selected" : "data_selected",partial.getAbsolutePath());
             } catch (Exception error) {
                 partial.delete();
                 active=false;
-                emitSignal("data_error","Data import failed: "+error.getMessage()+". Check the file and free storage.");
+                emitSignal(regionMode ? "region_error" : "data_error","Data import failed: "+error.getMessage()+". Check the file and free storage.");
             }
         },"IronDataImport").start();
     }

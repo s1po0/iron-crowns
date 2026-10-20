@@ -1,5 +1,5 @@
 extends Node3D
-var sim=CastleSim.new()
+var sim=CastleSim.new("realm_valley")
 var world=CastleWorld.new()
 var ui=CastleUI.new()
 var camera=Camera3D.new()
@@ -24,8 +24,11 @@ var audio: AudioStreamPlayer
 var screenshot_clock=0.0
 var demolition_id=-1
 var demolition_until=0
-var selected_mission="valley"
+var selected_mission="realm_valley"
 var end_save_attempted=false
+var speed=1
+var region_importing=false
+var region_picker: FileDialog
 
 func _ready() -> void:
 	# Native Control widgets need emulated mouse clicks; map gestures handle raw touches separately.
@@ -46,6 +49,13 @@ func _ready() -> void:
 	ghost.visible=false
 	add_child(ui)
 	ui.setup(self)
+	if Engine.has_singleton("DataPicker"):
+		var native=Engine.get_singleton("DataPicker")
+		native.connect("region_selected",region_selected)
+		native.connect("region_error",func(message):
+			region_importing=false
+			ui.notice.text=message)
+	locate()
 	set_quality(quality_index)
 	audio=AudioStreamPlayer.new()
 	audio.stream=ContentAssets.audio("res://assets/audio/wind.wav")
@@ -59,20 +69,20 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--mission="):
 			var id=arg.trim_prefix("--mission=")
-			if CastleMissions.MAPS.has(id):
+			if CastleMissions.exists(id):
 				select_mission(CastleMissions.IDS.find(id))
 	if "--rts-capture" in OS.get_cmdline_user_args():
 		new_game()
 		sim.resources.wood=1000
 		sim.resources.stone=1000
 		for entry in [["stockpile",14,20],["woodcutter",12,12],["farm",14,26],["mill",19,24],["bakery",23,23],["barracks",23,17],["house",17,29],["wall",22,12],["wall",23,12],["wall",24,12],["gate",25,12]]:
-			sim.place(entry[0],Vector2i(entry[1],entry[2]))
+			sim.place(entry[0],Vector2i(entry[1],entry[2])+CastleMissions.keep(sim.mission_id)-Vector2i(18,16))
 		for b in sim.buildings:
 			b.built=1.0
 		sim.resources.bread=100
 		for i in 6:
 			sim.train()
-		sim.order(Vector2i(24,14))
+		sim.order(Vector2i(24,14)+CastleMissions.keep(sim.mission_id)-Vector2i(18,16))
 	world.sync(sim,0)
 	print("IRON_RTS_READY")
 
@@ -80,8 +90,10 @@ func _process(dt: float) -> void:
 	distance=lerpf(distance,target_distance,minf(1,dt*8))
 	camera.position=focus+Vector3(distance*.55,distance*.8,distance*.65)
 	camera.look_at(focus)
+	world.stream(focus)
 	if started and not paused:
-		sim.step(dt)
+		for tick in speed:
+			sim.step(dt)
 		if not sim.ended.is_empty() and not end_save_attempted:
 			end_save_attempted=true
 			if not sim.save_game():
@@ -159,6 +171,7 @@ func resume() -> void:
 	selected_mission=sim.mission_id
 	rebuild_world()
 	started=true
+	locate()
 	ui.intro.hide()
 
 func choose(kind: String) -> void:
@@ -192,7 +205,7 @@ func suggest_site() -> void:
 		ui.notice.text=placement_message()
 		return
 	var center=CastleSim.cell(focus)
-	for radius in range(0,CastleSim.SIZE):
+	for radius in range(0,mini(40,sim.grid_size)):
 		for y in range(center.y-radius,center.y+radius+1):
 			for x in range(center.x-radius,center.x+radius+1):
 				if maxi(absi(x-center.x),absi(y-center.y))!=radius:
@@ -279,7 +292,7 @@ func zoom(amount: float) -> void:
 	target_distance=clampf(target_distance+amount,28,100)
 
 func locate() -> void:
-	focus=Vector3(-2,0,-5)
+	focus=CastleSim.world(Vector2(CastleMissions.keep(sim.mission_id))+Vector2(1,2))
 	target_distance=58
 
 func select_world(point: Vector2) -> void:
@@ -303,8 +316,8 @@ func pan(delta: Vector2) -> void:
 	forward.y=0
 	focus-=right.normalized()*delta.x*distance*.0014
 	focus-=forward.normalized()*delta.y*distance*.0014
-	focus.x=clampf(focus.x,-46,46)
-	focus.z=clampf(focus.z,-46,46)
+	focus.x=clampf(focus.x,-46,(sim.grid_size-24)*3.0)
+	focus.z=clampf(focus.z,-46,(sim.grid_size-24)*3.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device==InputEvent.DEVICE_ID_EMULATION:
@@ -363,3 +376,34 @@ func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED,NOTIFICATION_WM_CLOSE_REQUEST] and started:
 		sim.save_game()
 		paused=true
+
+func toggle_speed() -> void:
+	speed=4 if speed==1 else 1
+	ui.notice.text="خێرایی: %d×" % speed
+
+func import_region() -> void:
+	if region_importing:
+		return
+	paused=true
+	region_importing=true
+	ui.notice.text="فایلی .icregion هەڵبژێرە؛ ناوەڕاست: Realm-Region-2-2. دوای پشکنین بەردەوام بە."
+	if Engine.has_singleton("DataPicker"):
+		Engine.get_singleton("DataPicker").selectRegion()
+	else:
+		if region_picker==null:
+			region_picker=FileDialog.new()
+			region_picker.access=FileDialog.ACCESS_FILESYSTEM
+			region_picker.file_mode=FileDialog.FILE_MODE_OPEN_FILE
+			region_picker.filters=PackedStringArray(["*.icregion ; Realm terrain region"])
+			region_picker.file_selected.connect(region_selected)
+			region_picker.canceled.connect(func():region_importing=false)
+			add_child(region_picker)
+		region_picker.popup_centered(Vector2i(900,550))
+
+func region_selected(path: String) -> void:
+	ui.notice.text="پشکنینی SHA-256 و دامەزراندنی زەوی…"
+	var error=await RealmRegions.install(path,get_tree())
+	if path.ends_with("selected-region.part"):
+		DirAccess.remove_absolute(path)
+	region_importing=false
+	ui.notice.text="Data دامەزرا؛ بۆ یاری «بەردەوام بە» دابگرە." if error.is_empty() else error

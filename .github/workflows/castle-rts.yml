@@ -2,7 +2,7 @@ name: Castle RTS preview
 on:
   push:
     branches: ['arena/94d215f9-iron-crowns']
-    paths: ['godot/scripts/rts_*.gd', 'godot/rts.tscn', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
+    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'godot/rts.tscn', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
     inputs:
       reviewed_run:
@@ -24,6 +24,11 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: bash scripts/godot-ci-setup.sh
+      - name: Build a real streamed region and adversarial test fixtures
+        run: |
+          pip install numpy==2.2.6 pillow==11.2.1
+          python3 scripts/build-realm-data.py build/realm-sample --region 2 2
+          python3 scripts/build-realm-data.py build/realm-fixture --region 0 0 --test-fixture
       - name: Parse and test production chain, movement, combat and saves
         shell: bash
         run: |
@@ -34,6 +39,9 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --quit-after 240 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
           grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
+          godot --headless --path godot --script res://scripts/realm_test.gd -- "$PWD/build/realm-sample/Realm-Region-2-2.icregion" "$PWD/build/realm-fixture/Realm-Region-0-0.icregion" 2>&1 | tee artifacts/realm-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/realm-tests.log
+          grep -q IRON_REALM_TEST_PASS artifacts/realm-tests.log
           cp /tmp/rts-touch-points.json artifacts/
       - name: Capture actual castle scene
         shell: bash
@@ -43,7 +51,7 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-render.log
           grep -q IRON_RTS_RENDER_PASS artifacts/rts-render.log
           cp /tmp/iron-castle-rts.png artifacts/
-          for mission in crossing ridge; do
+          for mission in realm_crossing realm_ridge; do
             LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture --mission=$mission 2>&1 | tee artifacts/rts-$mission.log
             ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-$mission.log
             grep -q IRON_RTS_RENDER_PASS artifacts/rts-$mission.log
@@ -54,9 +62,9 @@ jobs:
         run: |
           set -o pipefail
           bash scripts/godot-android-template.sh
-          python3 scripts/build-content-bundle.py artifacts/Iron-Crowns-0.10.0-Castle-Data.icdata --revision 3
-          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.10.0-Castle-Maps.apk" 2>&1 | tee artifacts/rts-export.log
-          test -s artifacts/Iron-Crowns-0.10.0-Castle-Maps.apk
+          python3 scripts/build-content-bundle.py artifacts/Iron-Crowns-0.11.0-Castle-Data.icdata --revision 3
+          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.11.0-Castle-Realms.apk" 2>&1 | tee artifacts/rts-export.log
+          test -s artifacts/Iron-Crowns-0.11.0-Castle-Realms.apk
           cd artifacts
           sha256sum *.apk *.icdata > SHA256SUMS.txt
       - name: Prepare Android farm construction smoke test
@@ -137,19 +145,14 @@ jobs:
           PYRELEASE
           gh run download "$REVIEWED" --repo "$REPO" -n castle-rts-preview -D artifacts
           cat > notes.md <<'NOTES'
-          Three original Godot maps: Green Valley, Southern Bridge and Western Gate. Different river/bridge layouts, resource locations, attacking routes, objectives and wave sizes. Visible mission cards, Sorani briefing, next-mission button, interactive minimap and schema-3 map saves.
-          Independent Android castle-building RTS campaign preview, package com.ironcrowns.castles.maps.
-          Install the APK, launch and import the matching .icdata through the native picker. Old releases/saves are not replaced.
-          IMPORTANT: this is a separate app, not an in-place 0.8/0.9 update. Keep the older app installed; private saves do not automatically transfer between packages. Prior CI debug signing keys are unavailable. Production signing and cross-package save transfer remain future work.
-          Includes three guided defense missions, physical worker deliveries, wheat/flour/bread production, housing, food morale, construction, controllable gates, repairs, demolition and three defensive raids.
-          Low/Medium/High are targets for 4 / 6–8 / 8+ GB devices, not certified physical-device performance.
-          This is NOT a full Stronghold-scale game, NOT a >1-GB asset pack, and NOT an OBB. Data contains roughly 20 MB of actually used assets, with no padding.
-          Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render, Android export, actual emulator install/native Data import/touch selection of Southern Bridge/farm construction/map-aware save/restart passed; physical-phone testing is outstanding.
+          Godot 0.11 realm expansion: three 400×400-cell maps (100× the old map area), streamed 16×16-cell terrain chunks, 12 capturable supply posts and 1×/4× simulation speed. Three claimed posts and three defeated raids complete a realm.
+          Independent Android package com.ironcrowns.castles.realms; older APKs and private saves are not replaced. Install base .icdata at startup, then import .icregion files using Data + (central region 2-2 first). Region Data is distributed separately; see repository docs/CASTLE_REALMS_0.11.md for sizes, checksums and downloads.
+          Region importer bounds memory and file sizes, verifies SHA-256/PNG dimensions, stages files before activation, and retains previous data on validation failure. This is a playable prototype, not a commercial-quality Stronghold replacement. Native cloud saves, siege engines, production signing and physical 4/6/8 GB benchmarks are not implemented/certified.
           NOTES
           # Tag/release creation can require permissions unavailable to GITHUB_TOKEN.
           # An authorized maintainer creates the draft; CI only attaches verified files.
           # Never overwrite a published release or silently replace any assets.
-          gh release view v0.10.0-castle-maps --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
+          gh release view v0.11.0-castle-realms --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
           python3 - <<'PYDRAFT'
           import json
           r=json.load(open('release.json'))
@@ -159,14 +162,14 @@ jobs:
           PYDRAFT
           (cd artifacts && sha256sum --check SHA256SUMS.txt)
           printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
-          cp artifacts/android/04-built-farm.png artifacts/android-castle-maps.png
+          cp artifacts/android/04-built-farm.png artifacts/android-castle-realms.png
           cp artifacts/android/01-intro.png artifacts/android-castle-menu.png
-          gh release upload v0.10.0-castle-maps --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-maps.png artifacts/android-castle-menu.png artifacts/castle-crossing.png artifacts/castle-ridge.png
-          gh release edit v0.10.0-castle-maps --repo "$REPO" --notes-file notes.md
+          gh release upload v0.11.0-castle-realms --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-realms.png artifacts/android-castle-menu.png artifacts/castle-realm_crossing.png artifacts/castle-realm_ridge.png
+          gh release edit v0.11.0-castle-realms --repo "$REPO" --notes-file notes.md
           python3 - <<'PYANDROID'
           import pathlib,base64,json,subprocess,os
           branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
-          for name in ['android-castle-maps.png','android-castle-menu.png','castle-crossing.png','castle-ridge.png']:
+          for name in ['android-castle-realms.png','android-castle-menu.png','castle-realm_crossing.png','castle-realm_ridge.png']:
               path='docs/screenshots/'+name
               lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
               payload={'branch':branch,'message':'docs: record verified Godot mission review '+name,'content':base64.b64encode(pathlib.Path('artifacts',name).read_bytes()).decode()}

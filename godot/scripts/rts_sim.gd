@@ -27,15 +27,22 @@ var baked = 0
 var kills = 0
 var loaded = false
 var mission_id="valley"
+var claimed: Array=[]
+var grid_size=40
+var terrain_ready=false
+var structure_cells: Array[Vector2i]=[]
 
 func _init(map_id: String="valley") -> void:
-	mission_id=map_id if CastleMissions.MAPS.has(map_id) else "valley"
+	mission_id=map_id if CastleMissions.exists(map_id) else "valley"
 	resources.wood=CastleMissions.data(mission_id).wood_start
 	resources.stone=CastleMissions.data(mission_id).stone_start
-	navigation.region = Rect2i(0,0,SIZE,SIZE)
+	grid_size=CastleMissions.size_for(mission_id)
+	navigation.region = Rect2i(0,0,grid_size,grid_size)
 	navigation.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	navigation.update()
-	buildings.append({"id":0,"kind":"keep","x":18,"y":16,"hp":600.0,"built":1.0})
+	var origin=CastleMissions.keep(mission_id)
+	rally=origin+Vector2i(2,4)
+	buildings.append({"id":0,"kind":"keep","x":origin.x,"y":origin.y,"hp":600.0,"built":1.0})
 	rebuild_navigation()
 
 static func world(cell: Vector2) -> Vector3:
@@ -54,15 +61,26 @@ func waves() -> Array:
 	return CastleMissions.data(mission_id).waves
 
 func rebuild_navigation() -> void:
-	for y in SIZE:
-		for x in SIZE:
-			navigation.set_point_solid(Vector2i(x,y),terrain_blocked(Vector2i(x,y)))
+	if not terrain_ready:
+		grid_size=CastleMissions.size_for(mission_id)
+		navigation.region=Rect2i(0,0,grid_size,grid_size)
+		navigation.update()
+		for y in grid_size:
+			for x in grid_size:
+				navigation.set_point_solid(Vector2i(x,y),terrain_blocked(Vector2i(x,y)))
+		terrain_ready=true
+	else:
+		for p in structure_cells:
+			navigation.set_point_solid(p,terrain_blocked(p))
+	structure_cells.clear()
 	for b in buildings:
 		if b.kind=="gate" and b.get("open",true):
 			continue
 		for y in FOOTPRINT[b.kind]:
 			for x in FOOTPRINT[b.kind]:
-				navigation.set_point_solid(Vector2i(b.x+x,b.y+y))
+				var p=Vector2i(b.x+x,b.y+y)
+				structure_cells.append(p)
+				navigation.set_point_solid(p)
 	# Repath moving units after every placement/demolition rather than walking through new walls.
 	for u in units:
 		u.route = []
@@ -304,6 +322,14 @@ func step(dt: float) -> void:
 		return
 	dt=clampf(dt,0,.2)
 	time+=dt
+	var sites=CastleMissions.outposts(mission_id)
+	for i in sites.size():
+		if i not in claimed and units.filter(func(u):return u.kind=="soldier" and u.hp>0 and u.at.distance_to(Vector2(sites[i]))<6).size()>=3:
+			claimed.append(i)
+			resources.wood+=120
+			resources.stone+=80
+			resources.gold+=60
+			resources.bread+=20
 	food_clock+=dt
 	if food_clock>=30:
 		food_clock=0
@@ -348,8 +374,9 @@ func step(dt: float) -> void:
 		spawn_wave()
 	if wave>0 and not units.any(func(u):return u.kind=="raider" and u.hp>0):
 		if wave>=waves().size():
-			stage=9
-			ended="victory"
+			if grid_size==40 or claimed.size()>=3:
+				stage=9
+				ended="victory"
 		else:
 			if wave_clock==REST_SECONDS:
 				resources.gold+=40
@@ -378,7 +405,7 @@ func save_game(path: String=SAVE) -> bool:
 		u.at=[u.at.x,u.at.y]
 		u.goal=[u.goal.x,u.goal.y]
 		u.route=[]
-	file.store_string(JSON.stringify({"schema":3,"mission_id":mission_id,"morale":morale,"wave_clock":wave_clock,"resources":resources,"buildings":buildings,"units":saved_units,"time":time,"food_clock":food_clock,"stage":stage,"next_id":next_id,"wave":wave,"ended":ended,"rally":[rally.x,rally.y],"baked":baked,"kills":kills,"deliveries":deliveries}))
+	file.store_string(JSON.stringify({"schema":3,"claimed":claimed,"mission_id":mission_id,"morale":morale,"wave_clock":wave_clock,"resources":resources,"buildings":buildings,"units":saved_units,"time":time,"food_clock":food_clock,"stage":stage,"next_id":next_id,"wave":wave,"ended":ended,"rally":[rally.x,rally.y],"baked":baked,"kills":kills,"deliveries":deliveries}))
 	file.flush()
 	var ok=file.get_error()==OK
 	file.close()
@@ -395,6 +422,9 @@ func load_game(path: String=SAVE) -> bool:
 		if not FileAccess.file_exists(backup) and DirAccess.copy_absolute(ProjectSettings.globalize_path(path),ProjectSettings.globalize_path(backup))!=OK:
 			return false
 	mission_id=str(raw.mission_id) if raw.schema==3 else "valley"
+	terrain_ready=false
+	claimed=raw.get("claimed",[]).map(func(v):return int(v))
+	structure_cells.clear()
 	morale=int(raw.get("morale",100))
 	wave_clock=float(raw.get("wave_clock",REST_SECONDS if raw.wave>0 else 0))
 	resources=raw.resources
@@ -425,7 +455,7 @@ func load_game(path: String=SAVE) -> bool:
 static func valid(raw) -> bool:
 	if not raw is Dictionary or (raw.get("schema")!=1 and raw.get("schema")!=2 and raw.get("schema")!=3):
 		return false
-	if raw.schema==3 and not CastleMissions.MAPS.has(raw.get("mission_id","")):
+	if raw.schema==3 and not CastleMissions.exists(str(raw.get("mission_id",""))):
 		return false
 	if raw.schema>=2 and (not valid_number(raw.get("morale"),0,100) or not valid_number(raw.get("wave_clock"),0,REST_SECONDS)):
 		return false
@@ -439,6 +469,15 @@ static func valid(raw) -> bool:
 			return false
 		if raw.resources[key]<0 or raw.resources[key]>1000000:
 			return false
+	var limit=CastleMissions.size_for(str(raw.get("mission_id","valley")) if raw.schema==3 else "valley")
+	var claims=raw.get("claimed",[])
+	if not claims is Array or claims.size()>12:
+		return false
+	var seen={}
+	for c in claims:
+		if not valid_number(c,0,11) or c!=int(c) or seen.has(c) or limit==40:
+			return false
+		seen[c]=true
 	var occupied={}
 	var ids={}
 	for b in raw.buildings:
@@ -447,7 +486,7 @@ static func valid(raw) -> bool:
 		for key in ["id","x","y","hp","built"]:
 			if not b.get(key) is float and not b.get(key) is int:
 				return false
-		if b.id<0 or b.id!=int(b.id) or b.x!=int(b.x) or b.y!=int(b.y) or b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>SIZE-3 or b.y+FOOTPRINT[b.kind]>SIZE-3 or not is_finite(b.hp) or b.hp<0 or b.hp>max_health(b.kind) or b.built<0 or b.built>1:
+		if b.id<0 or b.id!=int(b.id) or b.x!=int(b.x) or b.y!=int(b.y) or b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>limit-3 or b.y+FOOTPRINT[b.kind]>limit-3 or not is_finite(b.hp) or b.hp<0 or b.hp>max_health(b.kind) or b.built<0 or b.built>1:
 			return false
 		if b.has("open") and not b.open is bool:
 			return false
@@ -464,7 +503,7 @@ static func valid(raw) -> bool:
 		if not u is Dictionary or not u.get("kind") in ["worker","soldier","raider"]:
 			return false
 		for key in ["at","goal"]:
-			if not valid_vector(u.get(key),2,SIZE):
+			if not valid_vector(u.get(key),2,limit-1):
 				return false
 		for key in ["hp","home","id","wait","amount","attack","facing"]:
 			if not valid_number(u.get(key),-600,1000000):
@@ -480,7 +519,7 @@ static func valid(raw) -> bool:
 	for key in ["stage","next_id","wave","baked","kills","deliveries"]:
 		if raw[key]!=int(raw[key]):
 			return false
-	return raw.next_id>ids.keys().max() and raw.stage<=9 and raw.wave<=(1 if raw.schema==1 else WAVE_SIZES.size()) and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,SIZE)
+	return raw.next_id>ids.keys().max() and raw.stage<=9 and raw.wave<=(1 if raw.schema==1 else WAVE_SIZES.size()) and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,limit-1)
 
 static func valid_number(value, low: float, high: float) -> bool:
 	return (value is float or value is int) and is_finite(float(value)) and value>=low and value<=high

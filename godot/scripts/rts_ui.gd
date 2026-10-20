@@ -76,7 +76,9 @@ func setup(game: Node) -> void:
 	row.add_child(quality)
 	save_button=button("پاشەکەوت",game.save_game,row)
 	pause_button=button("وەستان",game.toggle_pause,row)
-	button("دەنگ",game.toggle_sound,row)
+	button("دەنگ",game.toggle_sound,row,65)
+	button("Data +",game.import_region,row,85)
+	button("١× / ٤×",game.toggle_speed,row,80)
 	var objective=PanelContainer.new()
 	objective.position=Vector2(16,82)
 	objective.size=Vector2(520,92)
@@ -167,7 +169,7 @@ func setup(game: Node) -> void:
 	box.add_child(map_row)
 	for index in CastleMissions.IDS.size():
 		var id=CastleMissions.IDS[index]
-		var pick=button(CastleMissions.data(id).title,func():game.select_mission(index),map_row,240)
+		var pick=button(CastleMissions.data(id).title.replace(" — شانشینی فراوان",""),func():game.select_mission(index),map_row,240)
 		pick.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		mission_buttons.append(pick)
 	var description=Label.new()
@@ -236,6 +238,8 @@ func update(sim: CastleSim) -> void:
 		tutorial.text+="\nشوێن پڕە؛ ماڵێکی تر دروست بکە."
 	selected.text=NAMES.get(controller.chosen,"بەڕێوەبردنی بینا" if controller.chosen=="inspect" else "فەرمانی سوپا")+" — شوێنێک لە نەخشە دیاری بکە"
 	restart.visible=controller.started and not sim.ended.is_empty()
+	if sim.grid_size==400 and sim.stage==8 and sim.wave>=3:
+		tutorial.text="بۆ سەرکەوتن ٣ پۆست بگرە: سێ سەرباز بۆ خاڵە پرتەقاڵییەکانی نەخشە بنێرە. (%d/3)" % sim.claimed.size()
 	next_button.visible=controller.started and sim.ended=="victory" and CastleMissions.IDS.find(sim.mission_id)<CastleMissions.IDS.size()-1
 	if not sim.ended.is_empty():
 		finish.text="گوندەکەت لە سێ هێرش پاراست!" if sim.ended=="victory" else "قەڵاکەت ڕووخا"

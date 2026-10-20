@@ -74,7 +74,7 @@ func run() -> void:
 	var screen=Vector2.ZERO
 	for y in range(6,29):
 		for x in range(6,29):
-			var p=Vector2i(x,y)
+			var p=Vector2i(x,y)+CastleMissions.keep(game.sim.mission_id)-Vector2i(18,16)
 			var projected=game.camera.unproject_position(CastleSim.world(Vector2(p)))
 			if game.sim.can_build("farm",p) and Rect2(30,185,1220,160).has_point(projected) and not game.ui.minimap.get_global_rect().has_point(projected):
 				candidate=p
@@ -101,7 +101,7 @@ func run() -> void:
 	assert(game.sim.buildings.size()==3 and game.sim.resources.wood==original_wood-70,"Suggested plot must build through touch controls too")
 	assert(root.get_visible_rect().encloses(game.ui.minimap.get_global_rect()),"Minimap must fit inside the physical screen in RTL")
 	await tap(game.ui.minimap.get_global_rect().position+Vector2(120,40))
-	assert(game.focus.distance_to(CastleSim.world(Vector2(30,10)))<.1,"Minimap touch must move camera, not place a building")
+	assert(game.focus.distance_to(CastleSim.world(Vector2(game.sim.grid_size*.75,game.sim.grid_size*.25)))<.1,"Minimap touch must move camera, not place a building")
 	assert(game.sim.buildings.size()==3)
 	game.locate()
 	print("IRON_RTS_TOUCH_FARM_BUILD_PASS")

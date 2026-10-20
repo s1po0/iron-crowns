@@ -8,6 +8,7 @@ var rotating: Array=[]
 var quality=1
 var sun: DirectionalLight3D
 var environment: WorldEnvironment
+var chunks: Node3D
 var trees: MultiMeshInstance3D
 
 func setup(map_id: String="valley") -> void:
@@ -38,7 +39,12 @@ func setup(map_id: String="valley") -> void:
 	sun.directional_shadow_max_distance=90
 	sun.shadow_enabled=true
 	add_child(sun)
-	landscape()
+	if CastleMissions.size_for(mission_id)>40:
+		chunks=RealmTerrain.new()
+		add_child(chunks)
+		chunks.setup(mission_id)
+	else:
+		landscape()
 	forest()
 	var m=CastleMissions.data(mission_id)
 	var center=CastleSim.world(CastleMissions.bridge_center(mission_id))
@@ -50,7 +56,7 @@ func setup(map_id: String="valley") -> void:
 		MarchArt.box(self,center+offset,Vector3(12,.8,.4) if along_x else Vector3(.4,.8,12),FieldMaterials.surface("masonry",Color("9b9886"),.5))
 	# Roads follow the same navigable grid as gameplay, not an unrelated painted route.
 	var road_sim=CastleSim.new(mission_id)
-	var road=road_sim.navigation.get_id_path(Vector2i(21,17),Vector2i(CastleMissions.bridge_center(mission_id)))
+	var road=road_sim.navigation.get_id_path(CastleMissions.keep(mission_id)+Vector2i(3,1),Vector2i(CastleMissions.bridge_center(mission_id)))
 	for cell in road:
 		if not CastleMissions.channel(Vector2(cell),mission_id):
 			MarchArt.box(self,CastleSim.world(Vector2(cell))+Vector3(0,.025,0),Vector3(2.8,.05,2.8),FieldMaterials.surface("earth",Color("b9a688"),1))
@@ -265,3 +271,7 @@ func set_quality(index: int) -> void:
 	for child in get_children():
 		if child is MultiMeshInstance3D:
 			child.multimesh.visible_instance_count=[85,150,220][quality]*int(child.get_meta("density",1))
+
+func stream(focus: Vector3) -> void:
+	if chunks!=null:
+		chunks.stream(focus,quality)
