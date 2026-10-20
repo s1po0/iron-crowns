@@ -420,3 +420,9 @@ func region_selected(path: String) -> void:
 	if not error.is_empty():
 		region_importing=false
 	ui.notice.text="Data دامەزرا؛ بۆ یاری «بەردەوام بە» دابگرە." if error.is_empty() else error
+
+func open_campaign() -> void:
+	if started and not sim.save_game():
+		ui.notice.text="پاشەکەوت نەکرا؛ بەشەکە نەگۆڕدرا."
+		return
+	get_tree().change_scene_to_file("res://campaign.tscn")

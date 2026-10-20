@@ -80,6 +80,7 @@ func setup(game: Node) -> void:
 	button("دەنگ",game.toggle_sound,row,65)
 	data_button=button("Data +",game.import_region,row,85)
 	button("١× / ٤×",game.toggle_speed,row,80)
+	button("کەمپەین",game.open_campaign,row,85)
 	var objective=PanelContainer.new()
 	objective.position=Vector2(16,82)
 	objective.size=Vector2(520,92)

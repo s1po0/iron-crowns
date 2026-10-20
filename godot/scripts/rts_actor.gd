@@ -5,12 +5,13 @@ var animation: AnimationPlayer
 var carrying: MeshInstance3D
 var fallen = false
 
-func setup(kind: String, index: int) -> void:
+func setup(kind: String, index: int, coat_override: String="") -> void:
 	anatomy=HumanBody.new()
 	anatomy.name="Body"
 	add_child(anatomy)
 	var outfit=MarchCatalog.equipment(index).duplicate(true)
 	outfit.coat="#8b7152" if kind=="worker" else "#516e69" if kind=="soldier" else "#8d493c"
+	if not coat_override.is_empty():outfit.coat=coat_override
 	var people=MarchCatalog.data().humans
 	anatomy.build(outfit,people[posmod(index,people.size())])
 	if kind=="worker":
