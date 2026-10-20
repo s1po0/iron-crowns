@@ -75,6 +75,7 @@ func stream(focus: Vector3,level: int) -> void:
 				var material: Material=fallback
 				if color!=null:
 					var detail=StandardMaterial3D.new()
+					detail.texture_repeat=false
 					detail.albedo_texture=color
 					detail.roughness=.95
 					detail.normal_texture=RealmRegions.texture(x,y,"normal",quality)

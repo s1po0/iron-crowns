@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,11 +21,13 @@ public final class DataPicker extends GodotPlugin {
     private volatile boolean active;
     private long expectedBytes;
     private volatile boolean regionMode;
+    private final ArrayDeque<Uri> regionQueue = new ArrayDeque<>();
     public DataPicker(Godot godot) { super(godot); }
     @Override public String getPluginName() { return "DataPicker"; }
     @Override public Set<SignalInfo> getPluginSignals() {
         return new HashSet<>(Arrays.asList(
             new SignalInfo("region_selected", String.class),
+            new SignalInfo("regions_finished"),
             new SignalInfo("region_error", String.class),
             new SignalInfo("region_progress", Integer.class),
             new SignalInfo("data_selected", String.class),
@@ -47,6 +50,7 @@ public final class DataPicker extends GodotPlugin {
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
                 intent.putExtra(Intent.EXTRA_LOCAL_ONLY,true);
+                if (regionMode) intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 getActivity().startActivityForResult(intent,REQUEST);
             } catch (Exception error) {
@@ -57,12 +61,36 @@ public final class DataPicker extends GodotPlugin {
     }
     @Override public void onMainActivityResult(int requestCode,int resultCode,Intent data) {
         if (requestCode!=REQUEST) return;
-        if (resultCode!=Activity.RESULT_OK || data==null || data.getData()==null) {
+        if (resultCode!=Activity.RESULT_OK || data==null || (data.getData()==null && data.getClipData()==null)) {
             active=false;
             emitSignal(regionMode ? "region_error" : "data_error","Selection cancelled. Import the matching Data file to continue.");
             return;
         }
-        final Uri uri=data.getData();
+        if (regionMode) {
+            regionQueue.clear();
+            if (data.getClipData()!=null) {
+                int count=data.getClipData().getItemCount();
+                if (count>25) {
+                    active=false; emitSignal("region_error","Select at most 25 regions."); return;
+                }
+                for (int i=0;i<count;i++) regionQueue.add(data.getClipData().getItemAt(i).getUri());
+            } else regionQueue.add(data.getData());
+            nextRegion(true);
+            return;
+        }
+        copyDocument(data.getData());
+    }
+    @UsedByGodot public void nextRegion(boolean proceed) {
+        if (!regionMode) return;
+        if (!proceed) { regionQueue.clear(); active=false; return; }
+        if (regionQueue.isEmpty()) {
+            active=false;
+            emitSignal("regions_finished");
+            return;
+        }
+        copyDocument(regionQueue.removeFirst());
+    }
+    private void copyDocument(final Uri uri) {
         final Activity activity=getActivity();
         // The transient URI grant remains valid while this activity copies the file.
         // Bound bytes here; version/schema, per-file hashes and atomic activation are checked by the game.
@@ -91,7 +119,7 @@ public final class DataPicker extends GodotPlugin {
                     output.getFD().sync();
                     if (total<12) throw new Exception("Data file is empty or truncated");
                 }
-                active=false;
+                if (!regionMode) active=false;
                 emitSignal(regionMode ? "region_selected" : "data_selected",partial.getAbsolutePath());
             } catch (Exception error) {
                 partial.delete();

@@ -12,7 +12,7 @@ var placement=Vector2i(15,20)
 var placement_selected=false
 var started=false
 var paused=false
-var quality_index=1
+var quality_index=0
 var touches: Dictionary={}
 var dragging=false
 var pointer_down=Vector2.ZERO
@@ -35,7 +35,7 @@ func _ready() -> void:
 	Input.emulate_mouse_from_touch=true
 	var prefs=ConfigFile.new()
 	if prefs.load("user://castle-settings.cfg")==OK:
-		quality_index=clampi(int(prefs.get_value("graphics","quality",1)),0,2)
+		quality_index=clampi(int(prefs.get_value("graphics","quality",0)),0,2)
 		sound=bool(prefs.get_value("audio","enabled",true))
 	add_child(world)
 	world.setup(sim.mission_id)
@@ -52,6 +52,9 @@ func _ready() -> void:
 	if Engine.has_singleton("DataPicker"):
 		var native=Engine.get_singleton("DataPicker")
 		native.connect("region_selected",region_selected)
+		native.connect("regions_finished",func():
+			region_importing=false
+			ui.notice.text="Data دامەزرا؛ بۆ یاری «بەردەوام بە» دابگرە.")
 		native.connect("region_error",func(message):
 			region_importing=false
 			ui.notice.text=message)
@@ -408,7 +411,12 @@ func region_selected(path: String) -> void:
 	var error=await RealmRegions.install(path,get_tree())
 	if path.ends_with("selected-region.part"):
 		DirAccess.remove_absolute(path)
-	region_importing=false
 	if error.is_empty():
 		print("IRON_REGION_INSTALLED")
+	if Engine.has_singleton("DataPicker"):
+		Engine.get_singleton("DataPicker").nextRegion(error.is_empty())
+	else:
+		region_importing=false
+	if not error.is_empty():
+		region_importing=false
 	ui.notice.text="Data دامەزرا؛ بۆ یاری «بەردەوام بە» دابگرە." if error.is_empty() else error
