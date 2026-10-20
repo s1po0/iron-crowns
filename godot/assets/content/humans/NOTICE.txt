@@ -1,0 +1,7 @@
+Human head and scalp derived from MakeHuman hm08 base mesh.
+Upstream: https://github.com/makehumancommunity/makehuman
+Source git blob: d26635e9326e3cca30778fd7b9c00062b03cce09
+License: CC0 1.0 Universal, included as LICENSE.txt.
+Copyright holders at CC0 release: Data Collection AB, Joel Palmius, Jonas Hauquier (2020).
+Changes: head/scalp extraction, metric scaling, coordinate conversion.
+This is not a Bannerlord asset.

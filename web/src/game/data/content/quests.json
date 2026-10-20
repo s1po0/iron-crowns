@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "quests",
+  "entries": [
+    {
+      "id": "quests-1",
+      "text": "خەڵکی {town} پێویستیان بە {amount} یەکە {good} هەیە. {reward} زێڕ بۆ گەیاندنەکە دەدەین.",
+      "quest": {
+        "type": "deliver",
+        "good": "grain",
+        "amount": 3,
+        "reward": 100
+      }
+    },
+    {
+      "id": "quests-2",
+      "text": "کاروانێک لە ڕێگای {town} تاڵان کراوە. ڕێگرێک بشکێنە و {reward} زێڕ وەربگرە.",
+      "quest": {
+        "type": "hunt",
+        "good": "wood",
+        "amount": 4,
+        "reward": 115
+      }
+    },
+    {
+      "id": "quests-3",
+      "text": "بازرگانێک بەرەو {town} دەڕوات. بە پێنج سەرباز یان زیاتر بیپارێزە؛ کرێکەت {reward} زێڕە.",
+      "quest": {
+        "type": "escort",
+        "good": "iron",
+        "amount": 5,
+        "reward": 130
+      }
+    },
+    {
+      "id": "quests-4",
+      "text": "کۆگای {town} بەتاڵ بووە. {amount} یەکە {good} بگەیەنە و {reward} زێڕ وەربگرە.",
+      "quest": {
+        "type": "deliver",
+        "good": "cloth",
+        "amount": 6,
+        "reward": 145
+      }
+    },
+    {
+      "id": "quests-5",
+      "text": "ڕێگرەکان بوونەتە هەڕەشە بۆ گوندەکان. سەرکەوتن بەسەر یەک دەستەیاندا {reward} زێڕی هەیە.",
+      "quest": {
+        "type": "hunt",
+        "good": "grain",
+        "amount": 3,
+        "reward": 160
+      }
+    },
+    {
+      "id": "quests-6",
+      "text": "خێزانێکی بازرگان دەبێت بگاتە {town}. بە پێنج سەرباز یان زیاتر یاوەریان بکە؛ {reward} زێڕت بۆیە.",
+      "quest": {
+        "type": "escort",
+        "good": "wood",
+        "amount": 4,
+        "reward": 175
+      }
+    },
+    {
+      "id": "quests-7",
+      "text": "پیشەوەرانی {town} داوای {amount} یەکە {good} دەکەن؛ پاداشتەکە {reward} زێڕە.",
+      "quest": {
+        "type": "deliver",
+        "good": "iron",
+        "amount": 5,
+        "reward": 190
+      }
+    },
+    {
+      "id": "quests-8",
+      "text": "ڕێگای بازاڕ لە ڕێگر پاک بکەرەوە. بۆ شکاندنی یەک دەستە {reward} زێڕ دەدەین.",
+      "quest": {
+        "type": "hunt",
+        "good": "cloth",
+        "amount": 6,
+        "reward": 205
+      }
+    },
+    {
+      "id": "quests-9",
+      "text": "کاروانی بچووکمان بەرەو {town} دەڕوات. پێنج سەربازمان لەگەڵ بن؛ {reward} زێڕ پاداشتەکەتە.",
+      "quest": {
+        "type": "escort",
+        "good": "grain",
+        "amount": 3,
+        "reward": 220
+      }
+    },
+    {
+      "id": "quests-10",
+      "text": "لە {town} چاوەڕێی {amount} یەکە {good}ن. بە گەیاندنی کاڵاکە {reward} زێڕ دەبەیت.",
+      "quest": {
+        "type": "deliver",
+        "good": "wood",
+        "amount": 4,
+        "reward": 235
+      }
+    }
+  ]
+}

@@ -1,1 +1,196 @@
-# iron-crowns
+# Iron Crowns — The Ashen Marches
+
+## Latest: Godot 0.13 — Crown Campaign
+
+**[Download the new Android APK](https://github.com/s1po0/iron-crowns/releases/tag/v0.13.0-crown-campaign)** · [Install, controls, progression and verification](docs/CROWN_CAMPAIGN_0.13.md).
+
+Start as an ordinary person among four empires and twelve settlements: work, contracts,
+recruitment, property, allegiance and earned governorship. Animated inhabitants,
+royal-house records, border raids and strategic castle battles; read-only Supabase
+story with offline fallback. The original castle RTS remains accessible.
+
+Uses the **same complete 0.12 Data** below, with all 25 regions already included.
+Native full-Data import, campaign recruitment/travel/save/restart and RTS construction
+passed [39388145001](https://github.com/s1po0/iron-crowns/actions/runs/39388145001).
+This is an incremental preview, **not a finished Warband equivalent**: campaign battles
+are autoresolved, not player-controlled melee/riding. Keep old apps to retain their
+separate private saves; no automatic cross-package migration.
+
+## Preserved: Godot 0.12 — one complete Data
+
+**[Download APK + the single 1.69 GB Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.12.0-castle-complete)** · [Installation and verification](docs/COMPLETE_DATA_0.12.md).
+
+All **25 terrain regions and the base art** are now inside one `.icdata`. No separate `.icregion` imports or base-Data download are needed. All 1,250 terrain images retain their original 1024² pixels through verified lossless encoding. Actual Android full-size import, 1,250-file verification, touch construction and save/restart passed [39380822249](https://github.com/s1po0/iron-crowns/actions/runs/39380822249). A new separate **Castle Complete** APK is required; keep old apps installed to retain their saves.
+
+## Preserved: Godot — Castle Realms 0.11
+
+The current expansion is **Godot**, with three **400×400-cell realms (100× the previous area)**, streamed terrain, 12 supply posts, 36 village houses, native regional-Data import and 1×/4× simulation speed. The separately generated terrain library contains **2,201,556,826 bytes** of used albedo/normal textures, independently downloaded and decoded in CI. It is terrain data, not 2 GB of new characters or quests.
+
+**Published:** [APK + base Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.11.0-castle-realms) · [25 terrain regions / 2.20 GB](https://github.com/s1po0/iron-crowns/releases/tag/v0.11.0-realm-data). Actual Android region import, farm construction and save/restart passed [39378897264](https://github.com/s1po0/iron-crowns/actions/runs/39378897264). [Install guide, exact content and verification limits](docs/CASTLE_REALMS_0.11.md) · [official terrain checksums](docs/REALM_SHA256SUMS.txt).
+
+The separate [Unreal C++ source prototype](unreal/README.md) remains preserved; it was not built with Unreal Engine and is not an Unreal APK. Older Godot releases/saves below remain preserved.
+
+## Castle Maps 0.10 — preserved Godot Android preview
+
+[Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.10.0-castle-maps) · [Map descriptions, start instructions and limits](docs/CASTLE_MAPS_0.10.md) · [Verified engine + Android build](https://github.com/s1po0/iron-crowns/actions/runs/39372968104).
+
+Three original 40×40 maps: **Green Valley**, **Southern Bridge**, **Western Gate**. Each has distinct river/bridge routing, work sites, attack origins and preparation requirements. A touch-first map-selection briefing, interactive full-grid minimap, mission endings/next-map flow and map-aware schema-3 saves extend the existing RTS construction/economy/combat systems. This is not a finished Stronghold-scale game; final art, siege equipment, cloud saves and a >1-GB library remain unfinished.
+
+Install `Iron-Crowns-0.10.0-Castle-Maps.apk`, launch **Iron Crowns: Castle Maps**, import compatible Castle Data, choose a mission card and press **دەستپێکردنی میشن**. Existing 0.9.1 Castle Data is byte-identical and compatible. The APK uses separate package `com.ironcrowns.castles.maps`: **keep older apps installed; their saves do not transfer automatically**. Stable production signing/cross-package migration are still unresolved.
+
+![Actual Android mission-selection opening](docs/screenshots/android-castle-menu.png)
+
+## Dropbox Data mirror
+
+[Download the existing Castle Data + Sorani installation guide](https://www.dropbox.com/scl/fo/l6hzmhekdtk2oe58rcjhw/AMqrZzQbl1Sga0hfOP6MaS4?rlkey=dskejp87dq3sr1pgi661lgro4&dl=0). Data is byte-identical to the verified 0.9.1 release, approximately 20 MB. **APK stays on GitHub; Android cloud saves/Dropbox save sync are not implemented.** [Verification and limits](docs/DROPBOX_DISTRIBUTION.md).
+
+## Castle 0.9.1 — preserved farm construction fix
+
+[Download the corrected APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.1-castle-buildfix) · [Construction instructions and test evidence](docs/CASTLE_BUILD_FIX.md).
+
+Tap **کێڵگە** → **شوێنی گونجاو** → the large green **دروست بکە: کێڵگە**. All ten choices are now visible in two rows. Invalid ground/resource shortages explain why construction cannot start instead of hiding the command in disabled styling. Farms cost 35 wood; a stockpile is needed for crop deliveries.
+
+The actual APK passed native Android Data import, touch-only farm construction through completion, saving and force-stop/restart restoration on an Android emulator in [build 39370252398](https://github.com/s1po0/iron-crowns/actions/runs/39370252398). Physical-phone testing remains outstanding.
+
+Open **Iron Crowns: Castle Buildfix**, not the earlier preview. Package `com.ironcrowns.castles.buildfix` installs separately; keep old apps installed to retain their private saves. Saves do not automatically transfer. Existing Castle Data remains compatible.
+
+![Completed farm built through the Android touch interface](docs/screenshots/android-castle-farm.png)
+
+## Castle RTS 0.9 — expanded three-wave defense
+
+[Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.0-castle-campaign) · [Controls, save/package caveats and limits](docs/CASTLE_RTS_0.9.md) · [Passing engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39368001061).
+
+Real housing capacity, population-based food/morale, controllable path-blocking gates, inspected health/repair costs, confirmed demolition, and three increasingly large attacks with preparation time and one-time rewards. Includes Sorani installer instructions and a richer HUD. This is one expanded defense mission, **not a finished commercial game**.
+
+**Important:** 0.9 installs as `com.ironcrowns.castles.campaign`, separately from 0.8 and the older third-person app. Keep those installed to retain their private saves; saves do **not** automatically transfer between Android packages. Prior CI debug-signing keys were ephemeral, so a safe in-place upgrade is not offered. Stable production signing and a user-facing transfer flow remain unfinished.
+
+Install `Iron-Crowns-0.9.0-Castle-Campaign.apk`, launch, choose **هێنانی داتا / IMPORT GAME DATA**, and select `Iron-Crowns-0.9.0-Castle-Data.icdata`. Genuine Data remains about **20 MB, not >1 GB**. Android cloud saves and physical-phone performance validation are still not implemented.
+
+## Castle RTS 0.8 — first playable Android mission
+
+Independent castle-building preview: worker deliveries, wheat → flour → bread, walls, soldier rally orders and a first raid, with a Sorani tutorial. This is **not a finished Stronghold-scale game**.
+
+[Download the tested APK + Data release](https://github.com/s1po0/iron-crowns/releases/tag/v0.8.0-castle-preview) · [Successful engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39365548276) · [Controls and limitations](docs/CASTLE_RTS_PREVIEW.md).
+
+Install `Iron-Crowns-0.8.0-Castle-Preview.apk`, open it, choose **IMPORT GAME DATA**, and select the matching `Iron-Crowns-0.8.0-Castle-Data.icdata`. Package `com.ironcrowns.castles` is separate from the previous app and saves. The public prerelease contains the exact files from verified build `39365548276`, with SHA-256 checksums.
+
+Actual Data is about **20 MB, not over 1 GB**. Android cloud saves and physical-phone performance validation are not implemented. Low/Medium/High are rendering presets, not certified RAM-tier benchmarks.
+
+![Actual Castle RTS engine capture](docs/screenshots/castle-rts-review.png)
+
+## New: Sorani hybrid strategy web MVP
+
+The Phase 1 web game lives in [`web/`](web/README.md): React/Vite/TypeScript, Canvas world map, lazy-loaded three.js castle and battle scenes, and the connected Supabase backend. Run `cd web && npm ci && npm run dev`. The Android releases below are separate and unchanged.
+
+
+An original Android action-strategy prototype with a **large 3D campaign map** and third-person field battles, built with Godot 4.4.1.
+
+![Actual third-person field rendering](docs/screenshots/iron-field.png)
+
+## Peoples of the Marches 0.7 — updateable Data foundation
+
+[Download the foundation APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.7.0-peoples-preview).
+
+This is the **one required APK change** from 0.6. After installing it, compatible API 1 content can be updated from **MANAGE DATA** without reinstalling the APK. New engine capabilities may still require an APK update.
+
+- Rigged, **20-bone anatomical human bodies** derived from CC0 MakeHuman geometry replace the primitive bodies. Material-defined clothing covers the body; detailed layered armor, hair and realistic skin art remain unfinished.
+- **2700 × 2040 campaign world** (9× the previous area), **64 settlements** and **six original factions**.
+- **TRIBES AND CLANS** displays clan leaders, descriptions, holdings and standings. It is not a simulated Khergit family tree.
+- Supported human geometry, appearance settings, world definitions, factions, textures and sound live in Data. Arbitrary game scripts and Bannerlord mods are not supported.
+- The Android test installed revision 1 and a changed revision 2 on the **same APK**, then checked campaign progression, riding and save restoration. [Build 37852970751 passed](https://github.com/s1po0/iron-crowns/actions/runs/37852970751).
+
+**Install:** install `Iron-Crowns-0.7.0-Peoples.apk`, launch, tap **IMPORT GAME DATA**, then select `Iron-Crowns-0.7.0-Data.icdata`. The old 0.6 APK cannot load this Data. Open **REALM → ATLAS → TRIBES AND CLANS** for the expanded world and faction profiles.
+
+[Install/update instructions and limits](docs/RELEASE_0.7.0.md) · [Data authoring contract](docs/DATA_API_1.md) · [Actual human close-up](docs/screenshots/iron-human.png) · [Actual map](docs/screenshots/iron-map.png)
+
+Checksums detect corruption, not publisher authenticity: use trusted downloads. This remains an evaluation prototype, **not the visual quality of the supplied references**. Physical-phone performance is unverified. A debug-signature mismatch may require uninstalling the old APK, which deletes saves.
+
+## Riders and separate Data 0.6 — evaluation preview
+
+[Download the paired APK and Data files](https://github.com/s1po0/iron-crowns/releases/tag/v0.6.0-riders-preview).
+
+- **APK + real Data:** checksum-pinned PCK with materials, sound and equipment/world catalogs; Android document import into private app storage.
+- **Player horse:** acceleration, steering, walk/trot/canter, stamina, seated hero and safe dismount checks.
+- **Mounted sword cuts:** choose left/right, time the swing, keep the target in reach; capped speed bonus and vulnerable rider/horse.
+- **Map and people:** lighter textured relief, revised shores and forests, readable settlement labels, varied armor/coat/helmet silhouettes.
+
+Engine tests, package-content audits, real Android import/corruption/offline restart, mounted touch controls and existing campaign/save checks passed in [build 37637940551](https://github.com/s1po0/iron-crowns/actions/runs/37637940551). Physical-phone performance and combat feel remain unverified. The art remains procedural, not Bannerlord-level realism.
+
+[0.6 installation, controls and honest limitations](docs/RELEASE_0.6.0.md) · [Actual Android horseback view](docs/screenshots/android-mounted.png). The PCK is genuine game content, not a cosmetic `.obb` filename. The APK verifies its exact hash before loading. Both downloads must come from the same build.
+
+## Combat and presentation rebuild 0.5 — The Western Road
+
+[Download the 0.5 Combat APK and screenshots](https://github.com/s1po0/iron-crowns/releases/tag/v0.5.0-combat-preview).
+
+- **Visible hero first:** new and continued journeys enter the third-person field. REALM opens the strategic map.
+- **Shoulder camera:** closer framing, obstacle raycasts, restrained impact movement and less HUD obstruction.
+- **Grounded materials and proportions:** rebuilt armor and articulated limbs, worn surfaces, continuous terrain, cutout foliage and instanced grass. No oversized crests or colored foot rings.
+- **Combat with timing:** delayed strikes, reach/facing/obstruction checks, directional shields, timed parries, stagger, stamina costs and a real backward dodge.
+- **Sound:** original synthesized footsteps, sword swing, shield clash, impact and ambient wind.
+- **Graphics settings:** saved Mobile/High presets and sound toggle in the pause menu. Mobile is the default.
+
+This is **one rebuilt shared village/battlefield**, not a photorealistic or AAA replacement for Bannerlord. The art and animation remain procedural; physical-phone performance and extended combat balance are not yet validated.
+
+[0.5 controls and implementation limits](docs/COMBAT_0.5.md) · [Actual Android hero view](docs/screenshots/android-hero.png) · [Strategic map](docs/screenshots/iron-map.png)
+
+## Included wanderer systems (introduced in 0.4)
+
+[Previous 0.4 release](https://github.com/s1po0/iron-crowns/releases/tag/v0.4.0-wanderer-preview).
+
+- **Create Samir Farroad:** Merchant, Pathfinder or Freeblade, with distinct starting benefits.
+- **Remain independent:** the neutral oath blocks settlement assaults; no faction pledge is needed.
+- **Earn your way:** local courier contracts with real travel, deadlines, cooldowns and one-time payouts.
+- **Hire support:** four named tavern specialists with travel, provisioning or caravan abilities.
+- **Own businesses, not land:** a companion-led road caravan and up to three income-producing grain mills.
+- **Keep a journal:** track explored realms, visited settlements, deliveries, trading margins and operating accounts.
+- Save v3 retains your origin, companions, contracts and businesses, while accepting older campaign saves.
+
+[Playable wanderer guide and exact limits](docs/WANDERER_0.4.md) · [Origin screen](docs/screenshots/iron-origin.png) · [In-game journal](docs/screenshots/iron-wanderer.png)
+
+## Existing campaign world
+
+[Previous 0.3 release](https://github.com/s1po0/iron-crowns/releases/tag/v0.3.0-campaign-preview).
+
+- **900 × 680 world-unit strategic map**, about 19× the ground area of the previous diorama.
+- **32 settlements:** eight towns, eight castles, sixteen villages; four original factions.
+- Sculpted mountains, northern snow, drylands, forests, coastlines, river, roads, bridges, farms and faction standards.
+- Pan, pinch/scroll zoom, atlas, settlement inspection and connected-road travel.
+- Moving caravans, patrols and raiders; encounters lead into the existing 3D battle arena.
+- Local recruiting and grain trade, food consumption, wages, contracts, castle ownership/income and simple hostility/truce rules.
+- Persistent company count, campaign position, food, cargo, fiefs, faction standing, stocks and gold.
+
+The visual reference is a **grounded medieval strategy map**, not a copy of Bannerlord's geography, assets or factions. This is **not every system in Mount & Blade II**. See the [implemented/not-implemented feature matrix](docs/CAMPAIGN_0.3.md).
+
+## Play
+
+**Create Wanderer → choose an origin → Start My Journey** puts your visible hero on the western road. Walk with the left stick/WASD, look with right-side drag/right mouse, or press **REALM / M** to open the strategic map. **Continue Journey** resumes a saved game. **JOURNAL / JOBS** opens your logbook, local courier board, companions and businesses. Taking a delivery from Hearthglen to Dusk Tower is a useful first job. Tap a settlement (or use Previous/Next in its panel), then Travel. Time pauses on arrival. Buy food, recruit, trade grain or accept a contract locally. Encounter raiders on the roads. Only legacy Veteran saves retain castle challenges and fief income; new wanderers follow a neutral path.
+
+Drag to pan, pinch/scroll or use +/− to zoom. LOCATE finds the company; ATLAS shows the whole realm. **FIELD CAMP** enters the shared third-person scene; **REALM** returns to the strategic map. Field controls: left stick/WASD, right-side camera drag, Strike/Space, Block/Q, Dodge/Shift, and formation orders.
+
+[Campaign guide and limits](docs/CAMPAIGN_0.3.md) · [Android campaign screenshot](docs/screenshots/android-campaign.png) · [Battle screenshot](docs/screenshots/android-field.png)
+
+## Install and save caveats
+
+Intended for Android 8+ ARM64 phones. Offline and debug-signed for evaluation, not a production/Play Store release. The CI debug certificate may differ from the previous build; Android can require uninstalling it first, which deletes local saves. Compatible-key installs accept prior v1/v2/v3 save data. Existing campaign saves retain their holdings as Veteran captains; they are not automatically replaced with the new origin setup. There is one save slot. Clearing app data creates a new wanderer but deletes the old save. Travel reloads paused and NPC routes restart; interrupted battles restore the pre-battle company count. Physical-device performance and extended playtesting remain outstanding.
+
+## Build and tests
+
+Open `godot/project.godot` in Godot **4.4.1**, using GL Compatibility. Android export needs the official template, JDK 17, Android SDK and a configured debug keystore.
+
+```bash
+godot --headless --path godot --editor --import --quit
+godot --headless --path godot -- --smoke
+bash scripts/godot-build-split.sh
+```
+
+The split-build script exports the Data pack first, pins its size/SHA-256 into the core manifest, exports the APK without bulk assets, and audits the APK for leaked Data. Do not use a direct APK export for distribution: the source manifest intentionally has no production hash. Editor runs use unpacked source assets.
+
+The [CI workflow](.github/workflows/godot-3d.yml) tests combat, terrain orientation, road connectivity, land-only routes, trade constraints, travel, fiefs and persistence; renders review screenshots; exports the APK; and tests real Android origin selection, companion hiring, courier acceptance/payout, saved neutrality, map travel, pan/zoom, combat, and restart. The wanderer suite also checks deadlines, duplicate payouts, businesses and save migration. Combat tests assert prominent hero framing, camera obstruction, windup timing, directional shields, parry and dodge behavior, graphics density and audio resources. Android tests also exercise graphics/sound settings.
+
+## Boundaries
+
+The larger map is a **separate strategic layer**, not a seamless continent-sized combat scene. Battles and castle challenges reuse one field arena. Actual sieges, unique interiors, dynasty systems, full diplomatic AI, comprehensive troop/equipment trees, AI cavalry armies, multiplayer and voice acting are not implemented. Owned caravans earn simplified arrival rewards, not simulated commodity orders. Companions are campaign specialists, not extra named combat models. Tournaments, full character skill trees and formal kingdom mercenary contracts are not implemented.
+
+`app/` and `tests/` preserve the legacy Java/Canvas 2D prototype; `godot/` is the current game. [The master GDD](docs/MASTER_GDD_AND_TECHNICAL_PLAN.md) remains a long-term proposal, not a current feature list. Engine and font license notices are bundled under `godot/assets/`.
+
+The 0.5 meadow, masonry and steel material source images are AI-generated original surfaces, not scanned assets. Other material maps, cutouts and sound effects are generated by `scripts/build-field-media.py` (Pillow/numpy); source images live in `art-source/` outside the APK.

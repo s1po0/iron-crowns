@@ -1,0 +1,38 @@
+name: Complete unified Data
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['scripts/build-complete-data.py', '.github/workflows/complete-data.yml']
+permissions:
+  contents: write
+jobs:
+  complete:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pillow==11.2.1
+      - name: Fetch and validate all original terrain regions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build/regions build/complete
+          gh release download v0.11.0-realm-data -D build/regions
+          (cd build/regions && sha256sum -c SHA256SUMS.txt)
+      - name: Build a single Data and prove lossless pixels
+        run: python3 scripts/build-complete-data.py build/regions build/complete/Iron-Crowns-0.12.0-Complete-Data.icdata
+      - name: Attach to source-matched draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view v0.12.0-complete-data --json isDraft,targetCommitish,assets > build/release.json
+          python3 - <<'PY'
+          import json,os
+          r=json.load(open('build/release.json'))
+          assert r['isDraft'] and not r['assets'] and r['targetCommitish']==os.environ['GITHUB_SHA']
+          PY
+          gh release upload v0.12.0-complete-data build/complete/*

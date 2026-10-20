@@ -1,0 +1,41 @@
+name: Verify published realm pixels
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['.github/workflows/realm-verify.yml']
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pillow==11.2.1
+      - name: Download and independently decode every released image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/verified-realms
+          gh release download v0.11.0-realm-data -D build/verified-realms
+          (cd build/verified-realms && sha256sum --check SHA256SUMS.txt)
+          python3 scripts/verify-realm-data.py build/verified-realms | tee build/verified-realms/VERIFIED.txt
+      - name: Record the exact distributed catalog and validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import subprocess,json,base64,pathlib,os
+          repo=os.environ['REPO']; branch='arena/94d215f9-iron-crowns'
+          for filename,destination in [('realm-manifest.json','docs/realm-data-manifest.json'),('SHA256SUMS.txt','docs/REALM_SHA256SUMS.txt'),('VERIFIED.txt','docs/REALM_DATA_VERIFIED.txt')]:
+              p=pathlib.Path('build/verified-realms',filename)
+              lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{destination}?ref={branch}'],capture_output=True,text=True)
+              body={'branch':branch,'message':'docs: record independently verified realm release data','content':base64.b64encode(p.read_bytes()).decode()}
+              if lookup.returncode==0:body['sha']=json.loads(lookup.stdout)['sha']
+              subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{destination}','--input','-'],input=json.dumps(body),text=True,check=True)
+          PY

@@ -1,0 +1,64 @@
+name: Crown campaign validation
+on:
+  workflow_dispatch:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['godot/scripts/crown_*.gd', 'godot/campaign/**', 'godot/campaign.tscn', '.github/workflows/crown-campaign.yml']
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Godot and software rendering
+        run: |
+          curl -fsSL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+      - name: Compile and exercise campaign and public story
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/import.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/import.log; then exit 1; fi
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --audio-driver Dummy --script res://scripts/crown_test.gd -- --crown-offline 2>&1 | tee artifacts/crown-tests.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/crown-tests.log; then exit 1; fi
+          grep -q IRON_CROWN_TEST_PASS artifacts/crown-tests.log
+          cp /tmp/crown-touch-points.json artifacts/
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --audio-driver Dummy res://campaign.tscn -- --crown-offline --crown-capture 2>&1 | tee artifacts/render.log
+          grep -q IRON_CROWN_RENDER_PASS artifacts/render.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
+          cp /tmp/iron-crown-campaign.png artifacts/
+      - name: Preserve actual campaign render for review
+        run: |
+          git fetch origin arena/94d215f9-iron-crowns
+          git rebase origin/arena/94d215f9-iron-crowns
+          mkdir -p docs/screenshots
+          cp artifacts/iron-crown-campaign.png docs/screenshots/crown-campaign-review.png
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add docs/screenshots/crown-campaign-review.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs: capture actual Crown campaign scene'
+            git push origin HEAD:arena/94d215f9-iron-crowns
+          fi
+      - name: Summarize diagnostics
+        if: always()
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in Path('artifacts').glob('*.log'):
+              lines=p.read_text(errors='replace').splitlines()
+              if p.name=='import.log':lines=[s for s in lines if 'Error' in s or 'ERROR' in s or 'at:' in s]
+              print('::notice title='+p.name+'::'+'\n'.join(lines)[-8000:].replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-validation
+          path: artifacts/

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "travel",
+  "entries": [
+    {
+      "id": "travel-1",
+      "text": "جوتیارێک لە ڕێگا نانی تازەی پێشکەش بە سوپاکەت کرد.",
+      "tag": "gift",
+      "effects": [
+        {
+          "type": "food",
+          "value": 12
+        }
+      ]
+    },
+    {
+      "id": "travel-2",
+      "text": "باران ڕێگاکەی قورس کرد و بەشێک لە خۆراک تەڕ بوو.",
+      "tag": "rain",
+      "effects": [
+        {
+          "type": "food",
+          "value": -8
+        }
+      ],
+      "context": {
+        "minDay": 3
+      }
+    },
+    {
+      "id": "travel-3",
+      "text": "کیسەیەکی زێڕ لە تەنیشت کاروانێکی بەجێماو دۆزرایەوە.",
+      "tag": "find",
+      "effects": [
+        {
+          "type": "gold",
+          "value": 35
+        }
+      ]
+    },
+    {
+      "id": "travel-4",
+      "text": "سەربازێکی بێکار داوای کرد ببێتە هاوڕێی سوپاکەت.",
+      "tag": "volunteer",
+      "effects": [
+        {
+          "type": "troops",
+          "value": 1
+        }
+      ],
+      "context": {
+        "minLevel": 2
+      }
+    },
+    {
+      "id": "travel-5",
+      "text": "دزی شەوانە بەشێکی پارەی کاروانەکەی برد.",
+      "tag": "theft",
+      "effects": [
+        {
+          "type": "gold",
+          "value": -25
+        }
+      ]
+    },
+    {
+      "id": "travel-6",
+      "text": "یارمەتیی گوندێکت دا؛ خەڵک ناوی {hero} بە باشی دەهێنن.",
+      "tag": "kindness",
+      "effects": [
+        {
+          "type": "popularity",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "id": "travel-7",
+      "text": "پاسەوانانی {faction} ڕێگایەکی سەلامەتیان پیشانت دا.",
+      "tag": "guide",
+      "effects": [
+        {
+          "type": "relation",
+          "value": 5
+        }
+      ],
+      "context": {
+        "relation": "peace"
+      }
+    },
+    {
+      "id": "travel-8",
+      "text": "لە سنوور مشتومڕێک ڕوویدا و متمانە کەم بووەوە.",
+      "tag": "dispute",
+      "effects": [
+        {
+          "type": "relation",
+          "value": -5
+        }
+      ]
+    },
+    {
+      "id": "travel-9",
+      "text": "گورگەکان هێرشیان کردە سەر بارەکان؛ خۆراکێک لەدەست چوو.",
+      "tag": "wolves",
+      "effects": [
+        {
+          "type": "food",
+          "value": -10
+        }
+      ]
+    },
+    {
+      "id": "travel-10",
+      "text": "ئاگرێکی بچووک بەخێر کۆتایی هات؛ سوپا دڵخۆش بوو.",
+      "tag": "campfire",
+      "effects": [
+        {
+          "type": "popularity",
+          "value": 2
+        }
+      ]
+    }
+  ]
+}

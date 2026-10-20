@@ -1,0 +1,29 @@
+This is the standard FREE version of the Medieval Village MegaKit, which only contains 
+a portion of the models . You can buy the PRO version which has all the models,
+or the SOURCE version which has all the models and also includes Unity(URP), Unreal Engine and Godot projects
+with custom shaders already set up.
+
+You can get the other versions from the website https://quaternius.com
+
+-------------------------------------------------------
+License:
+CC0 1.0 Universal (CC0 1.0) 
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+
+------------------------------------------------------
+Models by @Quaternius
+Consider supporting me on Patreon!
+
+https://www.patreon.com/quaternius
+
+-------------------------------------------------------
+Join the Discord Server:
+https://discord.gg/vJqnRUYRfT
+
+Iron Crowns source/provenance:
+Quaternius Medieval Village MegaKit Standard (CC0), assembled models mirrored at:
+https://github.com/RodReis/rrb-godot/tree/main/shared/assets/rrb/arena
+The source project's shared/assets/LICENSES.md explicitly marks megakit_*.glb CC0.
+Converted to material-split OBJ (0.65 scale) plus deduplicated base-color JPEGs by
+scripts/convert-rts-assets.py; no source project gameplay code is included.

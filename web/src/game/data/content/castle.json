@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "kind": "castle",
+  "entries": [
+    {
+      "id": "castle-1",
+      "text": "دروێنەی ئەمساڵ باش بوو؛ کۆگای خۆراک پڕتر بووە.",
+      "tag": "harvest",
+      "effects": [
+        {
+          "type": "food",
+          "value": 40
+        }
+      ]
+    },
+    {
+      "id": "castle-2",
+      "text": "نەخۆشی لە گەڕەکێک بڵاو بووەوە؛ خۆراک بۆ نەخۆشەکان تەرخان کرا.",
+      "tag": "plague",
+      "effects": [
+        {
+          "type": "food",
+          "value": -15
+        },
+        {
+          "type": "popularity",
+          "value": -5
+        }
+      ],
+      "context": {
+        "minDay": 3,
+        "excludeRecentTag": "plague"
+      }
+    },
+    {
+      "id": "castle-3",
+      "text": "چەند تاڵانچییەک هێرشیان کردە سەر کۆگای دەرەوەی قەڵا.",
+      "tag": "raid",
+      "effects": [
+        {
+          "type": "gold",
+          "value": -50
+        },
+        {
+          "type": "food",
+          "value": -10
+        }
+      ]
+    },
+    {
+      "id": "castle-4",
+      "text": "بازاڕی هەفتانە قەرەباڵغ بوو؛ داهاتێکی زیادە کۆکرایەوە.",
+      "tag": "market",
+      "effects": [
+        {
+          "type": "gold",
+          "value": 45
+        }
+      ],
+      "context": {
+        "minLevel": 2
+      }
+    },
+    {
+      "id": "castle-5",
+      "text": "بارانی بەهار سەوزەی گوندەکانی زیندوو کردەوە.",
+      "tag": "spring",
+      "effects": [
+        {
+          "type": "food",
+          "value": 20
+        }
+      ]
+    },
+    {
+      "id": "castle-6",
+      "text": "ئاگر لە کۆگایەک کەوتەوە؛ خەڵک بە هاوکاری کوژاندیانەوە.",
+      "tag": "fire",
+      "effects": [
+        {
+          "type": "gold",
+          "value": -30
+        }
+      ]
+    },
+    {
+      "id": "castle-7",
+      "text": "خەڵک بۆ چاککردنەوەی کانیاوەکە سوپاسیان کردیت.",
+      "tag": "well",
+      "effects": [
+        {
+          "type": "popularity",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "id": "castle-8",
+      "text": "ناڕەزایی لە باج بەرز بووەتەوە؛ پێویستە گوێ لە خەڵک بگریت.",
+      "tag": "protest",
+      "effects": [
+        {
+          "type": "popularity",
+          "value": -7
+        }
+      ],
+      "context": {
+        "maxPopularity": 60
+      }
+    },
+    {
+      "id": "castle-9",
+      "text": "چەند گەنجێک بۆ پاراستنی قەڵا خۆبەخشانە هاتن.",
+      "tag": "recruits",
+      "effects": [
+        {
+          "type": "troops",
+          "value": 2
+        }
+      ],
+      "context": {
+        "minPopularity": 60
+      }
+    },
+    {
+      "id": "castle-10",
+      "text": "دیارییەک لە گوندێکی نزیک گەیشت؛ کۆگاکەی دەوڵەمەندتر کرد.",
+      "tag": "tribute",
+      "effects": [
+        {
+          "type": "food",
+          "value": 15
+        },
+        {
+          "type": "gold",
+          "value": 20
+        }
+      ]
+    }
+  ]
+}

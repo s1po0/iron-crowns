@@ -1,0 +1,202 @@
+# Reviewed complete build: 39380822249, source 255477b610f2107915cb38934ac0b20bfafedcf4.
+name: Castle RTS preview
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['godot/scripts/rts_*.gd', 'godot/scripts/realm*.gd', 'godot/scripts/complete_data_test.gd', 'native/android/DataPicker.java', 'scripts/build-realm-data.py', 'scripts/castle-android-smoke.py', 'godot/rts.tscn', 'godot/export_presets.cfg', 'godot/scripts/content_bundle.gd', 'godot/scripts/bootstrap.gd', '.github/workflows/castle-rts.yml']
+  workflow_dispatch:
+    inputs:
+      reviewed_run:
+        description: 'Successful reviewed castle run to publish without rebuilding'
+        required: false
+        type: string
+permissions:
+  contents: write
+  actions: read
+jobs:
+  castle:
+    if: ${{ !contains(github.event.head_commit.message, '[crown]') && !inputs.reviewed_run && !contains(github.event.head_commit.message, '[castle-reviewed ') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: bash scripts/godot-ci-setup.sh
+      - name: Build a real streamed region and adversarial test fixtures
+        run: |
+          pip install numpy==2.2.6 pillow==11.2.1
+          python3 scripts/build-realm-data.py build/realm-sample --region 2 2
+          python3 scripts/build-realm-data.py build/realm-fixture --region 0 0 --test-fixture
+      - name: Wait for the exact complete-Data producer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run watch 39380346126 --exit-status --interval 20
+      - name: Download the single complete Data (all terrain included)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          gh release download v0.12.0-complete-data --pattern '*.icdata' --pattern '*.manifest.json' --pattern '*.sha256' -D artifacts
+          (cd artifacts && sha256sum -c *.sha256)
+      - name: Parse and test production chain, movement, combat and saves
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/rts-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-import.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --quit-after 240 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
+          grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
+          godot --headless --path godot --script res://scripts/realm_test.gd -- "$PWD/build/realm-sample/Realm-Region-2-2.icregion" "$PWD/build/realm-fixture/Realm-Region-0-0.icregion" 2>&1 | tee artifacts/realm-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/realm-tests.log
+          grep -q IRON_REALM_TEST_PASS artifacts/realm-tests.log
+          timeout 300 godot --headless --path godot --script res://scripts/complete_data_test.gd -- "$PWD/artifacts/Iron-Crowns-0.12.0-Complete-Data.icdata" 2>&1 | tee artifacts/complete-data-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/complete-data-tests.log
+          grep -q IRON_COMPLETE_DATA_TEST_PASS artifacts/complete-data-tests.log
+          cp /tmp/rts-touch-points.json artifacts/
+      - name: Capture actual castle scene
+        shell: bash
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture 2>&1 | tee artifacts/rts-render.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-render.log
+          grep -q IRON_RTS_RENDER_PASS artifacts/rts-render.log
+          cp /tmp/iron-castle-rts.png artifacts/
+          for mission in realm_crossing realm_ridge; do
+            LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture --mission=$mission 2>&1 | tee artifacts/rts-$mission.log
+            ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-$mission.log
+            grep -q IRON_RTS_RENDER_PASS artifacts/rts-$mission.log
+            cp /tmp/iron-castle-rts.png artifacts/complete-$mission.png
+          done
+      - name: Export independent Android package and genuine Data
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/godot-android-template.sh
+          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.12.0-Castle-Complete.apk" 2>&1 | tee artifacts/rts-export.log
+          test -s artifacts/Iron-Crowns-0.12.0-Castle-Complete.apk
+          cd artifacts
+          sha256sum *.apk *.icdata > SHA256SUMS.txt
+      - name: Prepare Android farm construction smoke test
+        run: |
+          (cd godot/android/build && ./gradlew --stop) || true
+          pkill -f '[K]otlinCompileDaemon' || true
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          Xvfb :99 -screen 0 1280x720x24 > /tmp/android-display.log 2>&1 &
+          echo 'DISPLAY=:99' >> "$GITHUB_ENV"
+          echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
+          echo 'LP_NUM_THREADS=2' >> "$GITHUB_ENV"
+      - name: Install Android APK, import Data and build a farm through touch
+        timeout-minutes: 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-boot-timeout: 180
+          emulator-options: -memory 2048 -partition-size 6144 -cores 2 -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          script: python3 scripts/castle-android-smoke.py
+      - name: Publish review diagnostics on the same branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYDIAG'
+          import pathlib
+          for p in pathlib.Path('artifacts').glob('*.log'):
+              if p.name=='rts-import.log':
+                  text='\n'.join(x for x in p.read_text(errors='replace').splitlines() if 'ERROR' in x or 'Error' in x)
+              else:
+                  text=p.read_text(errors='replace')[-3500:]
+              print('::notice title='+p.name+'::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYDIAG
+          if test -f artifacts/iron-castle-rts.png; then
+            python3 - <<'PYPHOTO'
+          import subprocess,json,base64,pathlib
+          repo='${{ github.repository }}'; branch='arena/94d215f9-iron-crowns'; path='docs/screenshots/castle-rts-review.png'
+          lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
+          payload={'branch':branch,'message':'docs: record rendered castle RTS review','content':base64.b64encode(pathlib.Path('artifacts/iron-castle-rts.png').read_bytes()).decode()}
+          if lookup.returncode==0:payload['sha']=json.loads(lookup.stdout)['sha']
+          subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(payload),text=True,check=True)
+          PYPHOTO
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: castle-rts-preview
+          path: artifacts/
+          retention-days: 30
+
+  publish-reviewed:
+    if: ${{ inputs.reviewed_run != '' || contains(github.event.head_commit.message, '[castle-reviewed ') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Upload the exact reviewed preview to a verified draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REVIEWED: ${{ inputs.reviewed_run }}
+          REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          exec > >(tee /tmp/castle-release.log) 2>&1
+          if [ -z "$REVIEWED" ]; then
+            REVIEWED=$(python3 -c 'import os,re; m=re.search(r"\[castle-reviewed ([0-9]+)\]",os.environ["REVIEW_MESSAGE"]); assert m; print(m.group(1))')
+          fi
+          gh run view "$REVIEWED" --repo "$REPO" --json conclusion,workflowName,headBranch,headSha > run.json
+          python3 - <<'PYRELEASE'
+          import json
+          r=json.load(open('run.json'))
+          assert r['conclusion']=='success' and r['workflowName']=='Castle RTS preview' and r['headBranch']=='arena/94d215f9-iron-crowns'
+          open('head.txt','w').write(r['headSha'])
+          PYRELEASE
+          gh run download "$REVIEWED" --repo "$REPO" -n castle-rts-preview -D artifacts
+          cat > notes.md <<'NOTES'
+          Godot 0.12 Complete: one .icdata includes the base art AND all 25 terrain regions (625 chunks / 1,250 terrain images). No separate region imports are necessary. Terrain was losslessly re-encoded, not resized; pixel equality was checked against every original PNG.
+          Install Iron-Crowns-0.12.0-Castle-Complete.apk and import Iron-Crowns-0.12.0-Complete-Data.icdata once at startup. Data checkmark indicates the complete library. Allow around 6 GB free during installation. Use Low first on 4 GB devices; physical-phone performance is not certified.
+          Separate package com.ironcrowns.castles.complete. Keep older apps installed to retain their private saves; no automatic cross-package save migration. Previous 0.11 APK/Data remain preserved. This is a prototype, not a finished commercial game; siege engines/native cloud saves/final art remain unfinished.
+          NOTES
+          # Tag/release creation can require permissions unavailable to GITHUB_TOKEN.
+          # An authorized maintainer creates the draft; CI only attaches verified files.
+          # Never overwrite a published release or silently replace any assets.
+          gh release view v0.12.0-castle-complete --repo "$REPO" --json isDraft,targetCommitish,assets > release.json
+          python3 - <<'PYDRAFT'
+          import json
+          r=json.load(open('release.json'))
+          assert r['isDraft'], 'Refusing to change a published release'
+          assert r['targetCommitish']==open('head.txt').read().strip(), 'Draft must target the reviewed source commit'
+          assert not r['assets'], 'Draft has assets already; inspect before retrying'
+          PYDRAFT
+          (cd artifacts && sha256sum --check SHA256SUMS.txt)
+          printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
+          cp artifacts/android/04-built-farm.png artifacts/android-castle-complete.png
+          cp artifacts/android/01-intro.png artifacts/android-complete-menu.png
+          gh release upload v0.12.0-castle-complete --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-complete.png artifacts/android-complete-menu.png artifacts/complete-realm_crossing.png artifacts/complete-realm_ridge.png
+          gh release edit v0.12.0-castle-complete --repo "$REPO" --notes-file notes.md
+          python3 - <<'PYANDROID'
+          import pathlib,base64,json,subprocess,os
+          branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
+          for name in ['android-castle-complete.png','android-complete-menu.png','complete-realm_crossing.png','complete-realm_ridge.png']:
+              path='docs/screenshots/'+name
+              lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
+              payload={'branch':branch,'message':'docs: record verified Godot mission review '+name,'content':base64.b64encode(pathlib.Path('artifacts',name).read_bytes()).decode()}
+              if lookup.returncode==0:payload['sha']=json.loads(lookup.stdout)['sha']
+              subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(payload),text=True,check=True)
+          PYANDROID
+          echo 'Verified files attached. Maintainer must inspect assets and explicitly publish the draft.'
+      - name: Report publication diagnostics
+        if: failure()
+        run: |
+          python3 - <<'PYREPORT'
+          from pathlib import Path
+          p=Path('/tmp/castle-release.log')
+          s=p.read_text(errors='replace')[-5000:] if p.exists() else 'Publication did not produce a log.'
+          print('::error::'+s.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYREPORT

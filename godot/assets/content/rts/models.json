@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "models": {
+    "house_small": [
+      {
+        "mesh": "res://assets/content/rts/house_small-0.obj",
+        "texture": "res://assets/materials/rts/875a8ef8e7d6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_small-1.obj",
+        "texture": "res://assets/materials/rts/14b205de046d.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_small-2.obj",
+        "texture": "res://assets/materials/rts/6580d4953b2a.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_small-3.obj",
+        "color": [
+          0.8,
+          0.8,
+          0.8
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_small-4.obj",
+        "texture": "res://assets/materials/rts/f17c849e5f8f.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_small-5.obj",
+        "texture": "res://assets/materials/rts/d3b94f4c09e6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    "house_long": [
+      {
+        "mesh": "res://assets/content/rts/house_long-0.obj",
+        "texture": "res://assets/materials/rts/875a8ef8e7d6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-1.obj",
+        "texture": "res://assets/materials/rts/14b205de046d.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-2.obj",
+        "texture": "res://assets/materials/rts/be111a3964a0.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-3.obj",
+        "texture": "res://assets/materials/rts/875a8ef8e7d6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-4.obj",
+        "color": [
+          0.8,
+          0.8,
+          0.8
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-5.obj",
+        "texture": "res://assets/materials/rts/f17c849e5f8f.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-6.obj",
+        "texture": "res://assets/materials/rts/d3b94f4c09e6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/house_long-7.obj",
+        "texture": "res://assets/materials/rts/6580d4953b2a.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      }
+    ],
+    "yard_corner": [
+      {
+        "mesh": "res://assets/content/rts/yard_corner-0.obj",
+        "texture": "res://assets/materials/rts/875a8ef8e7d6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/yard_corner-1.obj",
+        "texture": "res://assets/materials/rts/875a8ef8e7d6.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mesh": "res://assets/content/rts/yard_corner-2.obj",
+        "texture": "res://assets/materials/rts/6580d4953b2a.jpg",
+        "color": [
+          1,
+          1,
+          1
+        ]
+      }
+    ]
+  }
+}
