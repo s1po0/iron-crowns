@@ -1,5 +1,8 @@
 name: Castle RTS preview
 on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['godot/scripts/rts_*.gd', 'godot/rts.tscn', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
 permissions:
   contents: read
