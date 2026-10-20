@@ -93,8 +93,12 @@ func _process(dt: float) -> void:
 			get_tree().quit()
 
 func new_game() -> void:
+	started=false
 	if FileAccess.file_exists(CastleSim.SAVE):
-		DirAccess.copy_absolute(ProjectSettings.globalize_path(CastleSim.SAVE),ProjectSettings.globalize_path(CastleSim.SAVE+".previous"))
+		if DirAccess.copy_absolute(ProjectSettings.globalize_path(CastleSim.SAVE),ProjectSettings.globalize_path(CastleSim.SAVE+".previous"))!=OK:
+			ui.intro.show()
+			ui.notice.text="کۆپیی پاراستن دروست نەکرا؛ پاشەکەوتی کۆن نەگۆڕدرا. بۆشایی ئامێرەکەت بپشکنە."
+			return
 	started=true
 	ui.intro.hide()
 
