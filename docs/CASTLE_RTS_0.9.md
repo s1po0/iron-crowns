@@ -39,3 +39,7 @@ Install the 0.9 APK, launch it, choose **هێنانی داتا / IMPORT GAME DAT
 ## Reviewed build
 
 [Build 39368001061](https://github.com/s1po0/iron-crowns/actions/runs/39368001061), source `5df455deee9c78aa7475da11691fd7339028d85b`, passed import, campaign/production/combat/save tests, injected-touch GUI tests, render and Android export. The actual screenshot was fetched and visually reviewed. No physical-phone performance claim follows from this desktop engine run.
+
+## Published download
+
+[0.9 APK + Data prerelease](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.0-castle-campaign). Install `Iron-Crowns-0.9.0-Castle-Campaign.apk` (174,697,649 bytes), then import `Iron-Crowns-0.9.0-Castle-Data.icdata` (20,083,426 bytes). SHA-256 checksums, manifest and the reviewed screenshot are included. Publication run [39368284066](https://github.com/s1po0/iron-crowns/actions/runs/39368284066) verified checksums before attachment; all five uploaded release assets were confirmed through the public GitHub API after publishing. The reviewed binaries were not rebuilt during publication. Existing 0.8 and earlier releases were not changed.

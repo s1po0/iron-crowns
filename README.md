@@ -1,5 +1,15 @@
 # Iron Crowns — The Ashen Marches
 
+## Castle RTS 0.9 — expanded three-wave defense
+
+[Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.0-castle-campaign) · [Controls, save/package caveats and limits](docs/CASTLE_RTS_0.9.md) · [Passing engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39368001061).
+
+Real housing capacity, population-based food/morale, controllable path-blocking gates, inspected health/repair costs, confirmed demolition, and three increasingly large attacks with preparation time and one-time rewards. Includes Sorani installer instructions and a richer HUD. This is one expanded defense mission, **not a finished commercial game**.
+
+**Important:** 0.9 installs as `com.ironcrowns.castles.campaign`, separately from 0.8 and the older third-person app. Keep those installed to retain their private saves; saves do **not** automatically transfer between Android packages. Prior CI debug-signing keys were ephemeral, so a safe in-place upgrade is not offered. Stable production signing and a user-facing transfer flow remain unfinished.
+
+Install `Iron-Crowns-0.9.0-Castle-Campaign.apk`, launch, choose **هێنانی داتا / IMPORT GAME DATA**, and select `Iron-Crowns-0.9.0-Castle-Data.icdata`. Genuine Data remains about **20 MB, not >1 GB**. Android cloud saves and physical-phone performance validation are still not implemented.
+
 ## Castle RTS 0.8 — first playable Android mission
 
 Independent castle-building preview: worker deliveries, wheat → flour → bread, walls, soldier rally orders and a first raid, with a Sorani tutorial. This is **not a finished Stronghold-scale game**.
