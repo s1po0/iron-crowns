@@ -1,6 +1,6 @@
 # 0.12 — one complete Data file
 
-**Candidate: packaging and Android verification are in progress. Do not install an unfinished draft.**
+**Verified candidate: producer and actual Android tests passed; final attachment/visual review is in progress.**
 
 The user's request is to put **all terrain regions inside Data**, not require 25 separate region imports. Version 0.12 implements a single API-3 `.icdata` containing:
 
@@ -33,6 +33,13 @@ Allow roughly **6 GB free for a fresh installation**, including the download, th
 
 - Producer source: `8e08fc4` / workflow run **39380346126**. This fetches the official 0.11 regions, checks their container hashes, and checks pixel equality for every re-encoded image.
 - APK candidate source: `255477b` / workflow run **39380822249**.
-- Planned checks include the complete pack's installation and corner/central terrain lookups in Godot, malformed manifest/header rejection, and Android SAF import of the actual full-size Data followed by all 1,250-file checks, farm construction, save and restart.
+- **Passed:** complete pack installation and corner/central terrain lookups in Godot, malformed manifest/header rejection, and Android SAF import of the actual full-size Data followed by all 1,250-file checks, farm construction, save and restart. APK run duration: 13m32s, including waiting for the producer.
 
 Packaging changes only: this is not a new art-quality/quest/siege expansion. Physical-device performance, native cloud saves, production signing and automatic cross-package save transfer remain unverified/unimplemented as previously documented.
+
+## Complete Data artifact
+
+- `Iron-Crowns-0.12.0-Complete-Data.icdata`: **1,691,433,345 bytes** (1.69 GB / 1.58 GiB).
+- SHA-256: `0d8c7f769036c441c6474e6eb5900ab8569e20a791659e52c985003c65cbb629`.
+- **1,306 payloads:** 56 base files + all 1,250 terrain images. No separate base `.icdata` or `.icregion` files are needed.
+- The smaller size than 0.11 is from lossless encoding, not omitted terrain or reduced resolution.
