@@ -42,3 +42,7 @@ Still unfinished: professional final art/animation/audio, siege machinery, a lon
 ## Verified build
 
 [39372968104](https://github.com/s1po0/iron-crowns/actions/runs/39372968104), source `6e1044687955a54be4ee8d5a7019efdd71878a5a`, passed Godot import, all three map tests, existing campaign/economy/combat/save tests, touch construction/minimap/viewport checks, rendering all three maps, APK export and native Android emulator mission-selection/build/save/restart verification. An earlier keyboard-driven dropdown test stayed on Valley; replacing it with visible mission buttons produced a verified Southern Bridge save. No emulator result is represented as a physical-phone benchmark.
+
+## Published download and review
+
+[Public 0.10 release](https://github.com/s1po0/iron-crowns/releases/tag/v0.10.0-castle-maps): APK **174,714,466 bytes**, Data **20,083,426 bytes**, manifest, checksums, three desktop map renders, actual Android menu and Southern Bridge gameplay screenshots. The images were fetched and visually reviewed before publishing. Upload run [39373633890](https://github.com/s1po0/iron-crowns/actions/runs/39373633890) attached the exact reviewed build without rebuilding and verified payload checksums. Public GitHub API inspection confirmed nine uploaded assets and non-draft prerelease status. Prior releases and their binaries were not changed.

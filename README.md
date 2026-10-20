@@ -1,10 +1,20 @@
 # Iron Crowns — The Ashen Marches
 
+## Castle Maps 0.10 — latest Godot Android preview
+
+[Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.10.0-castle-maps) · [Map descriptions, start instructions and limits](docs/CASTLE_MAPS_0.10.md) · [Verified engine + Android build](https://github.com/s1po0/iron-crowns/actions/runs/39372968104).
+
+Three original 40×40 maps: **Green Valley**, **Southern Bridge**, **Western Gate**. Each has distinct river/bridge routing, work sites, attack origins and preparation requirements. A touch-first map-selection briefing, interactive full-grid minimap, mission endings/next-map flow and map-aware schema-3 saves extend the existing RTS construction/economy/combat systems. This is not a finished Stronghold-scale game; final art, siege equipment, cloud saves and a >1-GB library remain unfinished.
+
+Install `Iron-Crowns-0.10.0-Castle-Maps.apk`, launch **Iron Crowns: Castle Maps**, import compatible Castle Data, choose a mission card and press **دەستپێکردنی میشن**. Existing 0.9.1 Castle Data is byte-identical and compatible. The APK uses separate package `com.ironcrowns.castles.maps`: **keep older apps installed; their saves do not transfer automatically**. Stable production signing/cross-package migration are still unresolved.
+
+![Actual Android mission-selection opening](docs/screenshots/android-castle-menu.png)
+
 ## Dropbox Data mirror
 
 [Download the existing Castle Data + Sorani installation guide](https://www.dropbox.com/scl/fo/l6hzmhekdtk2oe58rcjhw/AMqrZzQbl1Sga0hfOP6MaS4?rlkey=dskejp87dq3sr1pgi661lgro4&dl=0). Data is byte-identical to the verified 0.9.1 release, approximately 20 MB. **APK stays on GitHub; Android cloud saves/Dropbox save sync are not implemented.** [Verification and limits](docs/DROPBOX_DISTRIBUTION.md).
 
-## Castle 0.9.1 — farm construction fix (latest)
+## Castle 0.9.1 — preserved farm construction fix
 
 [Download the corrected APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.1-castle-buildfix) · [Construction instructions and test evidence](docs/CASTLE_BUILD_FIX.md).
 
