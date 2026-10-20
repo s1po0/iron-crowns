@@ -95,7 +95,6 @@ jobs:
           REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           exec > >(tee /tmp/castle-release.log) 2>&1
-          trap 'code=$?; if [ "$code" -ne 0 ]; then python3 -c '''s=open("/tmp/castle-release.log").read()[-3500:]; print("::error::"+s.replace("%","%25").replace("\n","%0A"))'''; fi; exit "$code"' EXIT
           if [ -z "$REVIEWED" ]; then
             REVIEWED=$(python3 -c 'import os,re; m=re.search(r"\[castle-reviewed ([0-9]+)\]",os.environ["REVIEW_MESSAGE"]); assert m; print(m.group(1))')
           fi
@@ -116,3 +115,12 @@ jobs:
           Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render and Android export passed; physical-phone testing is outstanding.
           NOTES
           gh release create v0.8.0-castle-preview --repo "$REPO" --target "$(cat head.txt)" --title "Iron Crowns 0.8 — Castle RTS evaluation" --prerelease --notes-file notes.md artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png
+      - name: Report publication diagnostics
+        if: failure()
+        run: |
+          python3 - <<'PYREPORT'
+          from pathlib import Path
+          p=Path('/tmp/castle-release.log')
+          s=p.read_text(errors='replace')[-5000:] if p.exists() else 'Publication did not produce a log.'
+          print('::error::'+s.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYREPORT
