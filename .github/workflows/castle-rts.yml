@@ -110,6 +110,7 @@ jobs:
           cat > notes.md <<'NOTES'
           Independent Android castle-building RTS campaign preview, package com.ironcrowns.castles.campaign.
           Install the APK, launch and import the matching .icdata through the native picker. Old releases/saves are not replaced.
+          IMPORTANT: this is a separate app, not an in-place 0.8 update. Keep the older app installed; private saves do not automatically transfer between packages. Prior CI debug signing keys are unavailable. Production signing and cross-package save transfer remain future work.
           Includes a Sorani guided first mission, physical worker deliveries, wheat/flour/bread production, housing, food morale, construction, controllable gates, repairs, demolition and three defensive raids.
           Low/Medium/High are targets for 4 / 6–8 / 8+ GB devices, not certified physical-device performance.
           This is NOT a full Stronghold-scale game, NOT a >1-GB asset pack, and NOT an OBB. Data contains roughly 20 MB of actually used assets, with no padding.

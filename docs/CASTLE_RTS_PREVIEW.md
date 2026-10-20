@@ -1,4 +1,6 @@
-# Castle RTS — independent Android preview
+# Castle RTS 0.8 — independent Android preview
+
+This document records the preserved **0.8** release. For the new three-wave mission, housing, gates and Android package/save caveats, see [0.9 notes](CASTLE_RTS_0.9.md).
 
 ## Direction approved by the player
 
