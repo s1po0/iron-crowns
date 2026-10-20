@@ -45,7 +45,7 @@ function read(id?: string) {
 }
 function backup(id?: string, raw?: string) {
   try {
-    const backupKey = key(id) + "-pre-schema2" + (raw ? "-cloud" : "");
+    const backupKey = key(id) + "-pre-schema3" + (raw ? "-cloud" : "");
     if (!localStorage.getItem(backupKey)) {
       const value = raw || localStorage.getItem(key(id));
       if (value) localStorage.setItem(backupKey, value);

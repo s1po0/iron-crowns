@@ -108,6 +108,7 @@ describe("seeded campaign", () => {
   it("persists fog and terrain-respecting scaled patrol movement", () => {
     let s = newGame("patrol");
     s.level = 5;
+    s.campaign.points = 10;
     s.lastBattleDay = 10000;
     const w = getWorld(s.worldSeed),
       destination = w.settlements[15];

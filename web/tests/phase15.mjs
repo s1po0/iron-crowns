@@ -44,14 +44,14 @@ const saved = await page.evaluate(() =>
   JSON.parse(localStorage.getItem("iron-web-v1-guest")),
 );
 if (
-  saved.schemaVersion !== 2 ||
+  saved.schemaVersion !== 3 ||
   saved.resources.gold !== 1234 ||
   saved.level !== 4 ||
   saved.destination !== null
 )
   throw Error("Legacy browser migration failed");
 const backup = await page.evaluate(() =>
-  JSON.parse(localStorage.getItem("iron-web-v1-guest-pre-schema2")),
+  JSON.parse(localStorage.getItem("iron-web-v1-guest-pre-schema3")),
 );
 if (backup.schemaVersion !== undefined)
   throw Error("Original legacy backup missing");
@@ -114,10 +114,10 @@ if (before.schemaVersion !== 999)
 await bad.getByRole("button", { name: "گەشتێکی نوێ", exact: true }).click();
 const recovered = await bad.evaluate(() => ({
   state: JSON.parse(localStorage.getItem("iron-web-v1-guest")),
-  backup: JSON.parse(localStorage.getItem("iron-web-v1-guest-pre-schema2")),
+  backup: JSON.parse(localStorage.getItem("iron-web-v1-guest-pre-schema3")),
 }));
 if (
-  recovered.state.schemaVersion !== 2 ||
+  recovered.state.schemaVersion !== 3 ||
   recovered.backup.marker !== "preserve me"
 )
   throw Error("New Game recovery/backup failed");

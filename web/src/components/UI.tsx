@@ -104,6 +104,7 @@ export function BattleOverlay() {
         </>
       ) : (
         <>
+          <p>{state.campaign.memory.log[0]}</p>
           <div className="battle-view">
             <SceneBoundary>
               <Suspense fallback={<Empty>{t.loading}</Empty>}>

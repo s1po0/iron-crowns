@@ -1,3 +1,5 @@
+import { Difficulty } from "./routes/Campaign";
+import { useAudio } from "./game/engine/audio";
 import { Outlet, Link, useRouterState } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import {
@@ -29,6 +31,7 @@ import { t, num } from "./i18n";
 import { BattleOverlay, Modal } from "./components/UI";
 import type { Quality } from "./game/data/world";
 const navigation = [
+  { to: "/campaign", label: t.campaign, icon: Crown },
   { to: "/", label: t.map, icon: Map },
   { to: "/castle", label: t.castle, icon: Castle },
   { to: "/party", label: t.party, icon: Users },
@@ -109,6 +112,7 @@ export default function App() {
     [auth, setAuth] = useState(false),
     [settings, setSettings] = useState(false),
     [tutorialStep, setTutorialStep] = useState(0);
+  const audio = useAudio(g.state, g.started);
   return (
     <div className="app-shell">
       <header className="top-header">
@@ -202,6 +206,11 @@ export default function App() {
       </div>
       <main>
         <Outlet />
+        {g.started && g.state.campaign.memory.log[0] && (
+          <p className="campaign-news" role="status">
+            {g.state.campaign.memory.log[0]}
+          </p>
+        )}
       </main>
       <footer className="app-footer">
         <span>
@@ -245,6 +254,16 @@ export default function App() {
               }
             />
           </label>
+          <Difficulty />
+          <h3>{t.audio}</h3>
+          <p className="muted">{t.audioHelp}</p>
+          <button
+            className="secondary wide"
+            aria-pressed={!audio.muted}
+            onClick={audio.toggle}
+          >
+            {audio.muted ? t.unmute : t.mute}
+          </button>
           <h3>{t.quality}</h3>
           <p className="muted">{t.qualityHint}</p>
           <div className="quality-options">
@@ -277,6 +296,23 @@ export default function App() {
                 setSettings(false);
               }
             }}
+          >
+            {t.newGame}
+          </button>
+        </Modal>
+      )}
+      {g.started && g.state.campaign.end && !g.state.result && (
+        <Modal
+          title={
+            g.state.campaign.end === "victory"
+              ? t.campaignVictory
+              : t.campaignDefeat
+          }
+        >
+          <p>{t.victoryHelp}</p>
+          <button
+            className="primary wide"
+            onClick={() => g.start(true, g.state.name)}
           >
             {t.newGame}
           </button>

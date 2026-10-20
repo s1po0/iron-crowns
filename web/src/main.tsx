@@ -15,6 +15,7 @@ import App from "./App";
 import MapPage from "./routes/Map";
 import CastlePage from "./routes/Castle";
 import Party from "./routes/Party";
+import Campaign from "./routes/Campaign";
 import Market from "./routes/Market";
 import Leaderboard from "./routes/Leaderboard";
 import { Provider } from "./game/engine/store";
@@ -25,6 +26,11 @@ const root = createRootRoute({
   notFoundComponent: () => <a href="/">{t.home}</a>,
 });
 const routes = [
+  createRoute({
+    getParentRoute: () => root,
+    path: "/campaign",
+    component: Campaign,
+  }),
   createRoute({ getParentRoute: () => root, path: "/", component: MapPage }),
   createRoute({
     getParentRoute: () => root,

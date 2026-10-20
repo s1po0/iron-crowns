@@ -1,3 +1,4 @@
+import { newCampaign } from "./campaign";
 import { newGame, validSave, type GameState } from "./simulation";
 import { validLegacySave } from "./legacySave";
 import { MAP, legacySettlements } from "../data/world";
@@ -15,6 +16,17 @@ export function migrateSave(input: unknown): LoadResult {
   if (!input || typeof input !== "object")
     return { state: null, status: "unsupported" };
   const version = (input as { schemaVersion?: number }).schemaVersion;
+  if (version === 2) {
+    const old = input as GameState;
+    const candidate = {
+      ...structuredClone(old),
+      schemaVersion: 3,
+      campaign: newCampaign(old.worldSeed, old.level),
+    };
+    return validSave(candidate)
+      ? { state: candidate, status: "migrated" }
+      : { state: null, status: "unsupported" };
+  }
   if ((version !== undefined && version !== 1) || !validLegacySave(input))
     return { state: null, status: "unsupported" };
   const next = newGame(input.name, MAP.defaultSeed),
@@ -48,6 +60,7 @@ export function migrateSave(input: unknown): LoadResult {
       Math.hypot(a.x - old.hero.x, a.y - old.hero.y) -
       Math.hypot(b.x - old.hero.x, b.y - old.hero.y),
   )[0];
+  next.campaign = newCampaign(next.worldSeed, next.level);
   next.hero = center(world.settlements[newId(nearest.id)].tile);
   next.explored = reveal("0".repeat(MAP.size * MAP.size), next.hero);
   next.path = [];

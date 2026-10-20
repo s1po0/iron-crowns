@@ -1,4 +1,4 @@
-# Iron Crowns — Phase 1.5 web campaign
+# Iron Crowns — Sorani strategy web campaign
 
 A separate React/TypeScript web game. The Godot/Android game elsewhere in this repository is untouched.
 
@@ -55,7 +55,7 @@ The project already had a profiles table for another app. Existing fields, data 
 ## Validation
 
 - TypeScript + production Vite build: pass; 3D scene is emitted as a separate lazy chunk.
-- 17 simulation/world/migration tests: pass (faction counts, travel, demand/spread, town restrictions, construction/costs, daily economy, battle idempotency, cargo unloading, malformed saves).
+- 40 simulation/world/content/migration tests: pass (faction counts, travel, demand/spread, town restrictions, construction/costs, daily economy, battle idempotency, cargo unloading, malformed saves).
 - Browser smoke (`tests/browser.mjs`): desktop and 390px mobile layout, recruitment, buying, actual 3D grid placement, day advancement, quality, local restore, unfinished battle continuation and result persistence. Zero page errors/no mobile horizontal overflow in the successful run.
 - All npm dependencies audited with no reported vulnerabilities at implementation time.
 - Browser script uses the npm-distributed Sparticuz Chromium binary. On a minimal Linux image, its bundled `al2023.tar.br` NSS/NSPR libraries may need extracting and adding to `LD_LIBRARY_PATH`. This is test tooling only, never shipped to the browser.
@@ -75,7 +75,7 @@ Not included: player-controlled combat, sieges, full diplomacy, multiplayer, off
 
 ## Versioned save migration
 
-`schemaVersion: 2`, `generatorVersion: 1`, `worldSeed`, tile routes, explored fog and AI state are stored **inside `game_state`**. The JSONB database schema and existing Supabase RLS do not need changes. Local and cloud hydration both pass through the same pure `migrateSave` boundary; localStorage retains the `iron-web-v1-<identity>` key so existing saves remain discoverable.
+Phase 1.5 introduced `schemaVersion: 2` (now migrated to 3), `generatorVersion: 1`, `worldSeed`, tile routes, explored fog and AI state are stored **inside `game_state`**. The JSONB database schema and existing Supabase RLS do not need changes. Local and cloud hydration both pass through the same pure `migrateSave` boundary; localStorage retains the `iron-web-v1-<identity>` key so existing saves remain discoverable.
 
 - Unversioned Phase 1 saves (or explicit schema 1) are validated against the original 1400×1000 world before conversion.
 - Gold/resources, army, cargo, buildings, taxes/ale/popularity, day/time, level/victories and battle results are preserved. Existing stock IDs map to successor towns/villages. Three original enemy alive/strength values and a pending battle are retained.
@@ -85,3 +85,29 @@ Not included: player-controlled combat, sieges, full diplomacy, multiplayer, off
 - Typical saves remain well below the existing 200,000-byte limit. No bulk migration of other users' records, auth setting changes, or backend permission changes were performed.
 
 Additional browser validation: `node tests/phase15.mjs` exercises legacy migration/backup, mobile pinch input, minimap/locate controls, and unsupported-version New Game recovery. It uses the Vite server at port 5173. Unit tests verify 32 different seeds, deterministic regeneration after cache eviction, all location spacing/road connectivity, weighted routes, impassable water, fog persistence, AI scaling, migrations and bad saves. Browser checks do not substitute for physical-device performance testing or live authenticated cloud/two-account RLS testing.
+
+## Campaign systems and local content (save schema 3)
+
+Open **پاڵەوان و پەیمانەکان** from navigation for skills, equipment, diplomacy, tavern offers and the journal.
+
+- Two spendable skill points at level 1 and two per subsequent level. Leadership reduces wages by 2.5% per rank, Trade improves buy/sell prices without removing the market spread, Combat adds 3% army strength per rank. Each skill caps at 10. Migrated heroes receive points for their existing level.
+- Five purchasable inventory items, with separate weapon/armor/banner slots. Only equipped items contribute to the army-strength multiplier. Gear purchases require a peaceful town, enough gold and no duplicate ownership; switching equipment is free.
+- Three persisted relation scores. At -30 or below a faction is at war: its patrols can attack, and its towns reject trade/recruitment/tavern actions. Declaration sets -60; peace costs 150 gold and returns the score to 0. Contract rewards and events can alter relations.
+- Three simultaneous tavern contracts: deliver goods from cargo, win a new battle against bandits (patrol victories do not count), or escort an abstract caravan to another peaceful town. Contracts have 18-day deadlines, gold rewards and +8 destination faction relation; each town/day/type offer can be accepted once. Escorts need five troops and fail on battle loss, guard shortage or timeout. No separate caravan agent is simulated. Hunt navigation points toward the nearest living bandit party.
+- Seeded daily travel/castle events include harvest, plague, raid, gifts, shortages and recruitment. They apply only validated bounded gold/food/popularity/peasant/relation effects. Chance per simulated day: Easy 22%, Normal 32%, Hard 45%. Like prior phases, travel advances campaign time; castle day advancement is explicit.
+- Difficulty is adjustable during day 1 before victories/completed contracts (and only while stopped), then locked. Enemy strength multipliers: 0.8/1/1.25. This setting is saved.
+- Victory: 6 battles won, 3 contracts completed and 2,000 gold simultaneously. Defeat: popularity reaches zero, four consecutive unfed days, or day 181. Ended campaigns stop simulation and offer New Game; a battle result is shown before the campaign-end dialog.
+- Procedurally synthesized Web Audio pentatonic background music and short construction/coin/battle/result effects, generated locally. Muted by default; enable in Settings with a user gesture. Preference persists locally, hidden tabs suspend audio, and unsupported audio browsers continue silently. No music assets, CDN or audio-generation API.
+- Tutorial now explains skills, gear, contracts, diplomacy, events and end conditions.
+
+### Adding/replacing authored content
+
+See [`src/game/data/content/FORMAT.md`](src/game/data/content/FORMAT.md) for the full typed/schema-validated pack format, placeholders, bounds and context filters. Seven JSON files contain **76 Sorani seed entries**, at least ten per category. Recursive Vite raw imports discover new filenames without code changes. Rebuild the static deployment after dropping in packs; there is no runtime remote-content service. Invalid files/entries are skipped at startup, not executed. The last 20 rendered lines are excluded across categories; no eligible fresh line means silence, not a forced repetition.
+
+The content engine has **no external service or API calls**. Existing optional Supabase authentication, saves and leaderboard remain as before; no backend migration or permission changes are needed for this update.
+
+### Save migration and verification
+
+Current saves use `schemaVersion: 3` with a typed `campaign` object holding skills/points, inventory/equipment, relations/personalities, difficulty, contracts, end state, seeded content RNG/history and journal. Schema-2 migration preserves world seed, terrain, explored fog, in-flight route, enemies, economy and pending battles; it adds the new systems without moving the hero. Original Phase-1 saves still use the documented static-map relocation. Local/cloud boundaries share migration and invalid/future saves still offer safe New Game recovery. New backups use `-pre-schema3` / `-pre-schema3-cloud`; older `-pre-schema2` backups are not removed.
+
+40 unit tests cover the old economy/world tests plus content validation, deterministic non-repetition/context, bounded effects, skills/gear, peaceful/hostile patrols, all three contracts, difficulty, end conditions and both older save versions. `tests/campaign.mjs` covers desktop/390px UI actions, equipment, diplomacy, contracts, settings, local audio oscillator creation, reload and delivery completion; `tests/browser.mjs` and `tests/phase15.mjs` continue to cover prior systems/recovery. Real-device performance, subjective audio quality and authenticated cloud/two-account checks are still not certified by headless tests.

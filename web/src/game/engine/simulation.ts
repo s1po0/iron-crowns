@@ -1,3 +1,16 @@
+import {
+  newCampaign,
+  validCampaign,
+  gearBonus,
+  atWar,
+  campaignDay,
+  settleContracts,
+  checkCampaign,
+  type Campaign,
+} from "./campaign";
+import { pick } from "./content";
+import { context } from "./campaign";
+import { difficulties, campaignRules } from "../data/progression";
 import { units, type Unit } from "../data/units";
 import { goods, type Good } from "../data/goods";
 import {
@@ -18,7 +31,8 @@ import {
 export type Point = { x: number; y: number };
 export type GameState = {
   version: 1;
-  schemaVersion: 2;
+  schemaVersion: 3;
+  campaign: Campaign;
   generatorVersion: 1;
   worldSeed: number;
   explored: string;
@@ -65,7 +79,8 @@ export function newGame(
     hero = center(settlements[0].tile);
   return {
     version: 1,
-    schemaVersion: 2,
+    schemaVersion: 3,
+    campaign: newCampaign(seed >>> 0),
     generatorVersion: 1,
     worldSeed: seed >>> 0,
     explored: reveal("0".repeat(MAP.size * MAP.size), hero),
@@ -124,19 +139,25 @@ export function newGame(
 export const count = (s: GameState) =>
   Object.values(s.party).reduce((a, b) => a + b, 0);
 export const upkeep = (s: GameState) =>
-  Object.entries(s.party).reduce(
-    (a, [u, n]) => a + n * units[u as Unit].upkeep,
-    0,
+  Math.floor(
+    Object.entries(s.party).reduce(
+      (a, [u, n]) => a + n * units[u as Unit].upkeep,
+      0,
+    ) *
+      (1 - s.campaign.skills.leadership * 0.025),
   );
 export const strength = (s: GameState) =>
   Object.entries(s.party).reduce(
     (a, [u, n]) => a + n * units[u as Unit].strength,
     0,
-  ) * (s.buildings.some((b) => b.type === "barracks") ? 1.1 : 1);
+  ) *
+  (s.buildings.some((b) => b.type === "barracks") ? 1.1 : 1) *
+  (1 + s.campaign.skills.combat * 0.03 + gearBonus(s));
 export const townAt = (s: GameState) =>
   getWorld(s.worldSeed).settlements.find(
     (p) =>
       p.kind === "town" &&
+      !atWar(s, p.faction) &&
       Math.hypot(p.x - s.hero.x, p.y - s.hero.y) < WORLD.arrivalRadius,
   );
 export const score = (s: GameState) =>
@@ -144,7 +165,7 @@ export const score = (s: GameState) =>
     s.victories * 100 + s.day * 10 + s.buildings.length * 20 + strength(s),
   );
 const copy = (s: GameState) => structuredClone(s);
-function daily(s: GameState) {
+function daily(s: GameState, kind: "travel" | "castle" = "castle") {
   s.day++;
   const r = s.resources;
   for (const b of s.buildings)
@@ -181,11 +202,13 @@ function daily(s: GameState) {
   for (const stock of Object.values(s.supplies))
     for (const g of Object.keys(goods) as Good[])
       stock[g] = Math.min(120, stock[g] + 2);
+  campaignDay(s, kind, fed);
 }
 export function advanceDay(state: GameState) {
-  if (state.battle !== null || state.result) return state;
+  if (state.campaign.end || state.battle !== null || state.result) return state;
   const s = copy(state);
   daily(s);
+  checkCampaign(s);
   s.revision++;
   return s;
 }
@@ -222,13 +245,18 @@ function patrols(s: GameState, dt: number) {
   const world = getWorld(s.worldSeed);
   for (const e of s.enemies) {
     if (!e.alive) continue;
+    const hostile =
+      e.kind === "bandit" || atWar(s, world.settlements[e.home].faction);
     e.think -= dt;
     if (e.think <= 0) {
       e.think = MAP.patrolThink;
       e.strength = Math.round(
-        e.baseStrength * (1 + 0.18 * (s.level - 1)) + Math.min(40, s.day * 0.4),
+        (e.baseStrength * (1 + 0.18 * (s.level - 1)) +
+          Math.min(40, s.day * 0.4)) *
+          difficulties[s.campaign.difficulty].enemy,
       );
-      const chase = Math.hypot(e.x - s.hero.x, e.y - s.hero.y) < MAP.aggro;
+      const chase =
+        hostile && Math.hypot(e.x - s.hero.x, e.y - s.hero.y) < MAP.aggro;
       if (chase || !e.route.length) {
         const home = world.settlements[e.home];
         const choices = world.settlements
@@ -251,10 +279,12 @@ function patrols(s: GameState, dt: number) {
     }
     followRoute(e, e.route, world, WORLD.enemySpeed, dt);
     if (
+      hostile &&
       Math.hypot(s.hero.x - e.x, s.hero.y - e.y) < WORLD.encounterRadius &&
       s.day - s.lastBattleDay >= rules.encounterGraceDays
     ) {
       s.battle = e.id;
+      pick("battle", context(s), s.campaign.memory);
       s.destination = null;
       s.path = [];
       break;
@@ -263,6 +293,7 @@ function patrols(s: GameState, dt: number) {
 }
 export function tick(state: GameState, dt: number): GameState {
   if (
+    state.campaign.end ||
     !state.destination ||
     state.battle !== null ||
     state.result ||
@@ -279,14 +310,17 @@ export function tick(state: GameState, dt: number): GameState {
   s.elapsed += dt;
   while (s.elapsed >= WORLD.daySeconds) {
     s.elapsed -= WORLD.daySeconds;
-    daily(s);
+    daily(s, "travel");
   }
-  patrols(s, dt);
+  settleContracts(s);
+  if (!s.campaign.end) patrols(s, dt);
+  checkCampaign(s);
   s.revision++;
   return s;
 }
 export function move(state: GameState, p: Point): GameState {
   if (
+    state.campaign.end ||
     state.battle !== null ||
     state.result ||
     !Number.isFinite(p.x) ||
@@ -314,12 +348,20 @@ export function price(s: GameState, id: number, g: Good, buy = true) {
     Math.round(
       goods[g].price *
         (0.65 + 40 / (s.supplies[id]?.[g] + 20)) *
-        (buy ? 1 : 0.8),
+        (buy
+          ? 1 - s.campaign.skills.trade * 0.005
+          : 0.8 + s.campaign.skills.trade * 0.004),
     ),
   );
 }
 export function trade(state: GameState, id: number, g: Good, buy: boolean) {
-  if (townAt(state)?.id !== id || state.destination || state.battle !== null)
+  if (
+    state.campaign.end ||
+    state.result ||
+    townAt(state)?.id !== id ||
+    state.destination ||
+    state.battle !== null
+  )
     return state;
   const s = copy(state),
     p = price(s, id, g, buy);
@@ -334,11 +376,14 @@ export function trade(state: GameState, id: number, g: Good, buy: boolean) {
     s.cargo[g]--;
     s.supplies[id][g]++;
   }
+  checkCampaign(s);
   s.revision++;
   return s;
 }
 export function recruit(state: GameState, u: Unit) {
   if (
+    state.campaign.end ||
+    state.result ||
     !townAt(state) ||
     state.destination ||
     state.battle !== null ||
@@ -348,12 +393,16 @@ export function recruit(state: GameState, u: Unit) {
   const s = copy(state);
   s.resources.gold -= units[u].cost;
   s.party[u]++;
+  checkCampaign(s);
   s.revision++;
   return s;
 }
 export function canBuild(s: GameState, b: Building, x: number, z: number) {
   const cost = buildings[b];
   return (
+    !s.campaign.end &&
+    s.battle === null &&
+    !s.result &&
     Number.isInteger(x) &&
     Number.isInteger(z) &&
     x >= 0 &&
@@ -373,11 +422,12 @@ export function build(state: GameState, b: Building, x: number, z: number) {
   for (const k of ["wood", "stone", "gold"] as const)
     s.resources[k] -= buildings[b][k];
   s.buildings.push({ type: b, x, z });
+  checkCampaign(s);
   s.revision++;
   return s;
 }
 export function resolveBattle(state: GameState) {
-  if (state.battle === null) return state;
+  if (state.campaign.end || state.battle === null) return state;
   const s = copy(state),
     enemy = s.enemies.find((e) => e.id === s.battle)!;
   const power = strength(s),
@@ -398,9 +448,15 @@ export function resolveBattle(state: GameState) {
   if (won) {
     enemy.alive = false;
     s.victories++;
-    s.level = 1 + Math.floor(s.victories / 2);
+    const before = s.level;
+    s.level = Math.max(s.level, 1 + Math.floor(s.victories / 2));
+    s.campaign.points += (s.level - before) * campaignRules.pointsPerLevel;
+    if (enemy.kind === "bandit") s.campaign.banditKills++;
     s.resources.gold += loot;
   } else {
+    s.campaign.contracts = s.campaign.contracts.filter(
+      (q) => q.type !== "escort",
+    );
     s.resources.gold = Math.floor(s.resources.gold * 0.75);
     s.hero = center(getWorld(s.worldSeed).settlements[0].tile);
     s.path = [];
@@ -409,6 +465,9 @@ export function resolveBattle(state: GameState) {
   s.result = { won, losses, loot };
   s.lastBattleDay = s.day;
   s.battle = null;
+  settleContracts(s);
+  checkCampaign(s);
+  checkCampaign(s);
   s.revision++;
   return s;
 }
@@ -428,7 +487,8 @@ function validShape(v: unknown): v is GameState {
       p.y <= WORLD.height;
     return (
       s.version === 1 &&
-      s.schemaVersion === 2 &&
+      s.schemaVersion === 3 &&
+      validCampaign(s) &&
       s.generatorVersion === 1 &&
       integer(s.worldSeed, 0, 4294967295) &&
       typeof s.explored === "string" &&
@@ -508,10 +568,18 @@ function validShape(v: unknown): v is GameState {
 
 export function unload(state: GameState, g: Good) {
   const good = goods[g];
-  if (!("resource" in good) || state.cargo[g] <= 0) return state;
+  if (
+    state.campaign.end ||
+    state.battle !== null ||
+    state.result ||
+    !("resource" in good) ||
+    state.cargo[g] <= 0
+  )
+    return state;
   const s = copy(state);
   s.cargo[g]--;
   s.resources[good.resource] += good.yield;
+  checkCampaign(s);
   s.revision++;
   return s;
 }

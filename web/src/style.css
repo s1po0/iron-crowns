@@ -1551,3 +1551,105 @@ canvas:focus-visible {
   display: grid;
   place-items: center;
 }
+.campaign-page {
+  max-width: 1400px;
+  margin: auto;
+  padding: 24px;
+}
+.campaign-page header {
+  margin-bottom: 24px;
+  line-height: 2;
+}
+.campaign-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.campaign-card {
+  border: 1px solid #ac90524f;
+  background: linear-gradient(135deg, #253236, #182429);
+  border-radius: 8px;
+  padding: 22px;
+  min-width: 0;
+}
+.campaign-card h2 {
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.campaign-card p {
+  font-size: 13px;
+  line-height: 2;
+  margin-bottom: 12px;
+}
+.campaign-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.campaign-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.campaign-row button,
+.campaign-actions button,
+.contract button,
+.campaign-options button {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+.campaign-options {
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin-top: 18px;
+}
+.campaign-options .active {
+  border-color: var(--gold);
+  background: #b3995533;
+}
+.campaign-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.contract {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid #b89c5644;
+  border-radius: 5px;
+}
+.contract small {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--gold);
+}
+.journal-line {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.campaign-news {
+  max-width: 1350px;
+  margin: 12px auto;
+  padding: 14px 24px;
+  background: #253331;
+  border-inline-start: 3px solid var(--gold);
+  font-size: 13px;
+  line-height: 1.9;
+}
+@media (max-width: 800px) {
+  .campaign-grid {
+    grid-template-columns: 1fr;
+  }
+  .campaign-page {
+    padding: 14px;
+  }
+  .campaign-card {
+    padding: 16px;
+  }
+  .campaign-row {
+    flex-wrap: wrap;
+  }
+}

@@ -1,3 +1,4 @@
+import { atWar } from "../../game/engine/campaign";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Minus, LocateFixed } from "lucide-react";
 import {
@@ -340,7 +341,10 @@ export default function WorldMap() {
       }
       for (const e of s.enemies) {
         if (!e.alive || !visible(tileAt(e))) continue;
-        g.fillStyle = "#a75440";
+        g.fillStyle =
+          e.kind === "bandit" || atWar(s, w.settlements[e.home].faction)
+            ? "#a75440"
+            : factions[w.settlements[e.home].faction].color;
         g.beginPath();
         g.moveTo(e.x, e.y - 12);
         g.lineTo(e.x + 8, e.y + 5);

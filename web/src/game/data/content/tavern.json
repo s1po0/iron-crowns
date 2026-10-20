@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "tavern",
+  "entries": [
+    {
+      "id": "tavern-1",
+      "text": "بەخێربێیت، {hero}. لە {town} قسەی ڕاست لە زێڕ بەهادارترە.",
+      "context": {
+        "personality": "honorable"
+      }
+    },
+    {
+      "id": "tavern-2",
+      "text": "سەرەتا پارەکەت پیشان بدە، پاشان باسی هاوڕێیەتی دەکەین.",
+      "context": {
+        "personality": "greedy"
+      }
+    },
+    {
+      "id": "tavern-3",
+      "text": "ڕێگای دوور ترسی نییە؛ دڵی بچووک ترسی هەیە. ئامادەی گەشتیت؟",
+      "context": {
+        "personality": "bold"
+      }
+    },
+    {
+      "id": "tavern-4",
+      "text": "پێش ئەوەی لە دەروازە بچیتە دەرەوە، هەواڵی پردەکان بپرسە.",
+      "context": {
+        "personality": "cautious"
+      }
+    },
+    {
+      "id": "tavern-5",
+      "text": "لە خاکی {faction} میوان بە نان و خوێ پێشوازی لێ دەکرێت.",
+      "context": {
+        "factions": [0]
+      }
+    },
+    {
+      "id": "tavern-6",
+      "text": "بازرگانانی {faction} ئەمشەو لەسەر نرخی ئاسن مشتومڕ دەکەن.",
+      "context": {
+        "factions": [1]
+      }
+    },
+    {
+      "id": "tavern-7",
+      "text": "سوارەکانی {faction} لە دەشت گەڕاونەتەوە؛ هەواڵی ڕێگایان پێیە.",
+      "context": {
+        "factions": [2]
+      }
+    },
+    {
+      "id": "tavern-8",
+      "text": "کاتێک ئاڵای جەنگ بەرز دەبێتەوە، بازرگانیش خەوی لێ دەبڕێت.",
+      "context": {
+        "relation": "war"
+      }
+    },
+    {
+      "id": "tavern-9",
+      "text": "ئاشتی ڕێگا دەکاتەوە؛ با کاروانەکان بە سەلامەتی بگەن.",
+      "context": {
+        "relation": "peace"
+      }
+    },
+    {
+      "id": "tavern-10",
+      "text": "ئەمشەو خەڵکی {town} بە هیوای سبەینێیەکی باشتر کۆبوونەتەوە.",
+      "context": {
+        "mood": "hopeful"
+      }
+    },
+    {
+      "id": "tavern-11",
+      "text": "دەنگت نزم بکە، ئەمشەو دڵی خەڵک پڕە لە نیگەرانی.",
+      "context": {
+        "mood": "angry"
+      }
+    },
+    {
+      "id": "tavern-12",
+      "text": "بەخێربێیت، {hero}. دانیشە و باسی ئەو ڕێگایە بکە کە پێیدا هاتوویت."
+    }
+  ]
+}
