@@ -1,6 +1,6 @@
 # Iron Crowns 0.11 — Godot realm expansion
 
-**Release candidate: final Android verification/publication in progress.** The independent full-data verification is complete; this page will record the final APK run before publication.
+**Verified release candidate: awaiting final artifact attachment and visual review.** Engine, native Android and complete terrain-data verification have passed.
 
 ## What actually changed
 
@@ -49,7 +49,7 @@ API 2 is separate from the unchanged API-1 base content format. The importer lim
 - Data generation/upload: [39377124846](https://github.com/s1po0/iron-crowns/actions/runs/39377124846), generator source `34cf63fd1380bfab3411f0eeb697837030c019af`.
 - Independent **download of the actual release + decoding all 1,250 images**: [39378293443](https://github.com/s1po0/iron-crowns/actions/runs/39378293443), passed. Every official container digest was also matched against GitHub's asset metadata.
 - Initial expanded engine/maps/touch/render/Android-farm run: [39377006724](https://github.com/s1po0/iron-crowns/actions/runs/39377006724), passed. Subsequent native region testing exposed an Android `ls` column-format assumption in the test, not a failed import; the test was corrected to count filenames.
-- Final APK source/run and publication will be recorded after the final smoke test succeeds. The smoke test imports the **actual central region** through Android SAF, checks 50 installed files, builds a farm through touch and verifies map-aware save/restart. It does not import all 25 files on the emulator or benchmark a physical phone.
+- Final APK build [39378897264](https://github.com/s1po0/iron-crowns/actions/runs/39378897264), source `40f51fc122adef4537314c06aaa9e670c1f49265`, **passed** (7m56s). The smoke test imports the **actual central region** through Android SAF, checks 50 installed files, builds a farm through touch and verifies map-aware save/restart. It does not import all 25 files on the emulator or benchmark a physical phone.
 
 **Not complete:** commercial-quality art/animation, siege engines, a full strategic/diplomatic campaign, native Supabase/cloud saves, production signing, cross-package save transfer, physical 4/6/8 GB benchmarks. Some existing engine shutdown diagnostics report cached resources at exit; these are not evidence of a measured long-session memory profile. This remains a playable RTS prototype, not a finished Stronghold replacement.
 

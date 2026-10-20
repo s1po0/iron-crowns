@@ -1,3 +1,4 @@
+# Reviewed realm build: 39378897264, source 40f51fc122adef4537314c06aaa9e670c1f49265.
 name: Castle RTS preview
 on:
   push:
