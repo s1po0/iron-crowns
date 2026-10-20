@@ -137,14 +137,14 @@ jobs:
           PYRELEASE
           gh run download "$REVIEWED" --repo "$REPO" -n castle-rts-preview -D artifacts
           cat > notes.md <<'NOTES'
-          Farm construction fix: dedicated green Build button, visible two-row building choices, suitable-plot suggestion and explicit placement feedback.
+          Three original Godot maps: Green Valley, Southern Bridge and Western Gate. Different river/bridge layouts, resource locations, attacking routes, objectives and wave sizes. Visible mission cards, Sorani briefing, next-mission button, interactive minimap and schema-3 map saves.
           Independent Android castle-building RTS campaign preview, package com.ironcrowns.castles.maps.
           Install the APK, launch and import the matching .icdata through the native picker. Old releases/saves are not replaced.
           IMPORTANT: this is a separate app, not an in-place 0.8/0.9 update. Keep the older app installed; private saves do not automatically transfer between packages. Prior CI debug signing keys are unavailable. Production signing and cross-package save transfer remain future work.
-          Includes a Sorani guided first mission, physical worker deliveries, wheat/flour/bread production, housing, food morale, construction, controllable gates, repairs, demolition and three defensive raids.
+          Includes three guided defense missions, physical worker deliveries, wheat/flour/bread production, housing, food morale, construction, controllable gates, repairs, demolition and three defensive raids.
           Low/Medium/High are targets for 4 / 6–8 / 8+ GB devices, not certified physical-device performance.
           This is NOT a full Stronghold-scale game, NOT a >1-GB asset pack, and NOT an OBB. Data contains roughly 20 MB of actually used assets, with no padding.
-          Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render, Android export, actual emulator install/native Data import/touch farm construction/save/restart passed; physical-phone testing is outstanding.
+          Android cloud saves and a >1-GB licensed content library remain unimplemented. Desktop engine tests/render, Android export, actual emulator install/native Data import/touch selection of Southern Bridge/farm construction/map-aware save/restart passed; physical-phone testing is outstanding.
           NOTES
           # Tag/release creation can require permissions unavailable to GITHUB_TOKEN.
           # An authorized maintainer creates the draft; CI only attaches verified files.
@@ -159,16 +159,19 @@ jobs:
           PYDRAFT
           (cd artifacts && sha256sum --check SHA256SUMS.txt)
           printf '\nVerified source: %s\nBuild: https://github.com/%s/actions/runs/%s\n' "$(cat head.txt)" "$REPO" "$REVIEWED" >> notes.md
-          cp artifacts/android/04-built-farm.png artifacts/android-castle-farm.png
-          gh release upload v0.10.0-castle-maps --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-farm.png
+          cp artifacts/android/04-built-farm.png artifacts/android-castle-maps.png
+          cp artifacts/android/01-intro.png artifacts/android-castle-menu.png
+          gh release upload v0.10.0-castle-maps --repo "$REPO" artifacts/*.apk artifacts/*.icdata artifacts/*.manifest.json artifacts/SHA256SUMS.txt artifacts/iron-castle-rts.png artifacts/android-castle-maps.png artifacts/android-castle-menu.png artifacts/castle-crossing.png artifacts/castle-ridge.png
           gh release edit v0.10.0-castle-maps --repo "$REPO" --notes-file notes.md
           python3 - <<'PYANDROID'
           import pathlib,base64,json,subprocess,os
-          path='docs/screenshots/android-castle-farm.png'; branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
-          lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
-          payload={'branch':branch,'message':'docs: record completed farm in actual Android emulator','content':base64.b64encode(pathlib.Path('artifacts/android-castle-farm.png').read_bytes()).decode()}
-          if lookup.returncode==0:payload['sha']=json.loads(lookup.stdout)['sha']
-          subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(payload),text=True,check=True)
+          branch='arena/94d215f9-iron-crowns'; repo=os.environ['REPO']
+          for name in ['android-castle-maps.png','android-castle-menu.png','castle-crossing.png','castle-ridge.png']:
+              path='docs/screenshots/'+name
+              lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
+              payload={'branch':branch,'message':'docs: record verified Godot mission review '+name,'content':base64.b64encode(pathlib.Path('artifacts',name).read_bytes()).decode()}
+              if lookup.returncode==0:payload['sha']=json.loads(lookup.stdout)['sha']
+              subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(payload),text=True,check=True)
           PYANDROID
           echo 'Verified files attached. Maintainer must inspect assets and explicitly publish the draft.'
       - name: Report publication diagnostics
