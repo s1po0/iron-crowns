@@ -1,14 +1,14 @@
 # Iron Crowns — The Ashen Marches
 
-## Current engine direction: Unreal Engine
+## Active engine: Godot — Castle Realms 0.11
 
-The player selected **Unreal Engine**. A separate native C++ project targeting **UE 5.6** now lives in [`unreal/`](unreal/README.md), with a runtime RTS camera/HUD, instanced map generation, construction/initial inventory economy, gate occupancy and separate local-save implementation.
+The current expansion is **Godot**, with three **400×400-cell realms (100× the previous area)**, streamed terrain, 12 supply posts, 36 village houses, native regional-Data import and 1×/4× simulation speed. The separately generated terrain library contains **2,201,556,826 bytes** of used albedo/normal textures, independently downloaded and decoded in CI. It is terrain data, not 2 GB of new characters or quests.
 
-**Status: uncompiled Unreal migration prototype.** The portable C++ rules pass GCC + AddressSanitizer/UndefinedBehaviorSanitizer tests, but this workspace has no Unreal Editor/Build Tool. No Unreal executable/APK, renderer/input validation or finished graphics is claimed. The initial interface is English; the prior Sorani UI, workers, armies, raids and other Godot systems are not fully ported.
+**Release candidate: final APK verification/publication in progress.** [Install guide, exact content and verification limits](docs/CASTLE_REALMS_0.11.md) · [official terrain checksums](docs/REALM_SHA256SUMS.txt).
 
-Open `unreal/IronCrowns.uproject` with a legally installed UE 5.6 and its C++ toolchain. [Setup, controls, verification limits and unfinished features](unreal/README.md). The downloadable Godot apps below remain preserved and **are not Unreal builds**.
+The separate [Unreal C++ source prototype](unreal/README.md) remains preserved; it was not built with Unreal Engine and is not an Unreal APK. Older Godot releases/saves below remain preserved.
 
-## Castle Maps 0.10 — latest Godot Android preview
+## Castle Maps 0.10 — preserved Godot Android preview
 
 [Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.10.0-castle-maps) · [Map descriptions, start instructions and limits](docs/CASTLE_MAPS_0.10.md) · [Verified engine + Android build](https://github.com/s1po0/iron-crowns/actions/runs/39372968104).
 
