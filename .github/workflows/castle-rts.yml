@@ -1,0 +1,50 @@
+name: Castle RTS preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  castle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: bash scripts/godot-ci-setup.sh
+      - name: Parse and test production chain, movement, combat and saves
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/rts-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-import.log
+          timeout 120 godot --headless --path godot --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
+          grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
+      - name: Capture actual castle scene
+        shell: bash
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture 2>&1 | tee artifacts/rts-render.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-render.log
+          grep -q IRON_RTS_RENDER_PASS artifacts/rts-render.log
+          cp /tmp/iron-castle-rts.png artifacts/
+      - name: Export independent Android package and genuine Data
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/godot-android-template.sh
+          python3 scripts/build-content-bundle.py artifacts/Iron-Crowns-0.8.0-Castle-Data.icdata --revision 3
+          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.8.0-Castle-Preview.apk" 2>&1 | tee artifacts/rts-export.log
+          test -s artifacts/Iron-Crowns-0.8.0-Castle-Preview.apk
+          cd artifacts
+          sha256sum *.apk *.icdata > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: castle-rts-preview
+          path: artifacts/
+          retention-days: 30

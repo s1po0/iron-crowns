@@ -122,7 +122,7 @@ func native_progress(percent: int) -> void:
 	queue_redraw()
 
 func start_game() -> void:
-	get_tree().change_scene_to_file("res://main.tscn")
+	get_tree().change_scene_to_file("res://rts.tscn" if OS.has_feature("castle_rts") or "--rts" in OS.get_cmdline_user_args() else "res://main.tscn")
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and event.pressed and not import_button.disabled:
