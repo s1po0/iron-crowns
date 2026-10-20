@@ -34,5 +34,23 @@ func run() -> void:
 	for i in 500:
 		sim.step(.1)
 	assert(sim.kills>0,"Soldiers must actually attack hostile parties")
+	var game=load("res://rts.tscn").instantiate()
+	root.add_child(game)
+	await process_frame
+	await process_frame
+	assert(Input.emulate_mouse_from_touch,"RTS Controls need touch-to-button translation")
+	var column=game.ui.intro.get_child(0)
+	var start_button=column.get_child(column.get_child_count()-1)
+	for pressed in [true,false]:
+		var touch=InputEventScreenTouch.new()
+		touch.index=0
+		touch.position=start_button.get_global_rect().get_center()
+		touch.pressed=pressed
+		Input.parse_input_event(touch)
+		Input.flush_buffered_events()
+		await process_frame
+	assert(game.started,"A real touch event must activate New Game")
+	game.queue_free()
+	await process_frame
 	print("IRON_RTS_TEST_PASS")
 	quit()

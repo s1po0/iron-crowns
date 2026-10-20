@@ -31,7 +31,7 @@ jobs:
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/rts-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-import.log
-          timeout 120 godot --headless --path godot --quit-after 2 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
+          timeout 120 godot --headless --path godot --quit-after 20 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
           grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
       - name: Capture actual castle scene

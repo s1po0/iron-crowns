@@ -22,7 +22,7 @@ The Android export preset `CastleRTS` uses package `com.ironcrowns.castles`, so 
 
 Godot 4.4.1. Run the project through `res://rts.tscn`, or use the ordinary bootstrap with `-- --rts`. For Android, use the `CastleRTS` export after installing the native data-import plugin with `scripts/godot-android-template.sh`. Build genuine Data with `scripts/build-content-bundle.py`; never rename an arbitrary ZIP to `.obb`.
 
-The `Castle RTS preview` Actions workflow imports the project, runs `rts_test.gd`, renders a real game screenshot and exports the independent APK plus `.icdata`. Build logs, checksums and binaries are uploaded as artifacts. A render from a seeded showcase fixture is not evidence of physical-phone frame rate or a completed campaign.
+The `Castle RTS preview` Actions workflow imports the project, runs `rts_test.gd`, renders a real game screenshot and exports the independent APK plus `.icdata`. Build logs, checksums and binaries are uploaded as artifacts. Public Release publication currently returned HTTP 403 (repository integration permission); no public 0.8 release is claimed. A render from a seeded showcase fixture is not evidence of physical-phone frame rate or a completed campaign.
 
 ## Explicit limits / remaining work
 

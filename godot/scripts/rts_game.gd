@@ -23,6 +23,8 @@ var audio: AudioStreamPlayer
 var screenshot_clock=0.0
 
 func _ready() -> void:
+	# Native Control widgets need emulated mouse clicks; map gestures handle raw touches separately.
+	Input.emulate_mouse_from_touch=true
 	var prefs=ConfigFile.new()
 	if prefs.load("user://castle-settings.cfg")==OK:
 		quality_index=clampi(int(prefs.get_value("graphics","quality",1)),0,2)
@@ -182,6 +184,8 @@ func pan(delta: Vector2) -> void:
 	focus.z=clampf(focus.z,-46,46)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if (event is InputEventMouseButton or event is InputEventMouseMotion) and event.device==InputEvent.DEVICE_ID_EMULATION:
+		return
 	if not started:
 		return
 	if event is InputEventMouseButton:
