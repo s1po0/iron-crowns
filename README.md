@@ -1,5 +1,9 @@
 # Iron Crowns — The Ashen Marches
 
+## Dropbox Data mirror
+
+[Download the existing Castle Data + Sorani installation guide](https://www.dropbox.com/scl/fo/l6hzmhekdtk2oe58rcjhw/AMqrZzQbl1Sga0hfOP6MaS4?rlkey=dskejp87dq3sr1pgi661lgro4&dl=0). Data is byte-identical to the verified 0.9.1 release, approximately 20 MB. **APK stays on GitHub; Android cloud saves/Dropbox save sync are not implemented.** [Verification and limits](docs/DROPBOX_DISTRIBUTION.md).
+
 ## Castle 0.9.1 — farm construction fix (latest)
 
 [Download the corrected APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.1-castle-buildfix) · [Construction instructions and test evidence](docs/CASTLE_BUILD_FIX.md).
