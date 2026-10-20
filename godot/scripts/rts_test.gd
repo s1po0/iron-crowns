@@ -52,6 +52,46 @@ func run() -> void:
 		Input.flush_buffered_events()
 		await process_frame
 	assert(game.started,"A real touch event must activate New Game")
+	await process_frame
+	await process_frame
+	var farm_button=game.ui.building_buttons["farm"]
+	assert(farm_button.is_visible_in_tree() and root.get_visible_rect().encloses(farm_button.get_global_rect()),"Farm choice must be on screen, not in a hidden carousel")
+	await tap(farm_button.get_global_rect().get_center())
+	assert(game.chosen=="farm" and game.ui.build_button.is_visible_in_tree())
+	assert(not game.ui.build_button.disabled,"Invalid placement must explain itself, not hide the command")
+	var original_wood=game.sim.resources.wood
+	await tap(game.ui.build_button.get_global_rect().get_center())
+	assert(game.sim.buildings.size()==1 and game.sim.resources.wood==original_wood,"Confirm without a location must not charge or build")
+	var candidate=Vector2i(-1,-1)
+	var screen=Vector2.ZERO
+	for y in range(6,29):
+		for x in range(6,29):
+			var p=Vector2i(x,y)
+			var projected=game.camera.unproject_position(CastleSim.world(Vector2(p)))
+			if game.sim.can_build("farm",p) and Rect2(30,185,1220,160).has_point(projected):
+				candidate=p
+				screen=projected
+				break
+		if candidate.x>=0:
+			break
+	assert(candidate.x>=0,"Fixture needs a genuinely visible empty plot")
+	await tap(screen)
+	assert(game.placement_selected and game.placement==candidate,"Raw map touch must select the actual plot")
+	await tap(game.ui.build_button.get_global_rect().get_center())
+	assert(game.sim.buildings.size()==2 and game.sim.buildings[-1].kind=="farm","Touch-only farm choice > map > Build must create a farm")
+	assert(game.sim.resources.wood==original_wood-35)
+	await tap(game.ui.build_button.get_global_rect().get_center())
+	assert(game.sim.buildings.size()==2,"Repeated confirmation cannot charge twice")
+	await tap(farm_button.get_global_rect().get_center())
+	await tap(game.ui.suggest_button.get_global_rect().get_center())
+	assert(game.placement_selected and game.sim.can_build("farm",game.placement))
+	await tap(game.ui.cancel_button.get_global_rect().get_center())
+	assert(game.chosen=="" and game.sim.buildings.size()==2 and game.sim.resources.wood==original_wood-35)
+	await tap(farm_button.get_global_rect().get_center())
+	await tap(game.ui.suggest_button.get_global_rect().get_center())
+	await tap(game.ui.build_button.get_global_rect().get_center())
+	assert(game.sim.buildings.size()==3 and game.sim.resources.wood==original_wood-70,"Suggested plot must build through touch controls too")
+	print("IRON_RTS_TOUCH_FARM_BUILD_PASS")
 	assert(game.sim.place("gate",Vector2i(25,12)))
 	game.sim.buildings[-1].built=1
 	game.inspect()
@@ -76,3 +116,14 @@ func run() -> void:
 	await process_frame
 	print("IRON_RTS_TEST_PASS")
 	quit()
+
+func tap(point: Vector2) -> void:
+	for pressed in [true,false]:
+		var touch=InputEventScreenTouch.new()
+		touch.index=0
+		touch.position=point
+		touch.pressed=pressed
+		Input.parse_input_event(touch)
+		Input.flush_buffered_events()
+		await process_frame
+	await process_frame

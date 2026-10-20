@@ -17,6 +17,11 @@ var management_info: Label
 var pause_button: Button
 var build_button: Button
 var train_button: Button
+var placement_panel: PanelContainer
+var placement_help: Label
+var suggest_button: Button
+var cancel_button: Button
+var building_buttons: Dictionary={}
 
 func button(text: String, action: Callable, parent: Node, width: float=100) -> Button:
 	var b=Button.new()
@@ -77,7 +82,7 @@ func setup(game: Node) -> void:
 	objective.add_child(tutorial)
 	var bottom=PanelContainer.new()
 	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top=-154
+	bottom.offset_top=-214
 	root.add_child(bottom)
 	var column=VBoxContainer.new()
 	bottom.add_child(column)
@@ -87,23 +92,42 @@ func setup(game: Node) -> void:
 	selected.clip_text=true
 	selected.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	actions.add_child(selected)
-	build_button=button("بنیاتی بنێ",game.confirm_build,actions,130)
 	button("فەرمانی سوپا",game.choose_rally,actions,140)
 	button("بەڕێوەبردن",game.inspect,actions,120)
 	train_button=button("سەرباز · ٢٠ زێڕ",game.train,actions,160)
 	button("+",func():game.zoom(-5),actions,50)
 	button("−",func():game.zoom(5),actions,50)
 	button("⌂",game.locate,actions,50)
-	var scroll=ScrollContainer.new()
-	scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size.y=65
-	column.add_child(scroll)
-	var choices=HBoxContainer.new()
-	scroll.add_child(choices)
+	var choices=GridContainer.new()
+	choices.columns=5
+	column.add_child(choices)
 	for kind in CastleSim.COSTS:
 		var cost: Array=CastleSim.COSTS[kind]
-		button(NAMES[kind]+"\n"+str(cost[0])+" دار · "+str(cost[1])+" بەرد",func():game.choose(kind),choices,120)
+		var choice=button(NAMES[kind]+" · "+str(cost[0])+" دار · "+str(cost[1])+" بەرد",func():game.choose(kind),choices,160)
+		choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		choice.add_theme_font_size_override("font_size",16)
+		building_buttons[kind]=choice
+	placement_panel=PanelContainer.new()
+	placement_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	placement_panel.offset_top=-304
+	placement_panel.offset_bottom=-220
+	root.add_child(placement_panel)
+	var placement_row=HBoxContainer.new()
+	placement_panel.add_child(placement_row)
+	build_button=button("دروست بکە",game.confirm_build,placement_row,250)
+	build_button.custom_minimum_size.y=56
+	build_button.add_theme_font_size_override("font_size",24)
+	var build_style=panel.duplicate()
+	build_style.bg_color=Color("386d49")
+	build_style.border_color=Color("d6bb73")
+	build_button.add_theme_stylebox_override("normal",build_style)
+	suggest_button=button("شوێنی گونجاو",game.suggest_site,placement_row,180)
+	cancel_button=button("هەڵوەشاندنەوە",game.cancel_build,placement_row,160)
+	placement_help=Label.new()
+	placement_help.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	placement_help.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	placement_help.custom_minimum_size.x=220
+	placement_row.add_child(placement_help)
 	management=HBoxContainer.new()
 	management.position=Vector2(16,435)
 	root.add_child(management)
@@ -116,8 +140,8 @@ func setup(game: Node) -> void:
 	root.add_child(management_info)
 	notice=Label.new()
 	notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	notice.position=Vector2(240,510)
-	notice.size=Vector2(800,45)
+	notice.position=Vector2(120,365)
+	notice.size=Vector2(1040,45)
 	notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(notice)
 	intro=PanelContainer.new()
@@ -132,7 +156,7 @@ func setup(game: Node) -> void:
 	title.add_theme_font_size_override("font_size",29)
 	box.add_child(title)
 	var description=Label.new()
-	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی سێ هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، شوێن دیاری بکە، پاشان «بنیاتی بنێ» دابگرە."
+	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی سێ هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، «شوێنی گونجاو» دابگرە، پاشان دوگمەی سەوزی «دروست بکە» دابگرە."
 	description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	description.custom_minimum_size=Vector2(560,140)
 	box.add_child(description)
@@ -153,7 +177,13 @@ func update(sim: CastleSim) -> void:
 	stats.text="دار %d   بەرد %d   گەنم %d   ئارد %d   نان %d   زێڕ %d" % [sim.resources.wood,sim.resources.stone,sim.resources.grain,sim.resources.flour,sim.resources.bread,sim.resources.gold]
 	stats.text+="\nدانیشتووان %d/%d   ڕەزامەندی %d%%   قەڵا %d/600   هێرش %d/3" % [sim.population(),sim.capacity(),sim.morale,sim.buildings[0].hp,sim.wave]
 	pause_button.text="بەردەوام بە" if controller.paused else "وەستان"
-	build_button.disabled=not controller.started or controller.paused or not sim.can_build(controller.chosen,controller.placement)
+	placement_panel.visible=controller.started and CastleSim.COSTS.has(controller.chosen) and sim.ended.is_empty()
+	build_button.disabled=not controller.started or controller.paused or not sim.ended.is_empty()
+	suggest_button.disabled=build_button.disabled
+	build_button.text="دروست بکە: "+NAMES.get(controller.chosen,"")
+	placement_help.text=controller.placement_message()
+	for kind in building_buttons:
+		building_buttons[kind].modulate=Color("ffe1a0") if kind==controller.chosen else Color.WHITE
 	train_button.disabled=not controller.started or controller.paused or not sim.ended.is_empty() or sim.population()>=sim.capacity() or sim.resources.gold<20 or sim.resources.bread<2 or sim.by_kind("barracks").is_empty()
 	management.visible=controller.started and controller.chosen=="inspect" and sim.ended.is_empty()
 	management_info.visible=management.visible

@@ -9,6 +9,7 @@ var distance=58.0
 var target_distance=58.0
 var chosen="stockpile"
 var placement=Vector2i(15,20)
+var placement_selected=false
 var started=false
 var paused=false
 var quality_index=1
@@ -79,7 +80,7 @@ func _process(dt: float) -> void:
 			autosave=0
 			sim.save_game()
 	ui.update(sim)
-	ghost.visible=started and CastleSim.FOOTPRINT.has(chosen) and sim.ended.is_empty()
+	ghost.visible=started and placement_selected and CastleSim.FOOTPRINT.has(chosen) and sim.ended.is_empty()
 	if ghost.visible:
 		var n: int=CastleSim.FOOTPRINT[chosen]
 		ghost.position=CastleSim.world(Vector2(placement))+Vector3((n-1)*1.5,.12,(n-1)*1.5)
@@ -124,6 +125,7 @@ func resume() -> void:
 	ui.intro.hide()
 
 func choose(kind: String) -> void:
+	placement_selected=false
 	chosen=kind
 	demolition_id=-1
 
@@ -131,10 +133,55 @@ func choose_rally() -> void:
 	chosen=""
 	ui.notice.text="شوێنی کۆبوونەوەی سوپا لە نەخشە دابگرە."
 
-func confirm_build() -> void:
-	if not started or paused or not CastleSim.COSTS.has(chosen):
+func placement_message() -> String:
+	if not CastleSim.COSTS.has(chosen):
+		return "سەرەتا جۆری بینا هەڵبژێرە."
+	if paused:
+		return "یاری وەستاوە؛ «بەردەوام بە» دابگرە."
+	var cost: Array=CastleSim.COSTS[chosen]
+	if sim.resources.wood<cost[0] or sim.resources.stone<cost[1]:
+		return "سەرچاوە بەس نییە: %d دار و %d بەرد پێویستە." % [cost[0],cost[1]]
+	if not placement_selected:
+		return "شوێنێک لە نەخشە دابگرە، یان «شوێنی گونجاو» هەڵبژێرە."
+	if not sim.can_build(chosen,placement):
+		return "ئەم شوێنە ناگونجێت: ئاو، بینا یان یەکەیەکی لێیە؛ شوێنێکی تر هەڵبژێرە."
+	return "شوێنەکە گونجاوە — «دروست بکە» دابگرە."
+
+func suggest_site() -> void:
+	if not started or paused or not sim.ended.is_empty() or not CastleSim.COSTS.has(chosen):
 		return
-	ui.notice.text="بنیاتنان دەستی پێ کرد." if sim.place(chosen,placement) else "شوێنەکە داخراوە یان سەرچاوەکان بەس نین."
+	var cost: Array=CastleSim.COSTS[chosen]
+	if sim.resources.wood<cost[0] or sim.resources.stone<cost[1]:
+		ui.notice.text=placement_message()
+		return
+	var center=CastleSim.cell(focus)
+	for radius in range(0,CastleSim.SIZE):
+		for y in range(center.y-radius,center.y+radius+1):
+			for x in range(center.x-radius,center.x+radius+1):
+				if maxi(absi(x-center.x),absi(y-center.y))!=radius:
+					continue
+				var p=Vector2i(x,y)
+				if sim.can_build(chosen,p):
+					placement=p
+					placement_selected=true
+					focus=CastleSim.world(Vector2(p)+Vector2.ONE*(CastleSim.FOOTPRINT[chosen]-1)*.5)
+					ui.notice.text="شوێنێکی گونجاو هەڵبژێردرا؛ بۆ بنیاتنان «دروست بکە» دابگرە."
+					return
+	ui.notice.text="شوێنی بەتاڵی گونجاو نەدۆزرایەوە."
+
+func cancel_build() -> void:
+	choose("")
+	ui.notice.text="بنیاتنان هەڵوەشێنرایەوە؛ هیچ سەرچاوەیەک کەم نەکرا."
+
+func confirm_build() -> void:
+	if not started or paused or not sim.ended.is_empty() or not CastleSim.COSTS.has(chosen):
+		return
+	if not placement_selected or not sim.can_build(chosen,placement):
+		ui.notice.text=placement_message()
+		return
+	if sim.place(chosen,placement):
+		ui.notice.text=CastleUI.NAMES[chosen]+" — بنیاتنان دەستی پێ کرد (٨ چرکە)."
+		placement_selected=false
 
 func inspect() -> void:
 	choose("inspect")
@@ -209,6 +256,7 @@ func select_world(point: Vector2) -> void:
 		sim.order(cell)
 	else:
 		placement=cell
+		placement_selected=true
 		demolition_id=-1
 
 func pan(delta: Vector2) -> void:
