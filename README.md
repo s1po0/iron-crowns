@@ -1,6 +1,12 @@
 # Iron Crowns — The Ashen Marches
 
-## Active engine: Godot — Castle Realms 0.11
+## Latest: Godot 0.12 — one complete Data
+
+**[Download APK + the single 1.69 GB Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.12.0-castle-complete)** · [Installation and verification](docs/COMPLETE_DATA_0.12.md).
+
+All **25 terrain regions and the base art** are now inside one `.icdata`. No separate `.icregion` imports or base-Data download are needed. All 1,250 terrain images retain their original 1024² pixels through verified lossless encoding. Actual Android full-size import, 1,250-file verification, touch construction and save/restart passed [39380822249](https://github.com/s1po0/iron-crowns/actions/runs/39380822249). A new separate **Castle Complete** APK is required; keep old apps installed to retain their saves.
+
+## Preserved: Godot — Castle Realms 0.11
 
 The current expansion is **Godot**, with three **400×400-cell realms (100× the previous area)**, streamed terrain, 12 supply posts, 36 village houses, native regional-Data import and 1×/4× simulation speed. The separately generated terrain library contains **2,201,556,826 bytes** of used albedo/normal textures, independently downloaded and decoded in CI. It is terrain data, not 2 GB of new characters or quests.
 
