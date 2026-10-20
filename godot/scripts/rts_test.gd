@@ -58,6 +58,13 @@ func run() -> void:
 	assert(farm_button.is_visible_in_tree() and root.get_visible_rect().encloses(farm_button.get_global_rect()),"Farm choice must be on screen, not in a hidden carousel")
 	await tap(farm_button.get_global_rect().get_center())
 	assert(game.chosen=="farm" and game.ui.build_button.is_visible_in_tree())
+	var points={"viewport":[root.size.x,root.size.y]}
+	for entry in [["start",start_button],["farm",farm_button],["build",game.ui.build_button],["suggest",game.ui.suggest_button],["save",game.ui.save_button]]:
+		var pos=entry[1].get_global_rect().get_center()
+		points[entry[0]]=[pos.x,pos.y]
+	var point_file=FileAccess.open("/tmp/rts-touch-points.json",FileAccess.WRITE)
+	point_file.store_string(JSON.stringify(points))
+	point_file.close()
 	assert(not game.ui.build_button.disabled,"Invalid placement must explain itself, not hide the command")
 	var original_wood=game.sim.resources.wood
 	await tap(game.ui.build_button.get_global_rect().get_center())

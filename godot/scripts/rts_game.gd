@@ -67,6 +67,7 @@ func _ready() -> void:
 			sim.train()
 		sim.order(Vector2i(24,14))
 	world.sync(sim,0)
+	print("IRON_RTS_READY")
 
 func _process(dt: float) -> void:
 	distance=lerpf(distance,target_distance,minf(1,dt*8))

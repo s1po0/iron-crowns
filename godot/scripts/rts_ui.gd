@@ -16,6 +16,7 @@ var management: HBoxContainer
 var management_info: Label
 var pause_button: Button
 var build_button: Button
+var save_button: Button
 var train_button: Button
 var placement_panel: PanelContainer
 var placement_help: Label
@@ -69,7 +70,7 @@ func setup(game: Node) -> void:
 	quality.selected=game.quality_index
 	quality.item_selected.connect(game.set_quality)
 	row.add_child(quality)
-	button("پاشەکەوت",game.save_game,row)
+	save_button=button("پاشەکەوت",game.save_game,row)
 	pause_button=button("وەستان",game.toggle_pause,row)
 	button("دەنگ",game.toggle_sound,row)
 	var objective=PanelContainer.new()
