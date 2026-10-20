@@ -35,7 +35,7 @@ try:
     points=json.loads(Path('artifacts/rts-touch-points.json').read_text())
     assert points['viewport']==[1280,720],points
     def tap(name): tap_xy(*points[name])
-    tap('mission'); adb('shell','input','keyevent','20'); adb('shell','input','keyevent','66'); time.sleep(4)
+    tap('mission'); time.sleep(4)
     tap('start'); tap('farm'); screenshot('02-farm-selected.png')
     tap('suggest'); screenshot('03-farm-position.png')
     tap('build')

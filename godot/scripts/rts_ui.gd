@@ -23,7 +23,7 @@ var placement_help: Label
 var suggest_button: Button
 var cancel_button: Button
 var building_buttons: Dictionary={}
-var mission_choice: OptionButton
+var mission_buttons: Array[Button]=[]
 var briefing: Label
 var next_button: Button
 var minimap: CastleMinimap
@@ -160,12 +160,13 @@ func setup(game: Node) -> void:
 	title.text="تاجە ئاسنینەکان — بناغەی قەڵا"
 	title.add_theme_font_size_override("font_size",29)
 	box.add_child(title)
-	mission_choice=OptionButton.new()
-	mission_choice.custom_minimum_size.y=52
-	for id in CastleMissions.IDS:
-		mission_choice.add_item(CastleMissions.data(id).title)
-	mission_choice.item_selected.connect(game.select_mission)
-	box.add_child(mission_choice)
+	var map_row=HBoxContainer.new()
+	box.add_child(map_row)
+	for index in CastleMissions.IDS.size():
+		var id=CastleMissions.IDS[index]
+		var pick=button(CastleMissions.data(id).title,func():game.select_mission(index),map_row,240)
+		pick.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		mission_buttons.append(pick)
 	var description=Label.new()
 	briefing=description
 	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی سێ هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، «شوێنی گونجاو» دابگرە، پاشان دوگمەی سەوزی «دروست بکە» دابگرە."
@@ -175,7 +176,7 @@ func setup(game: Node) -> void:
 	refresh_briefing()
 	if FileAccess.file_exists(CastleSim.SAVE):
 		button("بەردەوام بە",game.resume,box)
-	button("دەستپێکردنی گوندی نوێ",game.new_game,box)
+	button("دەستپێکردنی میشن",game.new_game,box)
 	finish=Label.new()
 	finish.position=Vector2(420,250)
 	finish.size=Vector2(440,120)
@@ -195,6 +196,8 @@ func setup(game: Node) -> void:
 
 func refresh_briefing() -> void:
 	var m=CastleMissions.data(controller.selected_mission)
+	for i in mission_buttons.size():
+		mission_buttons[i].modulate=Color("ffe1a0") if CastleMissions.IDS[i]==controller.selected_mission else Color.WHITE
 	briefing.text=m.story+"\n\nئامادەکاری: %d سەرباز و %d نانی بەرهەمهاتوو؛ سێ هێرش: %d / %d / %d.\nکۆگا ← داربڕ ← کێڵگە ← ئاش ← نانەواخانە.\nبینا هەڵبژێرە ← شوێنی گونجاو ← دوگمەی سەوزی دروست بکە. نەخشە بچووکەکە بۆ گواستنەوەی کامێرایە." % [m.soldiers,m.bread,m.waves[0],m.waves[1],m.waves[2]]
 
 func update(sim: CastleSim) -> void:

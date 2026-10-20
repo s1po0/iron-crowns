@@ -60,7 +60,7 @@ func run() -> void:
 	await tap(farm_button.get_global_rect().get_center())
 	assert(game.chosen=="farm" and game.ui.build_button.is_visible_in_tree())
 	var points={"viewport":[root.size.x,root.size.y]}
-	for entry in [["start",start_button],["farm",farm_button],["build",game.ui.build_button],["suggest",game.ui.suggest_button],["save",game.ui.save_button],["mission",game.ui.mission_choice]]:
+	for entry in [["start",start_button],["farm",farm_button],["build",game.ui.build_button],["suggest",game.ui.suggest_button],["save",game.ui.save_button],["mission",game.ui.mission_buttons[1]]]:
 		var pos=entry[1].get_global_rect().get_center()
 		points[entry[0]]=[pos.x,pos.y]
 	var point_file=FileAccess.open("/tmp/rts-touch-points.json",FileAccess.WRITE)

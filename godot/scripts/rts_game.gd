@@ -131,7 +131,6 @@ func select_mission(index: int) -> void:
 	selected_mission=CastleMissions.IDS[index]
 	sim=CastleSim.new(selected_mission)
 	rebuild_world()
-	ui.mission_choice.select(index)
 	ui.refresh_briefing()
 	locate()
 
@@ -158,7 +157,6 @@ func resume() -> void:
 		ui.notice.text="پاشەکەوتەکە ناگونجێت؛ گوندێکی نوێ دەست پێ بکە."
 		return
 	selected_mission=sim.mission_id
-	ui.mission_choice.select(CastleMissions.IDS.find(selected_mission))
 	rebuild_world()
 	started=true
 	ui.intro.hide()
