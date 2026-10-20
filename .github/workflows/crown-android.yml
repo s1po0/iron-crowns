@@ -1,5 +1,8 @@
 name: Crown Android verification
 on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['.github/workflows/crown-android.yml', 'scripts/crown-android-smoke.py']
   workflow_dispatch:
 permissions:
   contents: write
