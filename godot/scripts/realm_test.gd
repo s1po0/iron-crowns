@@ -35,6 +35,8 @@ func run() -> void:
 	assert(RealmRegions.generation==original)
 	assert(RealmRegions.texture(12,12,"albedo",1)!=null)
 	var sim=CastleSim.new("realm_valley")
+	for home in CastleMissions.settlements(sim.mission_id):
+		assert(sim.terrain_blocked(home) and not sim.can_build("farm",home))
 	assert(sim.grid_size*sim.grid_size==CastleSim.SIZE*CastleSim.SIZE*100)
 	var site=CastleMissions.outposts(sim.mission_id)[0]
 	for i in 3:

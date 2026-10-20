@@ -83,6 +83,11 @@ func stream(focus: Vector3,level: int) -> void:
 					material=detail
 				var node=mesh_for(key*CHUNK,CHUNK,material)
 				add_child(node)
+				for home in CastleMissions.settlements(mission_id):
+					if Vector2i(int(home.x/CHUNK),int(home.y/CHUNK))==key:
+						var house=settlement_house()
+						house.position=CastleSim.world(Vector2(home)+Vector2(.5,.5))
+						node.add_child(house)
 				for site in CastleMissions.outposts(mission_id):
 					if Vector2i(int(site.x/CHUNK),int(site.y/CHUNK))==key:
 						var pos=CastleSim.world(Vector2(site))
@@ -96,3 +101,18 @@ func stream(focus: Vector3,level: int) -> void:
 						node.add_child(label)
 				loaded[key]=node
 				return
+
+func settlement_house() -> Node3D:
+	var house=Node3D.new()
+	var models=ContentAssets.json("res://assets/content/rts/models.json")
+	for part in models.models.house_small:
+		var material=StandardMaterial3D.new()
+		material.roughness=.9
+		if part.has("texture"):
+			material.albedo_texture=ContentAssets.texture(part.texture)
+		material.albedo_color=Color(part.color[0],part.color[1],part.color[2])
+		var node=MeshInstance3D.new()
+		node.mesh=ContentAssets.mesh(part.mesh)
+		node.material_override=material
+		house.add_child(node)
+	return house

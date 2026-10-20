@@ -153,7 +153,8 @@ func forest() -> void:
 			var i=int(instance/factor)
 			var cluster=instance%factor
 			var angle=i*2.399
-			var p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"wood")))+Vector3(sin(angle)*9,3.8,cos(angle)*12)
+			var radius=sqrt(float((i*97)%220+.5)/220.0)
+			var p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"wood")))+Vector3(sin(angle)*15*radius,3.8,cos(angle)*20*radius)
 			if CastleMissions.blocked(CastleSim.cell(p),mission_id):
 				p=CastleSim.world(Vector2(CastleMissions.point(mission_id,"wood")))+Vector3(sin(angle)*3,3.8,cos(angle)*3)
 			if layer==2:
