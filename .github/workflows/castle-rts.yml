@@ -5,7 +5,7 @@ on:
     paths: ['godot/scripts/rts_*.gd', 'godot/rts.tscn', '.github/workflows/castle-rts.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   castle:
     runs-on: ubuntu-24.04
@@ -24,7 +24,7 @@ jobs:
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/rts-import.log
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-import.log
-          timeout 120 godot --headless --path godot --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
+          timeout 120 godot --headless --path godot --quit-after 2 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
           ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
           grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
       - name: Capture actual castle scene
@@ -45,6 +45,30 @@ jobs:
           test -s artifacts/Iron-Crowns-0.8.0-Castle-Preview.apk
           cd artifacts
           sha256sum *.apk *.icdata > SHA256SUMS.txt
+      - name: Publish review diagnostics on the same branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYDIAG'
+          import pathlib
+          for p in pathlib.Path('artifacts').glob('*.log'):
+              if p.name=='rts-import.log':
+                  text='\n'.join(x for x in p.read_text(errors='replace').splitlines() if 'ERROR' in x or 'Error' in x)
+              else:
+                  text=p.read_text(errors='replace')[-3500:]
+              print('::notice title='+p.name+'::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYDIAG
+          if test -f artifacts/iron-castle-rts.png; then
+            python3 - <<'PYPHOTO'
+          import subprocess,json,base64,pathlib
+          repo='${{ github.repository }}'; branch='arena/94d215f9-iron-crowns'; path='docs/screenshots/castle-rts-review.png'
+          lookup=subprocess.run(['gh','api',f'repos/{repo}/contents/{path}?ref={branch}'],capture_output=True,text=True)
+          payload={'branch':branch,'message':'docs: record rendered castle RTS review','content':base64.b64encode(pathlib.Path('artifacts/iron-castle-rts.png').read_bytes()).decode()}
+          if lookup.returncode==0:payload['sha']=json.loads(lookup.stdout)['sha']
+          subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','-'],input=json.dumps(payload),text=True,check=True)
+          PYPHOTO
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
