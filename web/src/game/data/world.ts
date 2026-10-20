@@ -1,18 +1,18 @@
 export const WORLD = {
-  width: 1400,
-  height: 1000,
-  heroSpeed: 62,
+  width: 3072,
+  height: 3072,
+  heroSpeed: 105,
   daySeconds: 14,
   encounterRadius: 28,
-  arrivalRadius: 40,
-  enemySpeed: 14,
+  arrivalRadius: 20,
+  enemySpeed: 30,
 };
 export const factions = [
   { id: 0, color: "#739d8c", at: [290, 300] },
   { id: 1, color: "#c9a56b", at: [720, 510] },
   { id: 2, color: "#b67f73", at: [1100, 420] },
 ];
-export const settlements = [
+export const legacySettlements = [
   { x: 300, y: 370 },
   { x: 180, y: 570 },
   { x: 190, y: 280 },
@@ -54,3 +54,43 @@ export const qualitySettings = {
   high: { fps: 45, dpr: 1.8, workers: 20, trees: 140 },
 };
 export type Quality = keyof typeof qualitySettings;
+
+export const MAP = {
+  size: 128,
+  tile: 24,
+  chunk: 16,
+  defaultSeed: 19071020,
+  generatorVersion: 1,
+  spacing: 8,
+  vision: 8,
+  townsPerFaction: 3,
+  villagesPerFaction: 5,
+  camps: 6,
+  patrolThink: 1.8,
+  aggro: 240,
+  maxEnemyRoute: 256,
+} as const;
+export const TERRAIN = {
+  water: 0,
+  plains: 1,
+  forest: 2,
+  hills: 3,
+  mountains: 4,
+  river: 5,
+  road: 6,
+} as const;
+export const terrainCost = [Infinity, 1, 1.8, 2.4, 5.5, Infinity, 0.6];
+export const terrainColors = [
+  "#294a59",
+  "#839071",
+  "#536d56",
+  "#8b8668",
+  "#92958a",
+  "#416c7c",
+  "#b29d73",
+];
+export const renderBudget = {
+  low: { chunks: 20, particles: 10, army: 18 },
+  medium: { chunks: 36, particles: 24, army: 30 },
+  high: { chunks: 64, particles: 40, army: 48 },
+};

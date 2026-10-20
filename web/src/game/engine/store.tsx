@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -7,10 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { newGame, tick, score, validSave, type GameState } from "./simulation";
+import { newGame, tick, score, type GameState } from "./simulation";
 import { qualitySettings, rules, type Quality } from "../data/world";
 import { supabase, publicKey, supabaseUrl } from "../../lib/supabase";
 import { t } from "../../i18n";
+import { migrateSave, parseSave, type LoadResult } from "./migrations";
 type Store = {
   state: GameState;
   update: (f: (s: GameState) => GameState) => void;
@@ -23,6 +25,7 @@ type Store = {
   setQuality: (q: Quality) => void;
   save: () => Promise<void>;
   status: string;
+  saveNotice: string;
   paused: boolean;
   setPaused: (v: boolean) => void;
   tutorial: boolean;
@@ -30,18 +33,38 @@ type Store = {
 };
 const Context = createContext<Store>(null!);
 const key = (id?: string) => `iron-web-v1-${id || "guest"}`;
-function read(id?: string) {
+function readInfo(id?: string): LoadResult {
   try {
-    const v = JSON.parse(localStorage.getItem(key(id)) || "null");
-    return validSave(v) ? v : null;
+    return parseSave(localStorage.getItem(key(id)));
   } catch {
-    return null;
+    return { state: null, status: "unsupported" };
   }
 }
+function read(id?: string) {
+  return readInfo(id).state;
+}
+function backup(id?: string, raw?: string) {
+  try {
+    const backupKey = key(id) + "-pre-schema2" + (raw ? "-cloud" : "");
+    if (!localStorage.getItem(backupKey)) {
+      const value = raw || localStorage.getItem(key(id));
+      if (value) localStorage.setItem(backupKey, value);
+    }
+  } catch {
+    /* A full storage quota must not crash the recovery screen. */
+  }
+}
+const notice = (result: LoadResult) =>
+  result.status === "unsupported"
+    ? t.incompatibleSave
+    : result.status === "migrated"
+      ? t.migratedSave
+      : "";
 export function Provider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState>(
       () => read() || newGame(t.hero),
     ),
+    [saveNotice, setSaveNotice] = useState(notice(readInfo())),
     [started, setStarted] = useState(false),
     [hasSave, setHasSave] = useState(!!read()),
     [session, setSession] = useState<Session | null>(null),
@@ -85,7 +108,9 @@ export function Provider({ children }: { children: ReactNode }) {
     const id = session?.user.id;
     loadedUser.current = id;
     setStarted(false);
-    const cached = read(id);
+    const cachedInfo = readInfo(id);
+    const cached = cachedInfo.state;
+    setSaveNotice(notice(cachedInfo));
     setState(cached || newGame(t.hero));
     setHasSave(!!cached);
     setStatus(id ? t.pendingCloud : t.local);
@@ -109,14 +134,24 @@ export function Provider({ children }: { children: ReactNode }) {
             .maybeSingle(),
         ]);
         if (!alive) return;
+        const loaded = migrateSave(data?.game_state);
         if (
           !error &&
-          validSave(data?.game_state) &&
-          (!cached || data!.game_state.revision > cached.revision)
+          loaded.status !== "empty" &&
+          loaded.status !== "current"
         ) {
-          setState(data!.game_state);
+          setSaveNotice(notice(loaded));
+          backup(id, JSON.stringify(data?.game_state));
+        }
+        if (
+          !error &&
+          loaded.state &&
+          (!cached || loaded.state.revision > cached.revision)
+        ) {
+          backup(id);
+          setState(loaded.state);
           setHasSave(true);
-          localStorage.setItem(key(id), JSON.stringify(data!.game_state));
+          localStorage.setItem(key(id), JSON.stringify(loaded.state));
         }
         setStatus(error ? t.saveError : t.cloud);
         setSyncing(false);
@@ -154,22 +189,18 @@ export function Provider({ children }: { children: ReactNode }) {
     setStatus(t.saving);
     saveQueue.current = saveQueue.current
       .then(async () => {
-        const { error } = await supabase
-          .from("saves")
-          .upsert({
-            user_id: user,
-            game_state: snapshot,
-            updated_at: new Date().toISOString(),
-          });
+        const { error } = await supabase.from("saves").upsert({
+          user_id: user,
+          game_state: snapshot,
+          updated_at: new Date().toISOString(),
+        });
         if (!error)
-          await supabase
-            .from("leaderboard")
-            .upsert({
-              user_id: user,
-              hero_name: snapshot.name.slice(0, 48),
-              score: score(snapshot),
-              days_survived: snapshot.day,
-            });
+          await supabase.from("leaderboard").upsert({
+            user_id: user,
+            hero_name: snapshot.name.slice(0, 48),
+            score: score(snapshot),
+            days_survived: snapshot.day,
+          });
         if (loadedUser.current === user)
           setStatus(error ? t.saveError : t.saved);
       })
@@ -226,27 +257,34 @@ export function Provider({ children }: { children: ReactNode }) {
     }, 100);
     return () => clearInterval(timer);
   }, [started, paused]);
-  const update = (f: (s: GameState) => GameState) =>
-    setState((s) => {
-      const next = f(s);
-      current.current = next;
-      try {
-        localStorage.setItem(
-          key(sessionRef.current?.user.id),
-          JSON.stringify(next),
-        );
-      } catch {}
-      return next;
-    });
+  const update = useCallback(
+    (f: (s: GameState) => GameState) =>
+      setState((s) => {
+        const next = f(s);
+        current.current = next;
+        try {
+          localStorage.setItem(
+            key(sessionRef.current?.user.id),
+            JSON.stringify(next),
+          );
+        } catch {}
+        return next;
+      }),
+    [],
+  );
   const start = (fresh: boolean, name?: string) => {
     if (fresh) {
-      const s = newGame(name?.trim().slice(0, 48) || t.hero);
+      backup(session?.user.id);
+      const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+      const s = newGame(name?.trim().slice(0, 48) || t.hero, seed);
       s.revision = current.current.revision + 1;
       current.current = s;
       setState(s);
       localStorage.setItem(key(session?.user.id), JSON.stringify(s));
       setHasSave(true);
     }
+    if (!fresh) backup(session?.user.id);
+    setSaveNotice("");
     setStarted(true);
     setTimeout(() => void saveRef.current(), 0);
     if (!localStorage.getItem("iron-tutorial")) setTutorial(true);
@@ -277,6 +315,7 @@ export function Provider({ children }: { children: ReactNode }) {
         setQuality,
         save,
         status,
+        saveNotice,
         paused,
         setPaused,
         tutorial,

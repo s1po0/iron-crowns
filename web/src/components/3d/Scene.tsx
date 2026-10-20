@@ -1,3 +1,4 @@
+import { SurfaceMaterial, Sky, Banner } from "./Materials";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
@@ -8,10 +9,20 @@ import { qualitySettings, type Quality } from "../../game/data/world";
 function FrameLimit({ quality }: { quality: Quality }) {
   const advance = useThree((s) => s.advance);
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (!document.hidden) advance(performance.now() / 1000, true);
-    }, 1000 / qualitySettings[quality].fps);
-    return () => clearInterval(timer);
+    let frame = 0,
+      last = 0;
+    const draw = (now: number) => {
+      frame = requestAnimationFrame(draw);
+      if (
+        !document.hidden &&
+        now - last >= 1000 / qualitySettings[quality].fps
+      ) {
+        last = now;
+        advance(now / 1000, true);
+      }
+    };
+    frame = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(frame);
   }, [advance, quality]);
   return null;
 }
@@ -85,14 +96,15 @@ export function Stage({
   return (
     <Canvas
       frameloop="never"
-      dpr={qualitySettings[quality].dpr}
+      dpr={Math.min(window.devicePixelRatio || 1, qualitySettings[quality].dpr)}
       shadows={false}
       camera={{ position: [13, 15, 16], fov: 42, near: 0.1, far: 120 }}
       gl={{ antialias: quality !== "low", powerPreference: "low-power" }}
     >
       <color attach="background" args={["#1e3036"]} />
-      <fog attach="fog" args={["#1e3036", 25, 65]} />
-      <ambientLight intensity={1.35} />
+      <fog attach="fog" args={["#a4b7b4", 25, 65]} />
+      <Sky />
+      <ambientLight intensity={0.45} />
       <hemisphereLight args={["#e7e9cd", "#4c6151", 1.5]} />
       <directionalLight position={[8, 15, 4]} intensity={2.1} color="#ffe2b0" />
       <FrameLimit quality={quality} />
@@ -113,7 +125,10 @@ function Box({
   return (
     <mesh position={position}>
       <boxGeometry args={size} />
-      <meshStandardMaterial color={color} roughness={0.95} />
+      <SurfaceMaterial
+        color={color}
+        kind={color === "#65503a" || color === "#6e5337" ? "wood" : "stone"}
+      />
     </mesh>
   );
 }
@@ -180,6 +195,12 @@ export function Model({ type }: { type: Building }) {
         size={[0.8, d.height, 0.8]}
         color={d.color}
       />
+      {type === "tower" && (
+        <mesh position={[0, d.height + 0.35, 0]} rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[0.75, 0.7, 4]} />
+          <SurfaceMaterial kind="wood" color="#707b78" />
+        </mesh>
+      )}
       {castle ? (
         [-0.3, 0.3].flatMap((x) =>
           [-0.3, 0.3].map((z) => (
@@ -193,7 +214,7 @@ export function Model({ type }: { type: Building }) {
       ) : (
         <mesh position={[0, d.height + 0.25, 0]} rotation={[0, Math.PI / 4, 0]}>
           <coneGeometry args={[0.72, 0.55, 4]} />
-          <meshStandardMaterial color="#67544a" />
+          <SurfaceMaterial kind="thatch" />
         </mesh>
       )}
       <Box
@@ -208,11 +229,7 @@ export function Model({ type }: { type: Building }) {
             size={[0.03, 0.8, 0.03]}
             color="#443f30"
           />
-          <Box
-            position={[0.2, d.height + 0.8, 0]}
-            size={[0.38, 0.26, 0.025]}
-            color="#c5a36b"
-          />
+          <Banner height={d.height + 0.8} />
           {[-0.22, 0.22].map((x) => (
             <Box
               key={x}
@@ -255,18 +272,38 @@ function Trees({ quality }: { quality: Quality }) {
     </instancedMesh>
   );
 }
-function Workers({ quality }: { quality: Quality }) {
+function Workers({
+  quality,
+  destinations,
+}: {
+  quality: Quality;
+  destinations: { x: number; z: number }[];
+}) {
   const bodies = useRef<THREE.InstancedMesh>(null),
     heads = useRef<THREE.InstancedMesh>(null),
     n = qualitySettings[quality].workers,
     o = useMemo(() => new THREE.Object3D(), []);
   useFrame(({ clock }) => {
     for (let i = 0; i < n; i++) {
-      const phase = clock.elapsedTime * 0.18 + i * 2.4;
+      const phase = clock.elapsedTime * 0.12 + i * 0.37,
+        index = Math.floor(phase),
+        progress = phase % 1;
+      const a = destinations[(index + i) % destinations.length] || {
+          x: 5,
+          z: 5,
+        },
+        b = destinations[(index + i + 1) % destinations.length] || a;
+      // Footpaths bend at right angles between active building entrances.
+      const x =
+        progress < 0.5 ? THREE.MathUtils.lerp(a.x, b.x, progress * 2) : b.x;
+      const z =
+        progress < 0.5
+          ? a.z
+          : THREE.MathUtils.lerp(a.z, b.z, (progress - 0.5) * 2);
       o.position.set(
-        Math.sin(phase) * (2 + (i % 4)),
+        x - GRID / 2 + 0.5,
         0.22 + Math.abs(Math.sin(clock.elapsedTime * 5 + i)) * 0.025,
-        Math.cos(phase) * 3,
+        z - GRID / 2 + 0.55,
       );
       o.scale.set(1, 1, 1);
       o.updateMatrix();
@@ -326,19 +363,25 @@ function Smoke({ sources }: { sources: { x: number; z: number }[] }) {
     </instancedMesh>
   );
 }
-export function Landscape({ quality }: { quality: Quality }) {
+export function Landscape({
+  quality,
+  destinations,
+}: {
+  quality: Quality;
+  destinations: { x: number; z: number }[];
+}) {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#56664b" />
+        <SurfaceMaterial kind="ground" color="#81926f" />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
         <planeGeometry args={[GRID, GRID]} />
-        <meshStandardMaterial color="#7a8061" />
+        <SurfaceMaterial kind="ground" />
       </mesh>
       <Trees quality={quality} />
-      <Workers quality={quality} />
+      <Workers quality={quality} destinations={destinations} />
     </>
   );
 }

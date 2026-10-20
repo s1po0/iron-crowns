@@ -14,25 +14,32 @@ import {
   strength,
   unload,
 } from "./simulation";
-import { settlements } from "../data/world";
+import { getWorld, center, neighbors, walkable } from "./worldgen";
+import { MAP } from "../data/world";
+const settlements = getWorld(MAP.defaultSeed).settlements;
 describe("phase one economy and strategy", () => {
-  it("has three factions with two towns and three villages each", () => {
+  it("has three factions with three towns and five villages each", () => {
     for (let f = 0; f < 3; f++) {
       expect(
         settlements.filter((s) => s.faction === f && s.kind === "town"),
-      ).toHaveLength(2);
+      ).toHaveLength(3);
       expect(
         settlements.filter((s) => s.faction === f && s.kind === "village"),
-      ).toHaveLength(3);
+      ).toHaveLength(5);
     }
   });
   it("moves only while traveling and pauses on arrival", () => {
     let s = newGame("test");
     expect(tick(s, 0.1)).toBe(s);
-    s = move(s, { x: 310, y: 370 });
+    const target = center(
+      neighbors(settlements[0].tile).find((id) =>
+        walkable(getWorld(s.worldSeed), id),
+      )!,
+    );
+    s = move(s, target);
     for (let i = 0; i < 20; i++) s = tick(s, 0.1);
     expect(s.destination).toBeNull();
-    expect(s.hero.x).toBeCloseTo(310);
+    expect(s.hero.x).toBeCloseTo(target.x);
   });
   it("prices react to demand and spread prevents instant profit", () => {
     let s = newGame("test");
@@ -49,7 +56,7 @@ describe("phase one economy and strategy", () => {
     s.hero = { x: 50, y: 50 };
     expect(trade(s, 0, "wood", true)).toBe(s);
     expect(recruit(s, "cavalry")).toBe(s);
-    s.hero = { x: 300, y: 370 };
+    s.hero = center(settlements[0].tile);
     s.resources.gold = 0;
     expect(recruit(s, "cavalry")).toBe(s);
   });

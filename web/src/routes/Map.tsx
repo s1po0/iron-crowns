@@ -1,7 +1,7 @@
 import WorldMap from "../components/2d/WorldMap";
 import { useGame } from "../game/engine/store";
 import { count, strength, upkeep, townAt } from "../game/engine/simulation";
-import { factions } from "../game/data/world";
+import { factions, MAP } from "../game/data/world";
 import { t, num } from "../i18n";
 import {
   Crown,
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 export default function MapPage() {
-  const { state, started, start, hasSave, authReady } = useGame(),
+  const { state, started, start, hasSave, authReady, saveNotice } = useGame(),
     town = townAt(state);
   return (
     <div className="map-layout">
@@ -43,6 +43,11 @@ export default function MapPage() {
       <aside className="journey-panel">
         {!started ? (
           <div className="welcome-card">
+            {saveNotice && (
+              <p role="status" className="notice">
+                {saveNotice}
+              </p>
+            )}
             <div className="crest">
               <Crown size={35} />
             </div>
@@ -124,7 +129,8 @@ export default function MapPage() {
               <div>
                 <b>{t.factionNames[f.id]}</b>
                 <small>
-                  {num(2)} {t.towns} • {num(3)} {t.villages}
+                  {num(MAP.townsPerFaction)} {t.towns} •{" "}
+                  {num(MAP.villagesPerFaction)} {t.villages}
                 </small>
               </div>
               <span className="faction-dot" style={{ background: f.color }} />

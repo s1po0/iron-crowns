@@ -52,9 +52,20 @@ await page.getByRole("button", { name: "بنیاتی بنێ", exact: true }).cli
 await page
   .getByRole("button", { name: "تێپەڕاندنی یەک ڕۆژ", exact: true })
   .click();
-await page.getByRole("button", { name: "ڕێکخستنەکان", exact: true }).click();
-await page.getByRole("button", { name: "نزم", exact: true }).click();
-await page.getByRole("button", { name: "داخستن", exact: true }).click();
+for (const name of ["مامناوەند", "بەرز", "نزم"]) {
+  await page.getByRole("button", { name: "ڕێکخستنەکان", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "ڕێکخستنەکان" })
+    .getByRole("button", { name, exact: true })
+    .click();
+  await page.getByRole("button", { name: "داخستن", exact: true }).click();
+  await page.waitForTimeout(1000);
+  if (name === "بەرز")
+    await page.screenshot({
+      path: "test-results/castle-high.png",
+      fullPage: true,
+    });
+}
 await page
   .getByRole("link", { name: "نەخشەی جیهان", exact: true })
   .first()
@@ -82,8 +93,8 @@ await page.getByRole("button", { name: "بەردەوام بە", exact: true }).c
 // Reproducible encounter fixture, still resolved through the normal UI/timer.
 await page.addInitScript(() => {
   const s = JSON.parse(localStorage.getItem("iron-web-v1-guest"));
-  s.hero = { x: 498, y: 350 };
-  s.destination = { x: 510, y: 350 };
+  s.destination = null;
+  s.path = [];
   s.battle = 0;
   s.party.cavalry = 10;
   localStorage.setItem("iron-web-v1-guest", JSON.stringify(s));

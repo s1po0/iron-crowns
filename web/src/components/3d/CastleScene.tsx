@@ -1,3 +1,4 @@
+import { Torches } from "./Materials";
 import { Stage, Landscape, Model, Smoke } from "./Scene";
 import { useGame } from "../../game/engine/store";
 import { canBuild } from "../../game/engine/simulation";
@@ -14,7 +15,7 @@ export default function CastleScene({
   const { state, quality } = useGame();
   return (
     <Stage quality={quality}>
-      <Landscape quality={quality} />
+      <Landscape quality={quality} destinations={state.buildings} />
       <gridHelper
         args={[GRID, GRID, "#aca98a", "#95967b"]}
         position={[-0.5, 0.015, -0.5]}
@@ -40,6 +41,11 @@ export default function CastleScene({
           position={[b.x - GRID / 2, 0, b.z - GRID / 2]}
         >
           <Model type={b.type} />
+          {quality === "high" &&
+            state.buildings
+              .filter((p) => p.type === "keep" || p.type === "gate")
+              .slice(0, 2)
+              .includes(b) && <Torches />}
         </group>
       ))}
       {cell && (

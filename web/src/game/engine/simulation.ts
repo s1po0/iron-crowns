@@ -6,10 +6,23 @@ import {
   type Building,
   type Resources,
 } from "../data/buildings";
-import { WORLD, rules, settlements } from "../data/world";
+import { WORLD, rules, MAP, terrainCost } from "../data/world";
+import {
+  getWorld,
+  center,
+  tileAt,
+  findPath,
+  walkable,
+  reveal,
+} from "./worldgen";
 export type Point = { x: number; y: number };
 export type GameState = {
   version: 1;
+  schemaVersion: 2;
+  generatorVersion: 1;
+  worldSeed: number;
+  explored: string;
+  path: number[];
   name: string;
   level: number;
   resources: Resources;
@@ -31,15 +44,32 @@ export type GameState = {
     y: number;
     strength: number;
     alive: boolean;
+    kind: "patrol" | "bandit";
+    home: number;
+    route: number[];
+    think: number;
+    patrolStep: number;
+    baseStrength: number;
   }[];
   battle: number | null;
   result: { won: boolean; losses: number; loot: number } | null;
   lastBattleDay: number;
   revision: number;
 };
-export function newGame(name: string): GameState {
+export function newGame(
+  name: string,
+  seed: number = MAP.defaultSeed,
+): GameState {
+  const world = getWorld(seed),
+    settlements = world.settlements,
+    hero = center(settlements[0].tile);
   return {
     version: 1,
+    schemaVersion: 2,
+    generatorVersion: 1,
+    worldSeed: seed >>> 0,
+    explored: reveal("0".repeat(MAP.size * MAP.size), hero),
+    path: [],
     name,
     level: 1,
     resources: {
@@ -50,7 +80,7 @@ export function newGame(name: string): GameState {
     },
     day: 1,
     elapsed: 0,
-    hero: { x: 300, y: 370 },
+    hero,
     destination: null,
     party: { peasant: 8, spearman: 3, archer: 2, swordsman: 0, cavalry: 0 },
     cargo: { grain: 0, wood: 0, iron: 0, cloth: 0 },
@@ -69,11 +99,22 @@ export function newGame(name: string): GameState {
     tax: 1,
     ale: false,
     victories: 0,
-    enemies: [
-      { id: 0, x: 500, y: 350, strength: 45, alive: true },
-      { id: 1, x: 900, y: 610, strength: 90, alive: true },
-      { id: 2, x: 1100, y: 800, strength: 140, alive: true },
-    ],
+    enemies: settlements
+      .filter(
+        (p) => p.kind === "camp" || p.id === 2 || p.id === 10 || p.id === 18,
+      )
+      .map((p, id) => ({
+        id,
+        ...center(p.tile),
+        strength: 35 + id * 9,
+        baseStrength: 35 + id * 9,
+        alive: true,
+        home: p.id,
+        kind: p.kind === "camp" ? "bandit" : "patrol",
+        route: [],
+        think: 0,
+        patrolStep: 0,
+      })),
     battle: null,
     result: null,
     lastBattleDay: 0,
@@ -93,7 +134,7 @@ export const strength = (s: GameState) =>
     0,
   ) * (s.buildings.some((b) => b.type === "barracks") ? 1.1 : 1);
 export const townAt = (s: GameState) =>
-  settlements.find(
+  getWorld(s.worldSeed).settlements.find(
     (p) =>
       p.kind === "town" &&
       Math.hypot(p.x - s.hero.x, p.y - s.hero.y) < WORLD.arrivalRadius,
@@ -148,51 +189,122 @@ export function advanceDay(state: GameState) {
   s.revision++;
   return s;
 }
-export function tick(state: GameState, dt: number): GameState {
-  if (!state.destination || state.battle !== null || state.result) return state;
-  const s = copy(state);
-  dt = Math.min(dt, 0.2);
-  const dx = s.destination!.x - s.hero.x,
-    dy = s.destination!.y - s.hero.y,
-    d = Math.hypot(dx, dy),
-    step = Math.min(d, WORLD.heroSpeed * dt);
-  if (d > 0) {
-    s.hero.x += (dx / d) * step;
-    s.hero.y += (dy / d) * step;
+function followRoute(
+  point: Point,
+  route: number[],
+  world: ReturnType<typeof getWorld>,
+  speed: number,
+  dt: number,
+) {
+  let budget = dt;
+  while (route.length && budget > 0) {
+    const next = route[0];
+    if (!walkable(world, next)) {
+      route.length = 0;
+      return;
+    }
+    const target = center(next),
+      dx = target.x - point.x,
+      dy = target.y - point.y,
+      d = Math.hypot(dx, dy),
+      rate = speed / terrainCost[world.tiles[next]],
+      step = Math.min(d, rate * budget);
+    if (d > 0) {
+      point.x += (dx / d) * step;
+      point.y += (dy / d) * step;
+    }
+    budget -= d / rate;
+    if (d <= step + 0.001) route.shift();
+    else break;
   }
-  if (d <= step + 0.1) s.destination = null;
+}
+function patrols(s: GameState, dt: number) {
+  const world = getWorld(s.worldSeed);
+  for (const e of s.enemies) {
+    if (!e.alive) continue;
+    e.think -= dt;
+    if (e.think <= 0) {
+      e.think = MAP.patrolThink;
+      e.strength = Math.round(
+        e.baseStrength * (1 + 0.18 * (s.level - 1)) + Math.min(40, s.day * 0.4),
+      );
+      const chase = Math.hypot(e.x - s.hero.x, e.y - s.hero.y) < MAP.aggro;
+      if (chase || !e.route.length) {
+        const home = world.settlements[e.home];
+        const choices = world.settlements
+          .filter((p) => p.id !== home.id)
+          .sort(
+            (a, b) =>
+              Math.hypot(a.x - home.x, a.y - home.y) -
+              Math.hypot(b.x - home.x, b.y - home.y),
+          );
+        const goal = chase
+          ? tileAt(s.hero)
+          : e.patrolStep++ % 2 === 0
+            ? choices[(e.patrolStep + e.id) % 3].tile
+            : home.tile;
+        e.route = findPath(world, tileAt(e), goal).slice(
+          1,
+          MAP.maxEnemyRoute + 1,
+        );
+      }
+    }
+    followRoute(e, e.route, world, WORLD.enemySpeed, dt);
+    if (
+      Math.hypot(s.hero.x - e.x, s.hero.y - e.y) < WORLD.encounterRadius &&
+      s.day - s.lastBattleDay >= rules.encounterGraceDays
+    ) {
+      s.battle = e.id;
+      s.destination = null;
+      s.path = [];
+      break;
+    }
+  }
+}
+export function tick(state: GameState, dt: number): GameState {
+  if (
+    !state.destination ||
+    state.battle !== null ||
+    state.result ||
+    !Number.isFinite(dt) ||
+    dt <= 0
+  )
+    return state;
+  const s = copy(state),
+    world = getWorld(s.worldSeed);
+  dt = Math.min(dt, 0.2);
+  followRoute(s.hero, s.path, world, WORLD.heroSpeed, dt);
+  if (!s.path.length) s.destination = null;
+  s.explored = reveal(s.explored, s.hero);
   s.elapsed += dt;
   while (s.elapsed >= WORLD.daySeconds) {
     s.elapsed -= WORLD.daySeconds;
     daily(s);
   }
-  for (const e of s.enemies) {
-    if (!e.alive) continue;
-    const d = Math.hypot(s.hero.x - e.x, s.hero.y - e.y);
-    if (d < 180 && d > 0) {
-      e.x += ((s.hero.x - e.x) / d) * WORLD.enemySpeed * dt;
-      e.y += ((s.hero.y - e.y) / d) * WORLD.enemySpeed * dt;
-    }
-    if (
-      d < WORLD.encounterRadius &&
-      s.day - s.lastBattleDay >= rules.encounterGraceDays
-    ) {
-      s.battle = e.id;
-      s.destination = null;
-      break;
-    }
-  }
+  patrols(s, dt);
   s.revision++;
   return s;
 }
-export function move(state: GameState, p: Point) {
-  if (state.battle !== null || state.result) return state;
+export function move(state: GameState, p: Point): GameState {
+  if (
+    state.battle !== null ||
+    state.result ||
+    !Number.isFinite(p.x) ||
+    !Number.isFinite(p.y) ||
+    p.x < 0 ||
+    p.y < 0 ||
+    p.x >= WORLD.width ||
+    p.y >= WORLD.height
+  )
+    return state;
+  const world = getWorld(state.worldSeed),
+    path = findPath(world, tileAt(state.hero), tileAt(p));
+  if (!path.length) return state;
+  // Include the current tile center when between nodes to keep routes on land.
   return {
     ...state,
-    destination: {
-      x: Math.max(60, Math.min(WORLD.width - 60, p.x)),
-      y: Math.max(90, Math.min(WORLD.height - 80, p.y)),
-    },
+    path,
+    destination: center(path[path.length - 1]),
     revision: state.revision + 1,
   };
 }
@@ -290,7 +402,9 @@ export function resolveBattle(state: GameState) {
     s.resources.gold += loot;
   } else {
     s.resources.gold = Math.floor(s.resources.gold * 0.75);
-    s.hero = { x: 300, y: 370 };
+    s.hero = center(getWorld(s.worldSeed).settlements[0].tile);
+    s.path = [];
+    s.destination = null;
   }
   s.result = { won, losses, loot };
   s.lastBattleDay = s.day;
@@ -298,7 +412,7 @@ export function resolveBattle(state: GameState) {
   s.revision++;
   return s;
 }
-export function validSave(v: unknown): v is GameState {
+function validShape(v: unknown): v is GameState {
   try {
     if (!v || typeof v !== "object") return false;
     const s = v as GameState,
@@ -314,6 +428,15 @@ export function validSave(v: unknown): v is GameState {
       p.y <= WORLD.height;
     return (
       s.version === 1 &&
+      s.schemaVersion === 2 &&
+      s.generatorVersion === 1 &&
+      integer(s.worldSeed, 0, 4294967295) &&
+      typeof s.explored === "string" &&
+      s.explored.length === MAP.size * MAP.size &&
+      /^[01]+$/.test(s.explored) &&
+      Array.isArray(s.path) &&
+      s.path.length <= MAP.size * MAP.size &&
+      s.path.every((id) => integer(id, 0, MAP.size * MAP.size - 1)) &&
       typeof s.name === "string" &&
       s.name.length <= 48 &&
       integer(s.level, 1) &&
@@ -337,29 +460,37 @@ export function validSave(v: unknown): v is GameState {
       s.buildings.every(
         (b) =>
           b &&
-          b.type in buildings &&
+          Object.prototype.hasOwnProperty.call(buildings, b.type) &&
           integer(b.x, 0, GRID - 1) &&
           integer(b.z, 0, GRID - 1),
       ) &&
       new Set(s.buildings.map((b) => `${b.x}:${b.z}`)).size ===
         s.buildings.length &&
       !!s.supplies &&
-      settlements.every(
+      getWorld(s.worldSeed).settlements.every(
         (p) =>
           s.supplies[p.id] &&
           Object.keys(goods).every((k) => integer(s.supplies[p.id][k as Good])),
       ) &&
       Array.isArray(s.enemies) &&
-      s.enemies.length === 3 &&
+      s.enemies.length === 9 &&
       s.enemies.every(
         (e, i) =>
           e &&
           e.id === i &&
           point(e) &&
           integer(e.strength, 1) &&
-          typeof e.alive === "boolean",
+          typeof e.alive === "boolean" &&
+          integer(e.home, 0, 29) &&
+          (e.kind === "patrol" || e.kind === "bandit") &&
+          integer(e.baseStrength, 1) &&
+          Number.isFinite(e.think) &&
+          integer(e.patrolStep) &&
+          Array.isArray(e.route) &&
+          e.route.length <= MAP.maxEnemyRoute &&
+          e.route.every((id) => integer(id, 0, MAP.size * MAP.size - 1)),
       ) &&
-      (s.battle === null || integer(s.battle, 0, 2)) &&
+      (s.battle === null || integer(s.battle, 0, 8)) &&
       (s.result === null ||
         (typeof s.result.won === "boolean" &&
           integer(s.result.losses) &&
@@ -383,4 +514,31 @@ export function unload(state: GameState, g: Good) {
   s.resources[good.resource] += good.yield;
   s.revision++;
   return s;
+}
+
+export function validSave(v: unknown): v is GameState {
+  if (!validShape(v)) return false;
+  const w = getWorld(v.worldSeed);
+  const validRoute = (from: Point, path: number[]) => {
+    let prev = tileAt(from);
+    for (const id of path) {
+      if (!walkable(w, id)) return false;
+      const d =
+        Math.abs((id % MAP.size) - (prev % MAP.size)) +
+        Math.abs(Math.floor(id / MAP.size) - Math.floor(prev / MAP.size));
+      if (d > 1) return false;
+      prev = id;
+    }
+    return true;
+  };
+  return (
+    walkable(w, tileAt(v.hero)) &&
+    validRoute(v.hero, v.path) &&
+    v.enemies.every((e) => walkable(w, tileAt(e)) && validRoute(e, e.route)) &&
+    (v.destination === null
+      ? v.path.length === 0
+      : v.path.length > 0 &&
+        tileAt(v.destination) === v.path[v.path.length - 1]) &&
+    (v.battle === null || v.enemies[v.battle].alive)
+  );
 }

@@ -1,4 +1,4 @@
-# Iron Crowns — Phase 1 web MVP
+# Iron Crowns — Phase 1.5 web campaign
 
 A separate React/TypeScript web game. The Godot/Android game elsewhere in this repository is untouched.
 
@@ -20,7 +20,7 @@ Deploy `web/dist` to an HTTPS static host with SPA fallback to `index.html`. Add
 ## Implemented
 
 - Sorani RTL UI and bundled Vazirmatn font; strings in `src/i18n.ts`.
-- Canvas tile world, 3 factions, 6 towns, 9 villages, tap travel, time while moving, drag/pinch/wheel zoom.
+- Seeded 128×128 simplex Canvas world, 3 factions with 3 towns and 5 villages each, 6 neutral camps, terrain-weighted A* roads/travel, persistent fog, minimap jumping, drag/pinch/wheel smooth zoom.
 - Hero name/level/gold, 5 troop types with costs, strength and upkeep; town-only recruitment.
 - Town-only supply/demand market for grain/wood/iron/cloth, buy/sell spread, cargo. Grain and wood can be unloaded into castle resources.
 - Lazy-loaded R3F castle with 10 building types, grid placement and valid/invalid ghost preview; animated instanced workers/trees/smoke, clamped orbit/zoom/pan and two-finger rotation.
@@ -55,9 +55,33 @@ The project already had a profiles table for another app. Existing fields, data 
 ## Validation
 
 - TypeScript + production Vite build: pass; 3D scene is emitted as a separate lazy chunk.
-- Nine simulation tests: pass (faction counts, travel, demand/spread, town restrictions, construction/costs, daily economy, battle idempotency, cargo unloading, malformed saves).
+- 17 simulation/world/migration tests: pass (faction counts, travel, demand/spread, town restrictions, construction/costs, daily economy, battle idempotency, cargo unloading, malformed saves).
 - Browser smoke (`tests/browser.mjs`): desktop and 390px mobile layout, recruitment, buying, actual 3D grid placement, day advancement, quality, local restore, unfinished battle continuation and result persistence. Zero page errors/no mobile horizontal overflow in the successful run.
 - All npm dependencies audited with no reported vulnerabilities at implementation time.
 - Browser script uses the npm-distributed Sparticuz Chromium binary. On a minimal Linux image, its bundled `al2023.tar.br` NSS/NSPR libraries may need extracting and adding to `LD_LIBRARY_PATH`. This is test tooling only, never shipped to the browser.
 
-Not included: player-controlled combat, sieges, full diplomacy, procedural world generation, multiplayer, offline service-worker installation, production anticheat, or validated physical-phone frame rates. Low-poly visuals are intentionally built from primitives for this MVP.
+Not included: player-controlled combat, sieges, full diplomacy, multiplayer, offline service-worker installation, production anticheat, or validated physical-phone frame rates. Low-poly visuals are intentionally built from primitives for this MVP.
+
+## Phase 1.5 world and rendering
+
+- `worldgen.ts` uses a persisted unsigned 32-bit seed and generator version 1. New Game chooses a random seed; tests/default legacy migration use 19071020. Never change this generator's output for existing seeds without a generator migration.
+- Seven terrain types: water, plains, forest, hills, mountains, river, road. Movement costs are centralized in `game/data/world.ts`: road 0.6, plains 1, forest 1.8, hills 2.4, mountains 5.5; water/river are impassable. Rivers have dry crossing tiles at two latitudes. Roads never convert water into traversable terrain.
+- All 30 locations have at least 8-tile separation and lie on connected land. A Prim spanning tree selects links and weighted A* routes each road. Four-neighbor paths cannot cut diagonally through water.
+- Three faction patrols and six bandit parties patrol routes and chase within range; strength scales with hero level/day. Like Phase 1, campaign simulation (including patrols) pauses on arrival, during battle/results, and when explicitly paused. Castle day advancement remains an economy action, not a patrol simulation.
+- Visible 16×16-tile chunks are cached with an LRU cap of 20/36/64 canvases. Minimum zoom adapts to viewport/quality to avoid regenerating more visible chunks than the cache can hold. The minimap can jump anywhere even at Low quality. Explored terrain persists; remembered terrain is dimmed and enemy parties are shown only within current vision.
+- Layered terrain colors/biome edges, trees, mountain facets, water highlights, faction boundaries/banners, settlement labels and animated hero are drawn procedurally. Sorani SVG controls, parchment cards and 44px map touch targets use no external art.
+- Castle stone, wood, thatch and ground canvas textures, gradient sky/fog, roofed towers, crenellations, animated banner cloth and workers traveling between buildings. High-only flickering torches are capped at two lights; no real-time shadows on any tier.
+- Battle bodies/helmets/weapons/shields use instanced formations with attack swings, dust and arrow flights. Quality caps army figures at 18/30/48 per side and particles at 10/24/40. Effects are cosmetic; the original deterministic battle outcome calculation is unchanged.
+
+## Versioned save migration
+
+`schemaVersion: 2`, `generatorVersion: 1`, `worldSeed`, tile routes, explored fog and AI state are stored **inside `game_state`**. The JSONB database schema and existing Supabase RLS do not need changes. Local and cloud hydration both pass through the same pure `migrateSave` boundary; localStorage retains the `iron-web-v1-<identity>` key so existing saves remain discoverable.
+
+- Unversioned Phase 1 saves (or explicit schema 1) are validated against the original 1400×1000 world before conversion.
+- Gold/resources, army, cargo, buildings, taxes/ale/popularity, day/time, level/victories and battle results are preserved. Existing stock IDs map to successor towns/villages. Three original enemy alive/strength values and a pending battle are retained.
+- Coordinates cannot map directly onto a new island: hero relocates to the successor of the nearest old location; travel stops and vision starts around that location. Newly added settlements/patrols receive initial state. A Sorani notice explains relocation before Continue.
+- Invalid JSON, malformed structures, unknown schema/generator versions and illegal routes offer New Game instead of crashing. Opening the recovery screen alone does not overwrite the unsupported save.
+- Before replacement, original local data is copied to `iron-web-v1-<identity>-pre-schema2`; an incompatible/migrated cloud payload has a separate `-pre-schema2-cloud` backup. These first backups are retained, not continually overwritten. Storage-quota/private-mode restrictions can prevent backups; these are local recovery aids, not guaranteed archival storage.
+- Typical saves remain well below the existing 200,000-byte limit. No bulk migration of other users' records, auth setting changes, or backend permission changes were performed.
+
+Additional browser validation: `node tests/phase15.mjs` exercises legacy migration/backup, mobile pinch input, minimap/locate controls, and unsupported-version New Game recovery. It uses the Vite server at port 5173. Unit tests verify 32 different seeds, deterministic regeneration after cache eviction, all location spacing/road connectivity, weighted routes, impassable water, fog persistence, AI scaling, migrations and bad saves. Browser checks do not substitute for physical-device performance testing or live authenticated cloud/two-account RLS testing.
