@@ -12,7 +12,7 @@ func _init() -> void:
 	state={"schema":1,"day":1,"location":2,"gold":80,"food":6,"renown":0,"morale":80,"health":100,"oath":-1,"governed":-1,"completed":0,"rng":20261020,"name":"ڕێبوار","party":{"levy":0,"infantry":0,"guard":0,"cavalry":0},"relations":[0,0,0,0],"owners":[],"garrisons":[],"population":[],"houses":[],"homes":[],"audiences":[],"wars":[true,true],"contract":{},"journal":[]}
 	for town in world.settlements:
 		for pair in [["owners","faction"],["garrisons","garrison"],["population","population"],["houses","houses"]]:
-			state[pair[0]].append(town[pair[1]])
+			state[pair[0]].append(int(town[pair[1]]))
 	record_event("بە ٨٠ زێڕ و ٦ خواردن، لە گوندی بەهار دەستت پێ کرد؛ هیچ قەڵا و سوپایەکت نییە.")
 func record_event(text: String) -> void:
 	message=text
