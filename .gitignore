@@ -24,3 +24,13 @@ web/dist/
 web/.env.local
 web/test-results/
 web/*.tsbuildinfo
+
+# Unreal generated output (source projects remain tracked)
+unreal/Binaries/
+unreal/DerivedDataCache/
+unreal/Intermediate/
+unreal/Saved/
+unreal/.vs/
+unreal/*.sln
+unreal/*.suo
+unreal/Build/

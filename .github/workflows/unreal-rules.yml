@@ -1,0 +1,23 @@
+name: Unreal migration - portable rules only
+on:
+  push:
+    branches: ['arena/94d215f9-iron-crowns']
+    paths: ['unreal/**', 'scripts/test-unreal-rules.sh', '.github/workflows/unreal-rules.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compile and test portable rules (NOT Unreal Editor or APK)
+        run: bash scripts/test-unreal-rules.sh
+      - name: Validate source project descriptor
+        run: python3 -m json.tool unreal/IronCrowns.uproject > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Unreal-source-not-an-APK
+          path: unreal/
+          retention-days: 30

@@ -1,5 +1,13 @@
 # Iron Crowns — The Ashen Marches
 
+## Current engine direction: Unreal Engine
+
+The player selected **Unreal Engine**. A separate native C++ project targeting **UE 5.6** now lives in [`unreal/`](unreal/README.md), with a runtime RTS camera/HUD, instanced map generation, construction/initial inventory economy, gate occupancy and separate local-save implementation.
+
+**Status: uncompiled Unreal migration prototype.** The portable C++ rules pass GCC + AddressSanitizer/UndefinedBehaviorSanitizer tests, but this workspace has no Unreal Editor/Build Tool. No Unreal executable/APK, renderer/input validation or finished graphics is claimed. The initial interface is English; the prior Sorani UI, workers, armies, raids and other Godot systems are not fully ported.
+
+Open `unreal/IronCrowns.uproject` with a legally installed UE 5.6 and its C++ toolchain. [Setup, controls, verification limits and unfinished features](unreal/README.md). The downloadable Godot apps below remain preserved and **are not Unreal builds**.
+
 ## Castle Maps 0.10 — latest Godot Android preview
 
 [Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.10.0-castle-maps) · [Map descriptions, start instructions and limits](docs/CASTLE_MAPS_0.10.md) · [Verified engine + Android build](https://github.com/s1po0/iron-crowns/actions/runs/39372968104).
