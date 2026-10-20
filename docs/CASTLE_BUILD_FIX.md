@@ -19,3 +19,7 @@ A separate Android emulator test installs the actual exported APK, selects `.icd
 ## Installation caveat
 
 Package `com.ironcrowns.castles.buildfix` is isolated from previous previews because their ephemeral signing keys cannot be recovered. Keep previous apps installed to preserve their private saves; this is **not** an in-place update or automatic cross-package save migration. Existing Castle API-1 Data is compatible. No content-size, graphics overhaul or cloud-save completion is claimed by this focused fix.
+
+## Published files
+
+[Public 0.9.1 release](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.1-castle-buildfix): `Iron-Crowns-0.9.1-Castle-Buildfix.apk` (174,702,809 bytes), `.icdata` (20,083,426 bytes), manifest, SHA-256 checksums, desktop screenshot and actual completed-farm Android screenshot. Publication [39370740912](https://github.com/s1po0/iron-crowns/actions/runs/39370740912) attached the exact reviewed binaries, verified checksums and did not rebuild them. Six uploaded assets and public prerelease status were verified through the unauthenticated GitHub API. Earlier releases were not overwritten.

@@ -1,5 +1,17 @@
 # Iron Crowns — The Ashen Marches
 
+## Castle 0.9.1 — farm construction fix (latest)
+
+[Download the corrected APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.1-castle-buildfix) · [Construction instructions and test evidence](docs/CASTLE_BUILD_FIX.md).
+
+Tap **کێڵگە** → **شوێنی گونجاو** → the large green **دروست بکە: کێڵگە**. All ten choices are now visible in two rows. Invalid ground/resource shortages explain why construction cannot start instead of hiding the command in disabled styling. Farms cost 35 wood; a stockpile is needed for crop deliveries.
+
+The actual APK passed native Android Data import, touch-only farm construction through completion, saving and force-stop/restart restoration on an Android emulator in [build 39370252398](https://github.com/s1po0/iron-crowns/actions/runs/39370252398). Physical-phone testing remains outstanding.
+
+Open **Iron Crowns: Castle Buildfix**, not the earlier preview. Package `com.ironcrowns.castles.buildfix` installs separately; keep old apps installed to retain their private saves. Saves do not automatically transfer. Existing Castle Data remains compatible.
+
+![Completed farm built through the Android touch interface](docs/screenshots/android-castle-farm.png)
+
 ## Castle RTS 0.9 — expanded three-wave defense
 
 [Download APK + Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.9.0-castle-campaign) · [Controls, save/package caveats and limits](docs/CASTLE_RTS_0.9.md) · [Passing engine/touch/render/export checks](https://github.com/s1po0/iron-crowns/actions/runs/39368001061).
