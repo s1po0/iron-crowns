@@ -386,7 +386,16 @@ export default function WorldMap() {
         <button
           aria-label={t.locate}
           onClick={() => {
-            view.current = { x: 0, y: 0, z: 1 };
+            const rect = ref.current!.getBoundingClientRect();
+            const z = rect.width < 600 ? 2.4 : 1.5;
+            const scale =
+              Math.min(rect.width / WORLD.width, rect.height / WORLD.height) *
+              z;
+            view.current = {
+              x: (WORLD.width / 2 - stateRef.current.hero.x) * scale,
+              y: (WORLD.height / 2 - stateRef.current.hero.y) * scale,
+              z,
+            };
           }}
         >
           <LocateFixed size={18} />
