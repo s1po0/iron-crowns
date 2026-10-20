@@ -4,7 +4,7 @@
 
 The current expansion is **Godot**, with three **400×400-cell realms (100× the previous area)**, streamed terrain, 12 supply posts, 36 village houses, native regional-Data import and 1×/4× simulation speed. The separately generated terrain library contains **2,201,556,826 bytes** of used albedo/normal textures, independently downloaded and decoded in CI. It is terrain data, not 2 GB of new characters or quests.
 
-**Release candidate: final APK verification/publication in progress.** [Install guide, exact content and verification limits](docs/CASTLE_REALMS_0.11.md) · [official terrain checksums](docs/REALM_SHA256SUMS.txt).
+**Published:** [APK + base Data](https://github.com/s1po0/iron-crowns/releases/tag/v0.11.0-castle-realms) · [25 terrain regions / 2.20 GB](https://github.com/s1po0/iron-crowns/releases/tag/v0.11.0-realm-data). Actual Android region import, farm construction and save/restart passed [39378897264](https://github.com/s1po0/iron-crowns/actions/runs/39378897264). [Install guide, exact content and verification limits](docs/CASTLE_REALMS_0.11.md) · [official terrain checksums](docs/REALM_SHA256SUMS.txt).
 
 The separate [Unreal C++ source prototype](unreal/README.md) remains preserved; it was not built with Unreal Engine and is not an Unreal APK. Older Godot releases/saves below remain preserved.
 

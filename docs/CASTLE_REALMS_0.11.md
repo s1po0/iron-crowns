@@ -1,6 +1,6 @@
 # Iron Crowns 0.11 — Godot realm expansion
 
-**Verified release candidate: awaiting final artifact attachment and visual review.** Engine, native Android and complete terrain-data verification have passed.
+**Published and verified.** Engine, native Android and complete terrain-data verification passed. The exact reviewed artifacts were attached by [publisher 39379687005](https://github.com/s1po0/iron-crowns/actions/runs/39379687005); all three desktop map renders plus the Android opening/gameplay images were visually reviewed before publication.
 
 ## What actually changed
 
@@ -56,3 +56,12 @@ API 2 is separate from the unchanged API-1 base content format. The importer lim
 Dropbox's connected account has a 2 GiB quota, smaller than the complete new library; the full Data is distributed on GitHub instead. The old Dropbox base-Data mirror remains untouched. Unrelated email/task/database connections were not accessed or modified.
 
 The completed **Unreal source-only prototype is preserved** in `unreal/`, but Godot is the active engine again.
+
+## Exact APK artifact
+
+- `Iron-Crowns-0.11.0-Castle-Realms.apk`: **174,733,911 bytes**.
+- SHA-256: `8831fa68ff55c49f6d8e13ecdc96c7330be9d9b15b840a3d9202c6245c436236`.
+- Base Data: **20,083,426 bytes**, SHA-256 `74c6b041c8ac1e60450db2413df484e1abe4d998430e1de08978bea870900386` (byte-identical to the previous compatible base library).
+- Both releases are public: 9 APK/base/review assets and 27 regional-data/catalog/checksum assets. The large generated textures are not stored in Git.
+
+![Actual Android farm after native terrain import](screenshots/android-castle-realms.png)
