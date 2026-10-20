@@ -11,6 +11,7 @@ on:
         type: string
 permissions:
   contents: write
+  actions: read
 jobs:
   castle:
     if: ${{ !inputs.reviewed_run && !contains(github.event.head_commit.message, '[castle-reviewed ') }}
@@ -93,6 +94,8 @@ jobs:
           REVIEWED: ${{ inputs.reviewed_run }}
           REVIEW_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          exec > >(tee /tmp/castle-release.log) 2>&1
+          trap 'code=$?; if [ "$code" -ne 0 ]; then python3 -c '''s=open("/tmp/castle-release.log").read()[-3500:]; print("::error::"+s.replace("%","%25").replace("\n","%0A"))'''; fi; exit "$code"' EXIT
           if [ -z "$REVIEWED" ]; then
             REVIEWED=$(python3 -c 'import os,re; m=re.search(r"\[castle-reviewed ([0-9]+)\]",os.environ["REVIEW_MESSAGE"]); assert m; print(m.group(1))')
           fi
