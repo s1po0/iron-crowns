@@ -42,6 +42,11 @@ func run() -> void:
 	assert(not battle.attack(),"Cannot attack a friendly castle")
 	var peaceful=CrownSim.new();peaceful.state.wars=[false,false];peaceful.state.oath=0;peaceful.state.renown=30;peaceful.state.party.guard=20;peaceful.state.location=4
 	assert(not peaceful.attack())
+	var governor=CrownSim.new();governor.state.oath=0;governor.state.governed=1;governor.state.location=1;governor.state.gold=100;governor.state.food=1000
+	var guards=governor.state.garrisons[1]
+	assert(governor.reinforce() and governor.state.garrisons[1]==guards+8)
+	governor.state.garrisons[1]=6;governor.advance(100)
+	assert(governor.state.governed==-1 and governor.owner(1)==1, "Enemy raids can take the governed castle")
 	var pack=CrownStory.load_pack();assert(CrownStory.valid(pack))
 	var broken=pack.duplicate(true);broken.chapters[0].text="x".repeat(801);assert(not CrownStory.valid(broken))
 	broken=pack.duplicate(true);broken.chapters[1].id=broken.chapters[0].id;assert(not CrownStory.valid(broken))
@@ -78,6 +83,15 @@ func run() -> void:
 	for i in 30:game.town._process(.1)
 	assert(game.town.hero_position.x>0,"Avatar must actually walk in the town")
 	game.queue_free();await process_frame
+	var corrupt=FileAccess.open(CrownSim.SAVE,FileAccess.WRITE);corrupt.store_string("{broken");corrupt.close()
+	var recovery=load("res://campaign.tscn").instantiate();root.add_child(recovery)
+	await process_frame;await process_frame
+	assert(recovery.save_locked)
+	recovery.act(recovery.sim.work);recovery.save_campaign()
+	assert(FileAccess.get_file_as_string(CrownSim.SAVE)=="{broken")
+	recovery.new_campaign();recovery.new_campaign()
+	assert(not recovery.save_locked and CrownSim.valid(JSON.parse_string(FileAccess.get_file_as_string(CrownSim.SAVE))))
+	recovery.queue_free();await process_frame
 	DirAccess.remove_absolute(CrownSim.SAVE)
 	print("IRON_CROWN_TEST_PASS");quit()
 func tap(point: Vector2) -> void:

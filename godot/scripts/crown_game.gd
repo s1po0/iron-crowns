@@ -147,10 +147,13 @@ func new_campaign() -> void:
 	if Time.get_ticks_msec()>new_confirm_until:
 		new_confirm_until=Time.get_ticks_msec()+5000
 		sim.message="بۆ دەستپێکی نوێ دووبارە لە ٥ چرکەدا دابگرە؛ کۆپیی پاشەکەوتی کۆن دەپارێزرێت.";refresh();return
-	if FileAccess.file_exists(CrownSim.SAVE) and DirAccess.copy_absolute(CrownSim.SAVE,CrownSim.SAVE+".backup-"+str(Time.get_ticks_msec()))!=OK:
+	if FileAccess.file_exists(CrownSim.SAVE) and DirAccess.copy_absolute(CrownSim.SAVE,CrownSim.SAVE+".backup-"+str(int(Time.get_unix_time_from_system()))+"-"+str(Time.get_ticks_msec()))!=OK:
 		sim.message="کۆپی نەکرا؛ کەمپەینەکە نەگۆڕدرا.";refresh();return
-	sim=CrownSim.new();picked=2;new_confirm_until=0;save_locked=false
-	sim.save();rebuild_town();refresh()
+	var fresh=CrownSim.new()
+	if not fresh.save():
+		sim.message="دەستپێکی نوێ پاشەکەوت نەکرا؛ کەمپەینی کۆن نەگۆڕدرا.";refresh();return
+	sim=fresh;picked=2;new_confirm_until=0;save_locked=false
+	rebuild_town();refresh()
 func castle() -> void:
 	if not save_locked and not sim.save():sim.message="پاشەکەوت نەکرا؛ بەشەکە نەگۆڕدرا.";refresh();return
 	get_tree().change_scene_to_file("res://rts.tscn")
