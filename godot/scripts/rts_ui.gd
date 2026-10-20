@@ -1,7 +1,7 @@
 class_name CastleUI
 extends CanvasLayer
 const NAMES={"keep":"قەڵای سەرەکی","stockpile":"کۆگا","woodcutter":"داربڕ","farm":"کێڵگە","mill":"ئاش","bakery":"نانەواخانە","quarry":"کانگە","house":"ماڵ","wall":"دیوار","gate":"دەروازە","barracks":"سەربازگە"}
-const STEPS=["١ — کۆگایەک لە نزیک قەڵاکە دابنێ؛ کرێکارەکان بەرهەمەکانیان بۆ ئەوێ دەهێنن.","٢ — داربڕێک دروست بکە. کرێکار دەچێتە دارستان، دار دەبڕێت و دەیگەڕێنێتەوە.","٣ — کێڵگەیەک بنیات بنێ. گەنم سەرەتای زنجیرەی نانە.","٤ — ئاشێک دروست بکە بۆ گۆڕینی گەنم بۆ ئارد.","٥ — نانەواخانە دروست بکە؛ ئارد دەبێتە نان و دەگەڕێتەوە کۆگا.","٦ — سێ بەشی دیوار دروست بکە. ڕێگای کرێکارەکان مەبەستە؛ دەروازە ڕێگا دەهێڵێتەوە.","٧ — سەربازگە بنیات بنێ؛ بەرگری بە سوپا تەواو دەبێت.","٨ — شەش سەرباز ڕابهێنە و چاوەڕێی یەکەم نانی نانەواخانە بکە.","٩ — هێرش دەستی پێ کرد! فەرمانی سوپا هەڵبژێرە، شوێنی بەرگری دابگرە و قەڵاکە بپارێزە.","سەرکەوتوو بوویت — یەکەم گوندت بنیاد نا و هێرشەکەت ڕاگرت."]
+const STEPS=["١ — کۆگایەک لە نزیک قەڵاکە دابنێ؛ کرێکارەکان بەرهەمەکانیان بۆ ئەوێ دەهێنن.","٢ — داربڕێک دروست بکە. کرێکار دەچێتە دارستان، دار دەبڕێت و دەیگەڕێنێتەوە.","٣ — کێڵگەیەک بنیات بنێ. گەنم سەرەتای زنجیرەی نانە.","٤ — ئاشێک دروست بکە بۆ گۆڕینی گەنم بۆ ئارد.","٥ — نانەواخانە دروست بکە؛ ئارد دەبێتە نان و دەگەڕێتەوە کۆگا.","٦ — سێ بەشی دیوار دروست بکە. ڕێگای کرێکارەکان مەبەستە؛ دەروازە ڕێگا دەهێڵێتەوە.","٧ — سەربازگە بنیات بنێ؛ بەرگری بە سوپا تەواو دەبێت.","٨ — ماڵێک دروست بکە (+٤ شوێن)، شەش سەرباز ڕابهێنە و ٤ نان بەرهەم بهێنە.","٩ — هێرش دەستی پێ کرد! فەرمانی سوپا هەڵبژێرە، شوێنی بەرگری دابگرە و قەڵاکە بپارێزە.","سەرکەوتوو بوویت — گوندەکەت لە سێ هێرش پاراست."]
 var root: Control
 var stats: Label
 var tutorial: Label
@@ -12,6 +12,11 @@ var controller: Node
 var quality: OptionButton
 var finish: Label
 var restart: Button
+var management: HBoxContainer
+var management_info: Label
+var pause_button: Button
+var build_button: Button
+var train_button: Button
 
 func button(text: String, action: Callable, parent: Node, width: float=100) -> Button:
 	var b=Button.new()
@@ -59,7 +64,7 @@ func setup(game: Node) -> void:
 	quality.item_selected.connect(game.set_quality)
 	row.add_child(quality)
 	button("پاشەکەوت",game.save_game,row)
-	button("وەستان",game.toggle_pause,row)
+	pause_button=button("وەستان",game.toggle_pause,row)
 	button("دەنگ",game.toggle_sound,row)
 	var objective=PanelContainer.new()
 	objective.position=Vector2(16,82)
@@ -80,9 +85,9 @@ func setup(game: Node) -> void:
 	selected=Label.new()
 	selected.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	actions.add_child(selected)
-	button("بنیاتی بنێ",game.confirm_build,actions,130)
+	build_button=button("بنیاتی بنێ",game.confirm_build,actions,130)
 	button("فەرمانی سوپا",game.choose_rally,actions,140)
-	button("سەرباز · ٢٠ زێڕ",game.train,actions,160)
+	train_button=button("سەرباز · ٢٠ زێڕ",game.train,actions,160)
 	button("+",func():game.zoom(-5),actions,50)
 	button("−",func():game.zoom(5),actions,50)
 	button("⌂",game.locate,actions,50)
@@ -93,9 +98,20 @@ func setup(game: Node) -> void:
 	column.add_child(scroll)
 	var choices=HBoxContainer.new()
 	scroll.add_child(choices)
+	button("بەڕێوەبردنی بینا",game.inspect,choices,150)
 	for kind in CastleSim.COSTS:
 		var cost: Array=CastleSim.COSTS[kind]
 		button(NAMES[kind]+"\n"+str(cost[0])+" دار · "+str(cost[1])+" بەرد",func():game.choose(kind),choices,120)
+	management=HBoxContainer.new()
+	management.position=Vector2(16,435)
+	root.add_child(management)
+	button("دەروازە: کردنەوە / داخستن",func():game.manage("gate"),management,240)
+	button("چاککردنەوە",func():game.manage("repair"),management,145)
+	button("ڕووخاندن",func():game.manage("demolish"),management,125)
+	management_info=Label.new()
+	management_info.position=Vector2(20,490)
+	management_info.add_theme_color_override("font_color",Color("fff1c5"))
+	root.add_child(management_info)
 	notice=Label.new()
 	notice.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	notice.position=Vector2(240,510)
@@ -114,7 +130,7 @@ func setup(game: Node) -> void:
 	title.add_theme_font_size_override("font_size",29)
 	box.add_child(title)
 	var description=Label.new()
-	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی یەکەم هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، شوێن دیاری بکە، پاشان «بنیاتی بنێ» دابگرە."
+	description.text="ئەم دۆڵە ماڵی تۆیە. کۆگا، داربڕ و زنجیرەی نان بنیات بنێ؛ پاشان سوپا ئامادە بکە بۆ ڕاگرتنی سێ هێرش.\nنەخشەکە ڕابکێشە بۆ جوڵاندن، بە دوو پەنجە نزیک و دووری بکەرەوە. بینا هەڵبژێرە، شوێن دیاری بکە، پاشان «بنیاتی بنێ» دابگرە."
 	description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	description.custom_minimum_size=Vector2(560,140)
 	box.add_child(description)
@@ -133,8 +149,26 @@ func setup(game: Node) -> void:
 
 func update(sim: CastleSim) -> void:
 	stats.text="دار %d   بەرد %d   گەنم %d   ئارد %d   نان %d   زێڕ %d" % [sim.resources.wood,sim.resources.stone,sim.resources.grain,sim.resources.flour,sim.resources.bread,sim.resources.gold]
+	stats.text+="\nدانیشتووان %d/%d   ڕەزامەندی %d%%   قەڵا %d/600   هێرش %d/3" % [sim.population(),sim.capacity(),sim.morale,sim.buildings[0].hp,sim.wave]
+	pause_button.text="بەردەوام بە" if controller.paused else "وەستان"
+	build_button.disabled=not controller.started or controller.paused or not sim.can_build(controller.chosen,controller.placement)
+	train_button.disabled=not controller.started or controller.paused or not sim.ended.is_empty() or sim.population()>=sim.capacity() or sim.resources.gold<20 or sim.resources.bread<2 or sim.by_kind("barracks").is_empty()
+	management.visible=controller.started and controller.chosen=="inspect" and sim.ended.is_empty()
+	management_info.visible=management.visible
+	management_info.text="بینایەک لە نەخشە هەڵبژێرە."
+	if management.visible:
+		var b=sim.at_building(controller.placement)
+		if not b.is_empty():
+			var missing=CastleSim.max_health(b.kind)-b.hp
+			management_info.text="%s — تەندروستی %d/%d — بنیاتنان %d%% — چاککردنەوە: %d دار، %d بەرد" % [NAMES[b.kind],b.hp,CastleSim.max_health(b.kind),b.built*100,ceili(missing/40),ceili(missing/20)]
+			if b.kind=="gate":
+				management_info.text+=" — کراوە" if b.get("open",true) else " — داخراوە"
 	tutorial.text=STEPS[sim.stage]
-	selected.text=NAMES.get(controller.chosen,"فەرمانی سوپا")+" — شوێنێک لە نەخشە دیاری بکە"
+	if sim.stage==8 and not sim.units.any(func(u):return u.kind=="raider" and u.hp>0):
+		tutorial.text="هێرشی داهاتوو: %d چرکە. بیناکان چاک بکەرەوە، نان کۆ بکەرەوە و سوپا زیاد بکە." % ceili(sim.wave_clock)
+	elif sim.population()>=sim.capacity() and sim.stage<8:
+		tutorial.text+="\nشوێن پڕە؛ ماڵێکی تر دروست بکە."
+	selected.text=NAMES.get(controller.chosen,"بەڕێوەبردنی بینا" if controller.chosen=="inspect" else "فەرمانی سوپا")+" — شوێنێک لە نەخشە دیاری بکە"
 	restart.visible=not sim.ended.is_empty()
 	if not sim.ended.is_empty():
-		finish.text="گوندەکەت پاراست!" if sim.ended=="victory" else "قەڵاکەت ڕووخا"
+		finish.text="گوندەکەت لە سێ هێرش پاراست!" if sim.ended=="victory" else "قەڵاکەت ڕووخا"

@@ -21,6 +21,8 @@ var autosave=0.0
 var sound=true
 var audio: AudioStreamPlayer
 var screenshot_clock=0.0
+var demolition_id=-1
+var demolition_until=0
 
 func _ready() -> void:
 	# Native Control widgets need emulated mouse clicks; map gestures handle raw touches separately.
@@ -37,6 +39,7 @@ func _ready() -> void:
 	camera.near=.2
 	camera.far=280
 	ghost=MarchArt.box(self,Vector3.ZERO,Vector3(6,.12,6),MarchArt.material(Color("7ab779")))
+	ghost.material_override.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
 	ghost.visible=false
 	add_child(ui)
 	ui.setup(self)
@@ -54,7 +57,7 @@ func _ready() -> void:
 		new_game()
 		sim.resources.wood=1000
 		sim.resources.stone=1000
-		for entry in [["stockpile",14,20],["woodcutter",12,12],["farm",14,26],["mill",19,24],["bakery",23,23],["barracks",23,17],["wall",22,12],["wall",23,12],["wall",24,12],["gate",25,12]]:
+		for entry in [["stockpile",14,20],["woodcutter",12,12],["farm",14,26],["mill",19,24],["bakery",23,23],["barracks",23,17],["house",17,29],["wall",22,12],["wall",23,12],["wall",24,12],["gate",25,12]]:
 			sim.place(entry[0],Vector2i(entry[1],entry[2]))
 		for b in sim.buildings:
 			b.built=1.0
@@ -76,12 +79,12 @@ func _process(dt: float) -> void:
 			autosave=0
 			sim.save_game()
 	ui.update(sim)
-	ghost.visible=started and chosen!="" and sim.ended.is_empty()
+	ghost.visible=started and CastleSim.FOOTPRINT.has(chosen) and sim.ended.is_empty()
 	if ghost.visible:
 		var n: int=CastleSim.FOOTPRINT[chosen]
 		ghost.position=CastleSim.world(Vector2(placement))+Vector3((n-1)*1.5,.12,(n-1)*1.5)
 		ghost.scale=Vector3(n*.5,1,n*.5)
-		ghost.material_override.albedo_color=Color("73b582") if sim.can_build(chosen,placement) else Color("b65c4f")
+		ghost.material_override.albedo_color=Color("73b58255") if sim.can_build(chosen,placement) else Color("b65c4f55")
 	if "--rts-capture" in OS.get_cmdline_user_args():
 		screenshot_clock+=dt
 		if screenshot_clock>4:
@@ -118,19 +121,47 @@ func resume() -> void:
 
 func choose(kind: String) -> void:
 	chosen=kind
+	demolition_id=-1
 
 func choose_rally() -> void:
 	chosen=""
 	ui.notice.text="شوێنی کۆبوونەوەی سوپا لە نەخشە دابگرە."
 
 func confirm_build() -> void:
-	if not started or paused or chosen.is_empty():
+	if not started or paused or not CastleSim.COSTS.has(chosen):
 		return
 	ui.notice.text="بنیاتنان دەستی پێ کرد." if sim.place(chosen,placement) else "شوێنەکە داخراوە یان سەرچاوەکان بەس نین."
 
+func inspect() -> void:
+	choose("inspect")
+	ui.notice.text="بینایەک لە نەخشە هەڵبژێرە؛ دەروازە، چاککردنەوە و ڕووخاندن لێرەن."
+
+func manage(action: String) -> void:
+	if not started or paused or chosen!="inspect":
+		return
+	var b=sim.at_building(placement)
+	if b.is_empty():
+		ui.notice.text="سەرەتا بینایەک هەڵبژێرە."
+		return
+	if action=="demolish":
+		if demolition_id!=b.id or Time.get_ticks_msec()>demolition_until:
+			demolition_id=b.id
+			demolition_until=Time.get_ticks_msec()+5000
+			ui.notice.text="بۆ ڕووخاندن دووبارە دابگرە؛ تا نیوەی تێچوو دەگەڕێتەوە."
+			return
+		demolition_id=-1
+	var ok=false
+	if action=="demolish":
+		ok=sim.demolish(placement)
+	elif action=="repair":
+		ok=sim.repair(placement)
+	else:
+		ok=sim.toggle_gate(placement)
+	ui.notice.text="فەرمانەکە جێبەجێ کرا." if ok else "نەکرا: دوژمن، کەمی سەرچاوە، یان دەروازەی داگیرکراو بپشکنە."
+
 func train() -> void:
 	if started and not paused:
-		ui.notice.text="سەربازێک ئامادە کرا." if sim.train() else "سەربازگە، ٢٠ زێڕ و ٢ نان پێویستە."
+		ui.notice.text="سەربازێک ئامادە کرا." if sim.train() else "سەربازگە، شوێنی بەتاڵی نیشتەجێبوون، ٢٠ زێڕ و ٢ نان پێویستە."
 
 func save_game() -> void:
 	if started:
@@ -164,6 +195,8 @@ func locate() -> void:
 	target_distance=58
 
 func select_world(point: Vector2) -> void:
+	if paused or not sim.ended.is_empty():
+		return
 	var hit=Plane(Vector3.UP,0).intersects_ray(camera.project_ray_origin(point),camera.project_ray_normal(point))
 	if hit==null:
 		return
@@ -172,6 +205,7 @@ func select_world(point: Vector2) -> void:
 		sim.order(cell)
 	else:
 		placement=cell
+		demolition_id=-1
 
 func pan(delta: Vector2) -> void:
 	var right=camera.global_basis.x

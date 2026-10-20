@@ -181,6 +181,9 @@ func building(b: Dictionary) -> Node3D:
 		for x in [-1.0,1.0] if b.kind=="gate" else [0.0]:
 			MarchArt.box(root,Vector3(x,1.5,0),Vector3(.8 if b.kind=="gate" else 3,3,.8),FieldMaterials.surface("masonry",Color("aea58d"),.6))
 		MarchArt.box(root,Vector3(0,2.9,0),Vector3(3,.5,1),FieldMaterials.surface("masonry",Color("aea58d"),.6))
+		if b.kind=="gate":
+			var door=MarchArt.box(root,Vector3(0,1.4,0),Vector3(1.4,2.8,.55),FieldMaterials.surface("timber",Color("746048"),1))
+			door.name="GateDoor"
 		for x in [-1,0,1]:
 			MarchArt.box(root,Vector3(x,3.35,0),Vector3(.5,.5,1),FieldMaterials.surface("masonry",Color("aea58d"),.6))
 	else:
@@ -217,6 +220,8 @@ func sync(sim: CastleSim, dt: float) -> void:
 			structures[b.id]=building(b)
 			add_child(structures[b.id])
 		structures[b.id].scale.y=.15+.85*b.built
+		if b.kind=="gate":
+			structures[b.id].get_node("GateDoor").visible=not b.get("open",true)
 	for id in structures.keys():
 		if not sim.buildings.any(func(b):return b.id==id):
 			structures[id].queue_free()
@@ -228,6 +233,10 @@ func sync(sim: CastleSim, dt: float) -> void:
 			actor.setup(u.kind,u.id)
 			actors[u.id]=actor
 		actors[u.id].update(u,dt)
+	for id in actors.keys():
+		if not sim.units.any(func(u):return u.id==id):
+			actors[id].queue_free()
+			actors.erase(id)
 	for sail in rotating:
 		if is_instance_valid(sail):
 			sail.rotation.z+=dt*.5

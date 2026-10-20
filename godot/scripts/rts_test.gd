@@ -2,6 +2,7 @@ extends SceneTree
 func _initialize() -> void:
 	call_deferred("run")
 func run() -> void:
+	CastleCampaignTest.run()
 	var sim=CastleSim.new()
 	assert(not sim.can_build("farm",Vector2i(31,10)))
 	assert(not sim.place("stockpile",Vector2i(18,16)))

@@ -16,6 +16,9 @@ var stage = 0
 var next_id = 1
 var wave = 0
 var wave_clock = 0.0
+var morale = 100
+const WAVE_SIZES = [8,12,16]
+const REST_SECONDS = 90.0
 var ended = ""
 var rally = Vector2i(20,20)
 var revision = 0
@@ -45,7 +48,7 @@ func rebuild_navigation() -> void:
 		for x in SIZE:
 			navigation.set_point_solid(Vector2i(x,y),water(Vector2i(x,y)))
 	for b in buildings:
-		if b.kind=="gate":
+		if b.kind=="gate" and b.get("open",true):
 			continue
 		for y in FOOTPRINT[b.kind]:
 			for x in FOOTPRINT[b.kind]:
@@ -54,11 +57,17 @@ func rebuild_navigation() -> void:
 	for u in units:
 		u.route = []
 
-func entrance(b: Dictionary) -> Vector2i:
+func entrance(b: Dictionary, origin: Vector2i=Vector2i(-1,-1)) -> Vector2i:
 	var n: int = FOOTPRINT[b.kind]
-	for p in [Vector2i(b.x+n,b.y),Vector2i(b.x-1,b.y),Vector2i(b.x,b.y+n),Vector2i(b.x,b.y-1)]:
+	var points: Array[Vector2i]=[]
+	for i in n:
+		points.append_array([Vector2i(b.x+n,b.y+i),Vector2i(b.x-1,b.y+i),Vector2i(b.x+i,b.y+n),Vector2i(b.x+i,b.y-1)])
+	if origin.x>=0:
+		points.sort_custom(func(a,c):return origin.distance_squared_to(a)<origin.distance_squared_to(c))
+	for p in points:
 		if navigation.is_in_boundsv(p) and not navigation.is_point_solid(p):
-			return p
+			if origin.x<0 or origin==p or not navigation.get_id_path(origin,p,true).is_empty():
+				return p
 	return Vector2i(-1,-1)
 
 func can_build(kind: String, p: Vector2i) -> bool:
@@ -84,7 +93,7 @@ func place(kind: String, p: Vector2i) -> bool:
 		return false
 	resources.wood-=COSTS[kind][0]
 	resources.stone-=COSTS[kind][1]
-	buildings.append({"id":next_id,"kind":kind,"x":p.x,"y":p.y,"hp":180.0 if kind in ["wall","gate"] else 250.0,"built":0.0})
+	buildings.append({"id":next_id,"kind":kind,"x":p.x,"y":p.y,"hp":180.0 if kind in ["wall","gate"] else 250.0,"built":0.0,"open":true})
 	next_id+=1
 	rebuild_navigation()
 	revision+=1
@@ -97,8 +106,62 @@ func add_unit(kind: String, p: Vector2i, home: int=-1) -> void:
 	units.append({"id":next_id,"kind":kind,"at":Vector2(p),"hp":45.0 if kind=="raider" else 75.0,"home":home,"route":[],"goal":p,"phase":"out","wait":0.0,"carry":"","amount":0,"attack":0.0,"facing":0.0,"walking":false,"hit":false})
 	next_id+=1
 
+func capacity() -> int:
+	return mini(48,8+by_kind("house").size()*4)
+
+func population() -> int:
+	return units.filter(func(u):return u.hp>0 and u.kind!="raider").size()
+
+func at_building(p: Vector2i) -> Dictionary:
+	for b in buildings:
+		if Rect2i(b.x,b.y,FOOTPRINT[b.kind],FOOTPRINT[b.kind]).has_point(p):
+			return b
+	return {}
+
+func threatened(b: Dictionary) -> bool:
+	var center=Vector2(b.x,b.y)+Vector2.ONE*(FOOTPRINT[b.kind]-1)*.5
+	return units.any(func(u):return u.kind=="raider" and u.hp>0 and u.at.distance_to(center)<6)
+
+static func max_health(kind: String) -> float:
+	return 600.0 if kind=="keep" else (180.0 if kind in ["wall","gate"] else 250.0)
+
+func toggle_gate(p: Vector2i) -> bool:
+	var b=at_building(p)
+	if not ended.is_empty() or b.is_empty() or b.kind!="gate" or b.built<1:
+		return false
+	if b.get("open",true) and units.any(func(u):return u.hp>0 and u.at.distance_to(Vector2(b.x,b.y))<.8):
+		return false
+	b.open=not b.get("open",true)
+	rebuild_navigation()
+	return true
+
+func repair(p: Vector2i) -> bool:
+	var b=at_building(p)
+	if not ended.is_empty() or b.is_empty() or b.built<1 or threatened(b):
+		return false
+	var missing=max_health(b.kind)-b.hp
+	var stone=ceili(missing/20)
+	var wood=ceili(missing/40)
+	if missing<=0 or resources.stone<stone or resources.wood<wood:
+		return false
+	resources.stone-=stone
+	resources.wood-=wood
+	b.hp=max_health(b.kind)
+	return true
+
+func demolish(p: Vector2i) -> bool:
+	var b=at_building(p)
+	if not ended.is_empty() or b.is_empty() or b.kind=="keep" or threatened(b):
+		return false
+	resources.wood+=int(COSTS[b.kind][0]*.5*b.built)
+	resources.stone+=int(COSTS[b.kind][1]*.5*b.built)
+	units=units.filter(func(u):return u.home!=b.id)
+	buildings.erase(b)
+	rebuild_navigation()
+	return true
+
 func train() -> bool:
-	if not ended.is_empty() or by_kind("barracks").is_empty() or resources.gold<20 or resources.bread<2 or units.filter(func(u):return u.kind=="soldier" and u.hp>0).size()>=24:
+	if population()>=capacity() or not ended.is_empty() or by_kind("barracks").is_empty() or resources.gold<20 or resources.bread<2 or units.filter(func(u):return u.kind=="soldier" and u.hp>0).size()>=24:
 		return false
 	var p = entrance(by_kind("barracks")[0])
 	if p.x<0:
@@ -171,7 +234,7 @@ func worker(u: Dictionary, dt: float) -> void:
 				u.phase="out"
 	elif u.phase=="out":
 		if route(u,source,dt):
-			u.wait+=dt
+			u.wait+=dt*(1.0 if morale>=40 else .5)
 			if u.wait>=3:
 				u.wait=0.0
 				u.carry=good
@@ -213,17 +276,18 @@ func combat(u: Dictionary, dt: float) -> void:
 		route(u,goal,dt)
 	else:
 		var target: Dictionary=buildings[0]
-		var walls=buildings.filter(func(b):return b.kind in ["wall","gate"] and b.hp>0)
+		var walls=buildings.filter(func(b):return b.kind in ["wall","gate"] and b.hp>0 and not (b.kind=="gate" and b.get("open",true)))
 		walls.sort_custom(func(a,b):return u.at.distance_squared_to(Vector2(a.x,a.y))<u.at.distance_squared_to(Vector2(b.x,b.y)))
 		if not walls.is_empty():
 			target=walls[0]
-		if u.at.distance_to(Vector2(entrance(target)))<.65:
+		var approach=entrance(target,Vector2i(u.at.round()))
+		if approach.x>=0 and u.at.distance_to(Vector2(approach))<.65:
 			u.walking=false
 			if u.attack<=0:
 				u.attack=1.1
-				target.hp-=8
+				target.hp=maxf(0,target.hp-8)
 		else:
-			route(u,entrance(target),dt)
+			route(u,approach,dt)
 
 func step(dt: float) -> void:
 	if not ended.is_empty():
@@ -233,11 +297,14 @@ func step(dt: float) -> void:
 	food_clock+=dt
 	if food_clock>=30:
 		food_clock=0
-		resources.bread=maxi(0,resources.bread-2)
-		resources.gold+=8
+		var need=maxi(1,ceili(population()/6.0))
+		var fed=resources.bread>=need
+		resources.bread=maxi(0,resources.bread-need)
+		morale=clampi(morale+(8 if fed else -16),0,100)
+		resources.gold+=int(8*morale/100.0)
 	for b in buildings:
 		b.built=minf(1,b.built+dt/8)
-		if b.built>=1 and b.kind in ["woodcutter","farm","mill","bakery","quarry"] and not units.any(func(u):return u.home==b.id):
+		if b.built>=1 and b.kind in ["woodcutter","farm","mill","bakery","quarry"] and population()<capacity() and not units.any(func(u):return u.home==b.id and u.hp>0):
 			var p=entrance(b)
 			if p.x>=0:
 				add_unit("worker",p,b.id)
@@ -253,6 +320,8 @@ func step(dt: float) -> void:
 			combat(u,dt)
 	var destroyed=buildings.filter(func(b):return b.hp<=0 and b.kind!="keep")
 	if not destroyed.is_empty():
+		var removed_ids=destroyed.map(func(b):return b.id)
+		units=units.filter(func(u):return not u.home in removed_ids)
 		buildings=buildings.filter(func(b):return b.hp>0 or b.kind=="keep")
 		rebuild_navigation()
 	if buildings[0].hp<=0:
@@ -261,16 +330,34 @@ func step(dt: float) -> void:
 	if stage<targets.size() and not by_kind(targets[stage]).is_empty():
 		if stage!=5 or by_kind("wall").size()>=3:
 			stage+=1
-	if stage==7 and units.filter(func(u):return u.kind=="soldier" and u.hp>0).size()>=6 and baked>=4:
+	if stage==7 and units.filter(func(u):return u.kind=="soldier" and u.hp>0).size()>=6 and baked>=4 and not by_kind("house").is_empty():
 		stage=8
+	if ended=="defeat":
+		return
 	if stage>=8 and wave==0:
-		wave=1
-		for i in 8:
-			add_unit("raider",Vector2i(26+i%3,7+i/3))
+		spawn_wave()
 	if wave>0 and not units.any(func(u):return u.kind=="raider" and u.hp>0):
-		stage=9
-		ended="victory"
+		if wave>=WAVE_SIZES.size():
+			stage=9
+			ended="victory"
+		else:
+			if wave_clock==REST_SECONDS:
+				resources.gold+=40
+				resources.bread+=8
+				units=units.filter(func(u):return u.hp>0)
+			wave_clock=maxf(0,wave_clock-dt)
+			if wave_clock<=0:
+				spawn_wave()
 	revision+=1
+
+func spawn_wave() -> void:
+	if wave>=WAVE_SIZES.size():
+		return
+	var count: int=WAVE_SIZES[wave]
+	wave+=1
+	wave_clock=REST_SECONDS
+	for i in count:
+		add_unit("raider",Vector2i(26+i%3,7+int(i/3)))
 
 func save_game(path: String=SAVE) -> bool:
 	var file=FileAccess.open(path+".tmp",FileAccess.WRITE)
@@ -281,7 +368,7 @@ func save_game(path: String=SAVE) -> bool:
 		u.at=[u.at.x,u.at.y]
 		u.goal=[u.goal.x,u.goal.y]
 		u.route=[]
-	file.store_string(JSON.stringify({"schema":1,"resources":resources,"buildings":buildings,"units":saved_units,"time":time,"food_clock":food_clock,"stage":stage,"next_id":next_id,"wave":wave,"ended":ended,"rally":[rally.x,rally.y],"baked":baked,"kills":kills,"deliveries":deliveries}))
+	file.store_string(JSON.stringify({"schema":2,"morale":morale,"wave_clock":wave_clock,"resources":resources,"buildings":buildings,"units":saved_units,"time":time,"food_clock":food_clock,"stage":stage,"next_id":next_id,"wave":wave,"ended":ended,"rally":[rally.x,rally.y],"baked":baked,"kills":kills,"deliveries":deliveries}))
 	file.flush()
 	var ok=file.get_error()==OK
 	file.close()
@@ -293,12 +380,18 @@ func load_game(path: String=SAVE) -> bool:
 	var raw=JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not valid(raw):
 		return false
+	morale=int(raw.get("morale",100))
+	wave_clock=float(raw.get("wave_clock",REST_SECONDS if raw.wave>0 else 0))
+	if raw.schema==1 and not FileAccess.file_exists(path+".v1-backup"):
+		if DirAccess.copy_absolute(ProjectSettings.globalize_path(path),ProjectSettings.globalize_path(path+".v1-backup"))!=OK:
+			return false
 	resources=raw.resources
 	for key in resources:
 		resources[key]=int(resources[key])
 	buildings=raw.buildings
 	units=raw.units
 	for b in buildings:
+		b.open=bool(b.get("open",true))
 		b.id=int(b.id)
 		b.x=int(b.x)
 		b.y=int(b.y)
@@ -318,7 +411,9 @@ func load_game(path: String=SAVE) -> bool:
 	return true
 
 static func valid(raw) -> bool:
-	if not raw is Dictionary or raw.get("schema")!=1:
+	if not raw is Dictionary or not raw.get("schema") in [1,2]:
+		return false
+	if raw.schema==2 and (not valid_number(raw.get("morale"),0,100) or not valid_number(raw.get("wave_clock"),0,REST_SECONDS)):
 		return false
 	for key in ["resources","buildings","units","time","food_clock","stage","next_id","wave","ended","rally","baked","kills","deliveries"]:
 		if not raw.has(key):
@@ -338,7 +433,9 @@ static func valid(raw) -> bool:
 		for key in ["id","x","y","hp","built"]:
 			if not b.get(key) is float and not b.get(key) is int:
 				return false
-		if b.id<0 or b.id!=int(b.id) or b.x!=int(b.x) or b.y!=int(b.y) or b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>=SIZE-3 or b.y+FOOTPRINT[b.kind]>=SIZE-3 or b.hp<0 or b.hp>600 or b.built<0 or b.built>1:
+		if b.id<0 or b.id!=int(b.id) or b.x!=int(b.x) or b.y!=int(b.y) or b.id in ids or b.x<3 or b.y<3 or b.x+FOOTPRINT[b.kind]>SIZE-3 or b.y+FOOTPRINT[b.kind]>SIZE-3 or not is_finite(b.hp) or b.hp<0 or b.hp>max_health(b.kind) or b.built<0 or b.built>1:
+			return false
+		if b.has("open") and not b.open is bool:
 			return false
 		ids[b.id]=true
 		for y in FOOTPRINT[b.kind]:
@@ -366,7 +463,10 @@ static func valid(raw) -> bool:
 	for key in ["time","food_clock","stage","next_id","wave","baked","kills","deliveries"]:
 		if not valid_number(raw[key],0,1000000):
 			return false
-	return raw.next_id>ids.keys().max() and raw.stage<=9 and raw.wave<=1 and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,SIZE)
+	for key in ["stage","next_id","wave","baked","kills","deliveries"]:
+		if raw[key]!=int(raw[key]):
+			return false
+	return raw.next_id>ids.keys().max() and raw.stage<=9 and raw.wave<=(1 if raw.schema==1 else WAVE_SIZES.size()) and raw.ended in ["","victory","defeat"] and valid_vector(raw.rally,2,SIZE)
 
 static func valid_number(value, low: float, high: float) -> bool:
 	return (value is float or value is int) and is_finite(float(value)) and value>=low and value<=high
