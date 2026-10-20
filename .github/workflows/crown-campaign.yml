@@ -25,14 +25,14 @@ jobs:
           set -o pipefail
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/import.log
-          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/import.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/import.log; then exit 1; fi
           LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --script res://scripts/crown_test.gd -- --crown-offline 2>&1 | tee artifacts/crown-tests.log
-          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/crown-tests.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/crown-tests.log; then exit 1; fi
           grep -q IRON_CROWN_TEST_PASS artifacts/crown-tests.log
           cp /tmp/crown-touch-points.json artifacts/
           LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://campaign.tscn -- --crown-offline --crown-capture 2>&1 | tee artifacts/render.log
           grep -q IRON_CROWN_RENDER_PASS artifacts/render.log
-          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
           cp /tmp/iron-crown-campaign.png artifacts/
       - name: Summarize diagnostics
         if: always()

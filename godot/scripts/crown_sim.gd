@@ -13,8 +13,8 @@ func _init() -> void:
 	for town in world.settlements:
 		for pair in [["owners","faction"],["garrisons","garrison"],["population","population"],["houses","houses"]]:
 			state[pair[0]].append(town[pair[1]])
-	log("بە ٨٠ زێڕ و ٦ خواردن، لە گوندی بەهار دەستت پێ کرد؛ هیچ قەڵا و سوپایەکت نییە.")
-func log(text: String) -> void:
+	record_event("بە ٨٠ زێڕ و ٦ خواردن، لە گوندی بەهار دەستت پێ کرد؛ هیچ قەڵا و سوپایەکت نییە.")
+func record_event(text: String) -> void:
 	message=text
 	state.journal.append("ڕۆژی %d: %s" % [state.day,text])
 	while state.journal.size()>50:
@@ -64,7 +64,7 @@ func advance(days: int=1) -> void:
 			state.food=0
 			state.morale=maxi(0,state.morale-12)
 			lose(1)
-			log("خواردن بەس نەبوو؛ ڕەزامەندی دابەزی و سەربازێک ڕۆیشت.")
+			record_event("خواردن بەس نەبوو؛ ڕەزامەندی دابەزی و سەربازێک ڕۆیشت.")
 		else:
 			state.food-=need
 			state.morale=mini(100,state.morale+2)
@@ -75,7 +75,7 @@ func advance(days: int=1) -> void:
 			if state.gold<due:
 				lose(maxi(1,ceili(count()*.2)))
 				state.morale=maxi(0,state.morale-15)
-				log("مووچەی هەفتانە نەدرا؛ بەشێک لە سوپا ڕۆیشت.")
+				record_event("مووچەی هەفتانە نەدرا؛ بەشێک لە سوپا ڕۆیشت.")
 			state.gold=maxi(0,state.gold-due)
 		if int(state.day)%6==0:
 			var attacker=next_random()%4
@@ -83,20 +83,20 @@ func advance(days: int=1) -> void:
 			var target=rival*3+1
 			if war(attacker,rival) and owner(target)==rival:
 				state.garrisons[target]=maxi(0,state.garrisons[target]-6)
-				log("هێرشی سنووری بۆ "+world.settlements[target].name+"؛ پاسەوان کەم بووەوە.")
+				record_event("هێرشی سنووری بۆ "+world.settlements[target].name+"؛ پاسەوان کەم بووەوە.")
 				if state.garrisons[target]==0:
 					state.owners[target]=attacker
 					state.garrisons[target]=8
-					log("قەڵاکە کەوتە دەستی "+world.factions[attacker].name)
+					record_event("قەڵاکە کەوتە دەستی "+world.factions[attacker].name)
 					if state.governed==target:state.governed=-1
 		if int(state.day)%12==0:
 			var pair=(int(state.day)/12-1)%2
 			state.wars[pair]=not state.wars[pair]
-			log("پەیمانی سنووری گۆڕا: "+("شەڕ" if state.wars[pair] else "ئاشتی"))
+			record_event("پەیمانی سنووری گۆڕا: "+("شەڕ" if state.wars[pair] else "ئاشتی"))
 		if not state.contract.is_empty() and state.day>state.contract.deadline:
 			state.relations[state.contract.faction]=maxi(-100,state.relations[state.contract.faction]-5)
 			state.contract={}
-			log("کاتی ئەرکەکە تێپەڕی؛ متمانە کەم بووەوە.")
+			record_event("کاتی ئەرکەکە تێپەڕی؛ متمانە کەم بووەوە.")
 func reject(text: String) -> bool:
 	message=text
 	return false
@@ -111,8 +111,8 @@ func travel(id: int) -> bool:
 	if next_random()%100<18 and count()<3:
 		state.gold=maxi(0,state.gold-20)
 		state.morale=maxi(0,state.morale-8)
-		log("ڕێگرەکان لە ڕێگادا زێڕیان برد؛ دەستەیەکی پارێزەر کۆ بکەرەوە.")
-	log("گەیشتیت بە %s؛ گەشت %d ڕۆژی خایاند." % [world.settlements[id].name,days])
+		record_event("ڕێگرەکان لە ڕێگادا زێڕیان برد؛ دەستەیەکی پارێزەر کۆ بکەرەوە.")
+	record_event("گەیشتیت بە %s؛ گەشت %d ڕۆژی خایاند." % [world.settlements[id].name,days])
 	return true
 func work() -> bool:
 	if hostile():return reject("لە خاکی دوژمن کار نادرێت.")
@@ -120,25 +120,25 @@ func work() -> bool:
 	state.gold+=35
 	state.renown+=1
 	state.relations[owner()]=mini(100,state.relations[owner()]+1)
-	log("یەک ڕۆژ کارت کرد: ٣٥ زێڕ، ١ ناوبانگ و ١ متمانە.")
+	record_event("یەک ڕۆژ کارت کرد: ٣٥ زێڕ، ١ ناوبانگ و ١ متمانە.")
 	return true
 func rest() -> bool:
 	advance()
 	state.health=mini(100,state.health+(20 if state.location in state.homes else 10))
-	log("پشووت دا؛ خواردن و مووچە بە پێی کات ژمێردران.")
+	record_event("پشووت دا؛ خواردن و مووچە بە پێی کات ژمێردران.")
 	return true
 func buy_food() -> bool:
 	if hostile() or state.gold<20 or state.food>990:return reject("٢٠ زێڕ و بازاڕێکی نادوژمن پێویستە.")
 	state.gold-=20
 	state.food+=10
-	log("١٠ خواردنت بە ٢٠ زێڕ کڕی.")
+	record_event("١٠ خواردنت بە ٢٠ زێڕ کڕی.")
 	return true
 func recruit() -> bool:
 	if hostile() or state.gold<45 or count()+3>capacity():return reject("٤٥ زێڕ و سێ شوێنی بەتاڵ لە دەستەکە پێویستن.")
 	state.gold-=45
 	state.party.levy+=3
 	advance()
-	log("سێ خۆبەخشی ناوخۆییت دامەزراند؛ خواردن و مووچەیان لەبیر مەکە.")
+	record_event("سێ خۆبەخشی ناوخۆییت دامەزراند؛ خواردن و مووچەیان لەبیر مەکە.")
 	return true
 func train(kind: String="infantry") -> bool:
 	var source="levy" if kind=="infantry" else "infantry"
@@ -150,7 +150,7 @@ func train(kind: String="infantry") -> bool:
 	state.party[source]-=4
 	state.party[kind]+=4
 	advance()
-	log("چوار سەرباز ڕاهێنران؛ هێز و مووچەیان زیاد بوو.")
+	record_event("چوار سەرباز ڕاهێنران؛ هێز و مووچەیان زیاد بوو.")
 	return true
 func take_contract(kind: String) -> bool:
 	if hostile() or not state.contract.is_empty() or not kind in ["courier","escort","relief"]:
@@ -160,7 +160,7 @@ func take_contract(kind: String) -> bool:
 	var destination=faction*3+(1 if kind=="relief" else 0)
 	if destination==state.location:destination=faction*3+2
 	state.contract={"kind":kind,"destination":destination,"faction":faction,"deadline":state.day+12}
-	log("ئەرک وەرگیرا؛ بڕۆ بۆ "+world.settlements[destination].name+" و «تەواوکردن» دابگرە.")
+	record_event("ئەرک وەرگیرا؛ بڕۆ بۆ "+world.settlements[destination].name+" و «تەواوکردن» دابگرە.")
 	return true
 func deliver() -> bool:
 	var c=state.contract
@@ -173,7 +173,7 @@ func deliver() -> bool:
 	state.renown+=6 if c.kind=="courier" else 10
 	state.relations[c.faction]=mini(100,state.relations[c.faction]+6)
 	state.completed+=1
-	log("ئەرک تەواو بوو؛ زێڕ، ناوبانگ و متمانەت زیاد بوون.")
+	record_event("ئەرک تەواو بوو؛ زێڕ، ناوبانگ و متمانەت زیاد بوون.")
 	return true
 func audience() -> bool:
 	var f=owner()
@@ -182,25 +182,25 @@ func audience() -> bool:
 		state.audiences.append(f)
 		state.renown+=3
 		state.relations[f]=mini(100,state.relations[f]+3)
-	log("درباری "+world.factions[f].house+" ناسیت؛ شاه داوای خزمەت و وەزیر داوای بەڵگەی متمانە دەکات.")
+	record_event("درباری "+world.factions[f].house+" ناسیت؛ شاه داوای خزمەت و وەزیر داوای بەڵگەی متمانە دەکات.")
 	return true
 func gift() -> bool:
 	if hostile() or state.gold<20 or world.settlements[state.location].kind!="town":return reject("لە پایتەخت، ٢٠ زێڕ بۆ دیاری پێویستە.")
 	state.gold-=20
 	advance()
 	state.relations[owner()]=mini(100,state.relations[owner()]+4)
-	log("دیاریت پێشکەش کرد؛ متمانەی خانەدان ٤ پلە زیاد بوو.")
+	record_event("دیاریت پێشکەش کرد؛ متمانەی خانەدان ٤ پلە زیاد بوو.")
 	return true
 func swear() -> bool:
 	if state.oath>=0 or state.renown<25 or state.relations[owner()]<10 or world.settlements[state.location].kind!="town":return reject("٢٥ ناوبانگ، ١٠ متمانە و دیداری پایتەخت پێویستن؛ تەنها یەک سوێند هەیە.")
 	state.oath=owner()
-	log("سوێندت بۆ "+world.factions[state.oath].name+" خوارد؛ ئێستا فەرماندەیت و شەڕەکانیان کاریگەریت لێ دەکەن.")
+	record_event("سوێندت بۆ "+world.factions[state.oath].name+" خوارد؛ ئێستا فەرماندەیت و شەڕەکانیان کاریگەریت لێ دەکەن.")
 	return true
 func buy_home() -> bool:
 	if hostile() or state.gold<250 or state.location in state.homes:return reject("ماڵ ٢٥٠ زێڕە؛ لە هەر شوێنێک تەنها یەک ماڵ دەتوانیت بکڕیت.")
 	state.gold-=250
 	state.homes.append(int(state.location))
-	log("ماڵەکە بۆ تۆیە؛ پشووی باشتر و ١٤ زێڕ داهاتی هەفتانە هەیە.")
+	record_event("ماڵەکە بۆ تۆیە؛ پشووی باشتر و ١٤ زێڕ داهاتی هەفتانە هەیە.")
 	return true
 func petition() -> bool:
 	if rank()!=3 or state.renown<80 or state.completed<5 or state.relations[owner()]<35 or owner()!=state.oath or state.location!=state.oath*3:
@@ -208,7 +208,7 @@ func petition() -> bool:
 	var castle=state.oath*3+1
 	if owner(castle)!=state.oath:return reject("سەرەتا قەڵاکە لە دوژمن وەربگرەوە.")
 	state.governed=castle
-	log("بە والیی "+world.settlements[castle].name+" دانرایت؛ ١٢٠ زێڕ داهاتی هەفتانە و مافی خانووسازی.")
+	record_event("بە والیی "+world.settlements[castle].name+" دانرایت؛ ١٢٠ زێڕ داهاتی هەفتانە و مافی خانووسازی.")
 	return true
 func build_housing() -> bool:
 	if state.governed!=state.location or owner()!=state.oath or state.gold<120:return reject("لە قەڵای ژێر دەستی خۆت ١٢٠ زێڕ پێویستە.")
@@ -216,19 +216,19 @@ func build_housing() -> bool:
 	state.houses[state.location]+=4
 	state.population[state.location]+=20
 	advance(2)
-	log("چوار خانوو زیاد کران؛ ٢٠ کەس نیشتەجێ بوون.")
+	record_event("چوار خانوو زیاد کران؛ ٢٠ کەس نیشتەجێ بوون.")
 	return true
 func reinforce() -> bool:
 	if state.governed!=state.location or owner()!=state.oath or state.gold<40 or state.garrisons[state.location]>992:return reject("٤٠ زێڕ و قەڵای ژێر دەستی خۆت پێویستن.")
 	state.gold-=40
 	state.garrisons[state.location]+=8
-	log("هەشت پاسەوان بۆ پاراستنی قەڵاکەت دامەزران.")
+	record_event("هەشت پاسەوان بۆ پاراستنی قەڵاکەت دامەزران.")
 	return true
 func attack() -> bool:
 	if rank()<2 or not hostile() or count()<10 or state.health<30 or world.settlements[state.location].kind!="castle":return reject("بۆ هێرش: سوێند، دە سەرباز، تەندروستی و قەڵای ئیمپراتۆریەتێکی لە شەڕدا پێویستن.")
 	advance()
 	if not hostile():
-		log("پەیمانی ئاشتی گەیشت؛ هێرش هەڵوەشایەوە.");return true
+		record_event("پەیمانی ئاشتی گەیشت؛ هێرش هەڵوەشایەوە.");return true
 	var defense=state.garrisons[state.location]*2
 	var strength=power()
 	if strength>=defense:
@@ -237,13 +237,13 @@ func attack() -> bool:
 		state.garrisons[state.location]=8
 		state.renown+=15
 		state.relations[state.oath]=mini(100,state.relations[state.oath]+10)
-		log("هەژمارکردنی جەنگی ستراتیژی: سەرکەوتیت؛ زیان درا و پاسەوانی ئیمپراتۆریەت گەیشت. ئەمە جەنگی دەستیی سێ‌ڕەهەندی نییە.")
+		record_event("هەژمارکردنی جەنگی ستراتیژی: سەرکەوتیت؛ زیان درا و پاسەوانی ئیمپراتۆریەت گەیشت. ئەمە جەنگی دەستیی سێ‌ڕەهەندی نییە.")
 	else:
 		lose(maxi(2,ceili(count()*.5)))
 		state.gold=int(state.gold*.5)
 		state.health=25
 		state.morale=30
-		log("هەژمارکردنی جەنگی ستراتیژی: شکستت هێنا؛ نیوەی سوپا و زێڕ لەدەست چوون.")
+		record_event("هەژمارکردنی جەنگی ستراتیژی: شکستت هێنا؛ نیوەی سوپا و زێڕ لەدەست چوون.")
 	return true
 func save(path: String=SAVE) -> bool:
 	if not valid(state) or JSON.stringify(state).to_utf8_buffer().size()>131072:return false
