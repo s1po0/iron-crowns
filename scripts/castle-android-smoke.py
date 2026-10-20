@@ -41,7 +41,7 @@ try:
     tap('data')
     subprocess.run(['python3','scripts/godot-picker.py','Realm-Region-2-2.icregion'],check=True,timeout=90)
     wait('IRON_REGION_INSTALLED',180)
-    count=adb('exec-out','run-as',PKG,'ls','files/realm-regions/region_2_2').decode().splitlines()
+    count=adb('exec-out','run-as',PKG,'ls','-1','files/realm-regions/region_2_2').decode().split()
     assert len(count)==50,count
     tap('pause')
     tap('farm'); screenshot('02-farm-selected.png')
