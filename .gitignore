@@ -18,3 +18,9 @@ godot/android/.gdignore
 
 **/__pycache__/
 tools/human-preview/.godot/
+
+web/node_modules/
+web/dist/
+web/.env.local
+web/test-results/
+web/*.tsbuildinfo

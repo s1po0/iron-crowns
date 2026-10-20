@@ -1,5 +1,10 @@
 # Iron Crowns — The Ashen Marches
 
+## New: Sorani hybrid strategy web MVP
+
+The Phase 1 web game lives in [`web/`](web/README.md): React/Vite/TypeScript, Canvas world map, lazy-loaded three.js castle and battle scenes, and the connected Supabase backend. Run `cd web && npm ci && npm run dev`. The Android releases below are separate and unchanged.
+
+
 An original Android action-strategy prototype with a **large 3D campaign map** and third-person field battles, built with Godot 4.4.1.
 
 ![Actual third-person field rendering](docs/screenshots/iron-field.png)
