@@ -41,6 +41,7 @@ func run() -> void:
 	assert(Input.emulate_mouse_from_touch,"RTS Controls need touch-to-button translation")
 	var column=game.ui.intro.get_child(0)
 	var start_button=column.get_child(column.get_child_count()-1)
+	print("Touch startup: button=",start_button.get_global_rect()," viewport=",root.get_visible_rect())
 	for pressed in [true,false]:
 		var touch=InputEventScreenTouch.new()
 		touch.index=0
