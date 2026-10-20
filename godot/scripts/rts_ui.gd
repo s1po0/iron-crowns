@@ -16,6 +16,7 @@ var management: HBoxContainer
 var management_info: Label
 var pause_button: Button
 var build_button: Button
+var data_button: Button
 var save_button: Button
 var train_button: Button
 var placement_panel: PanelContainer
@@ -77,7 +78,7 @@ func setup(game: Node) -> void:
 	save_button=button("پاشەکەوت",game.save_game,row)
 	pause_button=button("وەستان",game.toggle_pause,row)
 	button("دەنگ",game.toggle_sound,row,65)
-	button("Data +",game.import_region,row,85)
+	data_button=button("Data +",game.import_region,row,85)
 	button("١× / ٤×",game.toggle_speed,row,80)
 	var objective=PanelContainer.new()
 	objective.position=Vector2(16,82)

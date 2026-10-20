@@ -409,4 +409,6 @@ func region_selected(path: String) -> void:
 	if path.ends_with("selected-region.part"):
 		DirAccess.remove_absolute(path)
 	region_importing=false
+	if error.is_empty():
+		print("IRON_REGION_INSTALLED")
 	ui.notice.text="Data دامەزرا؛ بۆ یاری «بەردەوام بە» دابگرە." if error.is_empty() else error

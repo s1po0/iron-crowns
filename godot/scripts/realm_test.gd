@@ -9,6 +9,22 @@ func run() -> void:
 	assert(RealmRegions.texture(12,12,"albedo",0).get_width()==512)
 	assert(RealmRegions.texture(12,12,"normal",1).get_width()==1024)
 	var original=RealmRegions.generation
+	var fixture=FileAccess.open(args[1],FileAccess.READ)
+	fixture.get_buffer(8)
+	var count=fixture.get_32()
+	var manifest=JSON.parse_string(fixture.get_buffer(count).get_string_from_utf8())
+	fixture.close()
+	for attack in ["../escape.png","0_0_albedo.png"]:
+		var invalid=manifest.duplicate(true)
+		invalid.files[1].name=attack
+		var header=JSON.stringify(invalid).to_utf8_buffer()
+		var output=FileAccess.open("user://bad-path.icregion",FileAccess.WRITE)
+		output.store_buffer("ICREG002".to_utf8_buffer())
+		output.store_32(header.size())
+		output.store_buffer(header)
+		output.close()
+		assert(not (await RealmRegions.install("user://bad-path.icregion",self)).is_empty())
+	assert(not FileAccess.file_exists("user://escape.png"))
 	# Damage a small fixture without loading the production region into memory.
 	var bytes=FileAccess.get_file_as_bytes(args[1])
 	bytes[bytes.size()-1]^=1

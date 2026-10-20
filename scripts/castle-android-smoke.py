@@ -36,7 +36,15 @@ try:
     assert points['viewport']==[1280,720],points
     def tap(name): tap_xy(*points[name])
     tap('mission'); time.sleep(4)
-    tap('start'); tap('farm'); screenshot('02-farm-selected.png')
+    tap('start')
+    adb('push','build/realm-sample/Realm-Region-2-2.icregion','/sdcard/Download/Realm-Region-2-2.icregion')
+    tap('data')
+    subprocess.run(['python3','scripts/godot-picker.py','Realm-Region-2-2.icregion'],check=True,timeout=90)
+    wait('IRON_REGION_INSTALLED',180)
+    count=adb('exec-out','run-as',PKG,'ls','files/realm-regions/region_2_2').decode().splitlines()
+    assert len(count)==50,count
+    tap('pause')
+    tap('farm'); screenshot('02-farm-selected.png')
     tap('suggest'); screenshot('03-farm-position.png')
     tap('build')
     # Software-emulated graphics can advance simulation much slower than wall time.
