@@ -1,0 +1,121 @@
+name: Crown Android verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  castle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: bash scripts/godot-ci-setup.sh
+      - name: Build a real streamed region and adversarial test fixtures
+        run: |
+          pip install numpy==2.2.6 pillow==11.2.1
+          python3 scripts/build-realm-data.py build/realm-sample --region 2 2
+          python3 scripts/build-realm-data.py build/realm-fixture --region 0 0 --test-fixture
+      - name: Wait for the exact complete-Data producer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run watch 39380346126 --exit-status --interval 20
+      - name: Download the single complete Data (all terrain included)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          gh release download v0.12.0-complete-data --pattern '*.icdata' --pattern '*.manifest.json' --pattern '*.sha256' -D artifacts
+          (cd artifacts && sha256sum -c *.sha256)
+      - name: Parse and test production chain, movement, combat and saves
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/rts-import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-import.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --quit-after 240 --script res://scripts/rts_test.gd 2>&1 | tee artifacts/rts-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-tests.log
+          grep -q IRON_RTS_TEST_PASS artifacts/rts-tests.log
+          godot --headless --path godot --script res://scripts/realm_test.gd -- "$PWD/build/realm-sample/Realm-Region-2-2.icregion" "$PWD/build/realm-fixture/Realm-Region-0-0.icregion" 2>&1 | tee artifacts/realm-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/realm-tests.log
+          grep -q IRON_REALM_TEST_PASS artifacts/realm-tests.log
+          timeout 300 godot --headless --path godot --script res://scripts/complete_data_test.gd -- "$PWD/artifacts/Iron-Crowns-0.12.0-Complete-Data.icdata" 2>&1 | tee artifacts/complete-data-tests.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/complete-data-tests.log
+          grep -q IRON_COMPLETE_DATA_TEST_PASS artifacts/complete-data-tests.log
+          cp /tmp/rts-touch-points.json artifacts/
+      - name: Exercise campaign progression and real cloud story
+        shell: bash
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --audio-driver Dummy --script res://scripts/crown_test.gd -- --crown-offline 2>&1 | tee artifacts/crown-tests.log
+          if grep -E 'SCRIPT ERROR|Parse Error' artifacts/crown-tests.log; then exit 1; fi
+          grep -q IRON_CROWN_TEST_PASS artifacts/crown-tests.log
+          cp /tmp/crown-touch-points.json artifacts/
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://campaign.tscn -- --crown-offline --crown-capture 2>&1 | tee artifacts/crown-render.log
+          grep -q IRON_CROWN_RENDER_PASS artifacts/crown-render.log
+          cp /tmp/iron-crown-campaign.png artifacts/
+      - name: Capture actual castle scene
+        shell: bash
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture 2>&1 | tee artifacts/rts-render.log
+          ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-render.log
+          grep -q IRON_RTS_RENDER_PASS artifacts/rts-render.log
+          cp /tmp/iron-castle-rts.png artifacts/
+          for mission in realm_crossing realm_ridge; do
+            LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://rts.tscn -- --rts-capture --mission=$mission 2>&1 | tee artifacts/rts-$mission.log
+            ! grep -E 'SCRIPT ERROR|Parse Error' artifacts/rts-$mission.log
+            grep -q IRON_RTS_RENDER_PASS artifacts/rts-$mission.log
+            cp /tmp/iron-castle-rts.png artifacts/complete-$mission.png
+          done
+      - name: Export independent Android package and genuine Data
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/godot-android-template.sh
+          godot --headless --path godot --export-debug CastleRTS "$PWD/artifacts/Iron-Crowns-0.13.0-Crown-Campaign.apk" 2>&1 | tee artifacts/rts-export.log
+          test -s artifacts/Iron-Crowns-0.13.0-Crown-Campaign.apk
+          cd artifacts
+          sha256sum *.apk *.icdata > SHA256SUMS.txt
+      - name: Prepare Android farm construction smoke test
+        run: |
+          (cd godot/android/build && ./gradlew --stop) || true
+          pkill -f '[K]otlinCompileDaemon' || true
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          Xvfb :99 -screen 0 1280x720x24 > /tmp/android-display.log 2>&1 &
+          echo 'DISPLAY=:99' >> "$GITHUB_ENV"
+          echo 'LIBGL_ALWAYS_SOFTWARE=1' >> "$GITHUB_ENV"
+          echo 'LP_NUM_THREADS=2' >> "$GITHUB_ENV"
+      - name: Install Android APK, import Data and build a farm through touch
+        timeout-minutes: 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-boot-timeout: 180
+          emulator-options: -memory 2048 -partition-size 6144 -cores 2 -no-window -gpu swangle -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          script: python3 scripts/crown-android-smoke.py
+      - name: Summarize diagnostics
+        if: always()
+        run: |
+          python3 - <<'PYLOG'
+          from pathlib import Path
+          for p in Path('artifacts').rglob('*.log'):
+              text=p.read_text(errors='replace')[-6000:]
+              print('::notice title='+p.name+'::'+text.replace('%','%25').replace('\n','%0A').replace('\r','%0D'))
+          PYLOG
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crown-android-preview
+          path: artifacts/
+          retention-days: 30
