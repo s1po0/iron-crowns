@@ -110,7 +110,7 @@ func refresh() -> void:
 		detail.text=story.title+"\n\n"
 		for c in story.chapters:detail.text+=c.title+"\n"+c.text+"\n\n"
 		detail.text+="تۆماری گەشت\n"+"\n".join(s.journal)
-	for child in actions.get_children():actions.remove_child(child);child.queue_free()
+	for child in actions.get_children():child.visible=false;child.queue_free()
 	if page=="map":
 		info.text+="\nمەبەست: "+sim.world.settlements[picked].name
 		add_action("travel","گەشت بۆ مەبەست",func():return sim.travel(picked),true)

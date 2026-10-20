@@ -257,7 +257,9 @@ func restore(path: String=SAVE) -> bool:
 	if not FileAccess.file_exists(path):return false
 	var file=FileAccess.open(path,FileAccess.READ)
 	if file==null or file.get_length()>131072:return false
-	var raw=JSON.parse_string(file.get_as_text());file.close()
+	var parser=JSON.new()
+	var error=parser.parse(file.get_as_text());file.close()
+	var raw=parser.data if error==OK else null
 	if not valid(raw):return false
 	for key in ["day","location","gold","food","renown","morale","health","oath","governed","completed","rng"]:raw[key]=int(raw[key])
 	for key in ["relations","owners","garrisons","population","houses","homes","audiences"]:raw[key]=raw[key].map(func(v):return int(v))

@@ -26,16 +26,18 @@ jobs:
           mkdir -p artifacts
           godot --headless --path godot --editor --import --quit 2>&1 | tee artifacts/import.log
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/import.log; then exit 1; fi
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --script res://scripts/crown_test.gd -- --crown-offline 2>&1 | tee artifacts/crown-tests.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240 xvfb-run -a godot --path godot --audio-driver Dummy --script res://scripts/crown_test.gd -- --crown-offline 2>&1 | tee artifacts/crown-tests.log
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/crown-tests.log; then exit 1; fi
           grep -q IRON_CROWN_TEST_PASS artifacts/crown-tests.log
           cp /tmp/crown-touch-points.json artifacts/
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot res://campaign.tscn -- --crown-offline --crown-capture 2>&1 | tee artifacts/render.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 180 xvfb-run -a godot --path godot --audio-driver Dummy res://campaign.tscn -- --crown-offline --crown-capture 2>&1 | tee artifacts/render.log
           grep -q IRON_CROWN_RENDER_PASS artifacts/render.log
           if grep -E 'SCRIPT ERROR|Parse Error' artifacts/render.log; then exit 1; fi
           cp /tmp/iron-crown-campaign.png artifacts/
       - name: Preserve actual campaign render for review
         run: |
+          git fetch origin arena/94d215f9-iron-crowns
+          git rebase origin/arena/94d215f9-iron-crowns
           mkdir -p docs/screenshots
           cp artifacts/iron-crown-campaign.png docs/screenshots/crown-campaign-review.png
           git config user.name github-actions
@@ -43,8 +45,6 @@ jobs:
           git add docs/screenshots/crown-campaign-review.png
           if ! git diff --cached --quiet; then
             git commit -m 'docs: capture actual Crown campaign scene'
-            git fetch origin arena/94d215f9-iron-crowns
-            git rebase origin/arena/94d215f9-iron-crowns
             git push origin HEAD:arena/94d215f9-iron-crowns
           fi
       - name: Summarize diagnostics
