@@ -67,3 +67,7 @@ Covers map topology and bridge routing, placement/overlap/bounds, exact resource
 ## Platform and scope
 
 The intended Android package is `com.ironcrowns.unrealprototype`, independent of previous apps. Android output is not built yet. The mobile-oriented renderer settings disable Lumen methods/virtual shadows/motion blur; they are **configuration intentions, not certified 4/6/8-GB performance**. No 1-GB asset library, OBB, authenticated Android Supabase save or Dropbox save integration is included.
+
+### Recorded verification
+
+Portable-rule CI [39375574500](https://github.com/s1po0/iron-crowns/actions/runs/39375574500) passed for source commit `c175fc6`. Local GCC sanitizer tests also passed with warnings treated as errors. These are **portable C++ checks only**, not Unreal Editor/UHT/Android compilation. No old Android release was replaced.
